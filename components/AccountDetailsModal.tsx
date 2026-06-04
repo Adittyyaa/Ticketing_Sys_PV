@@ -52,7 +52,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
             .insert([{
               id: user.id,
               email: user.email || '',
-              full_name: user.user_metadata?.full_name || '',
+              full_name: '',
               role: 'user',
               created_at: new Date().toISOString(),
             }])
