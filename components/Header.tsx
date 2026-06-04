@@ -21,11 +21,6 @@ export default function Header() {
     router.push('/auth')
   }
 
-  const handleAccountDetails = () => {
-    setShowAccountModal(true)
-    setShowMenu(false)
-  }
-
   return (
     <>
       <header className="border-b border-slate-700 bg-slate-900">
@@ -47,6 +42,14 @@ export default function Header() {
               <Bell size={20} />
             </button>
 
+            <button
+              onClick={() => setShowAccountModal(true)}
+              className="text-slate-400 hover:text-white transition-colors"
+              title="Account Details"
+            >
+              <User size={20} />
+            </button>
+
             <div className="relative">
               <button
                 onClick={() => setShowMenu(!showMenu)}
@@ -62,14 +65,6 @@ export default function Header() {
                     <p className="text-white font-medium text-sm break-all">{user?.email}</p>
                     <p className="text-xs text-slate-400 capitalize mt-1">Role: {isAdmin ? 'admin' : 'user'}</p>
                   </div>
-                  
-                  <button
-                    onClick={handleAccountDetails}
-                    className="w-full flex items-center gap-2 px-4 py-3 text-slate-300 hover:bg-slate-700 transition-colors border-b border-slate-700"
-                  >
-                    <User size={18} />
-                    Account Details
-                  </button>
                   
                   <button
                     onClick={handleLogout}

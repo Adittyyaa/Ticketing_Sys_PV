@@ -28,7 +28,6 @@ export interface User {
   phone?: string
   job_title?: string
   company?: string
-  bio?: string
 }
 
 export interface Comment {

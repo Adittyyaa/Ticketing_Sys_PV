@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, Loader, Check, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
 
 interface AccountDetailsModalProps {
   isOpen: boolean
@@ -15,11 +15,9 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
   const { user } = useAuthStore()
   const [formData, setFormData] = useState({
     full_name: '',
-    email: '',
     phone: '',
     job_title: '',
     company: '',
-    bio: '',
   })
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
@@ -53,11 +51,9 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
       if (data) {
         setFormData({
           full_name: data.full_name || '',
-          email: data.email || '',
           phone: data.phone || '',
           job_title: data.job_title || '',
           company: data.company || '',
-          bio: data.bio || '',
         })
         setJoiningDate(data.created_at)
         setRole(data.role)
@@ -92,7 +88,6 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
           phone: formData.phone,
           job_title: formData.job_title,
           company: formData.company,
-          bio: formData.bio,
         })
         .eq('id', user.id)
 
@@ -154,7 +149,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
               <div className="space-y-3 bg-slate-900 p-4 rounded-lg">
                 <div>
                   <label className="text-xs text-slate-400 uppercase tracking-wider">Email</label>
-                  <p className="text-white font-medium break-all">{formData.email}</p>
+                  <p className="text-white font-medium break-all">{user?.email}</p>
                 </div>
 
                 <div>
@@ -180,7 +175,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                     {joiningDate && formatDistanceToNow(new Date(joiningDate), { addSuffix: true })}
                   </p>
                   <p className="text-xs text-slate-500 mt-1">
-                    {joiningDate && new Date(joiningDate).toLocaleDateString()}
+                    {joiningDate && format(new Date(joiningDate), 'MMM d, yyyy')}
                   </p>
                 </div>
               </div>
@@ -240,20 +235,6 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                     onChange={handleInputChange}
                     className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                     placeholder="Your company name"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-sm font-medium text-slate-300 block mb-1">
-                    Bio
-                  </label>
-                  <textarea
-                    name="bio"
-                    value={formData.bio}
-                    onChange={handleInputChange}
-                    rows={3}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
-                    placeholder="Tell us about yourself..."
                   />
                 </div>
               </div>
