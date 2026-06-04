@@ -106,23 +106,24 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-slate-800 border border-slate-700 rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 bg-black/75 backdrop-blur-sm flex items-center justify-center z-50 p-4 animate-fade-in">
+      <div className="glass-light rounded-3xl shadow-2xl max-w-md w-full max-h-[90vh] overflow-hidden animate-fade-in">
         {/* Header */}
-        <div className="sticky top-0 flex items-center justify-between p-6 border-b border-slate-700 bg-slate-800">
+        <div className="flex items-center justify-between p-6 border-b border-white/5">
           <h2 className="text-xl font-semibold text-white">Account Details</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors"
+            className="p-2 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all duration-200"
+            aria-label="Close"
           >
-            <X size={24} />
+            <X size={20} />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-4">
+        <div className="p-6 space-y-6 overflow-y-auto max-h-[calc(90vh-180px)]">
           {isLoading ? (
-            <div className="flex items-center justify-center py-8">
+            <div className="flex items-center justify-center py-12">
               <Loader className="animate-spin text-blue-500" size={32} />
             </div>
           ) : (
@@ -130,45 +131,45 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
               {/* Messages */}
               {message && (
                 <div
-                  className={`p-3 rounded-lg flex items-gap-2 ${
+                  className={`p-4 rounded-2xl flex items-center gap-3 ${
                     message.type === 'success'
-                      ? 'bg-green-900 text-green-200 border border-green-700'
-                      : 'bg-red-900 text-red-200 border border-red-700'
+                      ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
+                      : 'bg-red-500/10 text-red-300 border border-red-500/20'
                   }`}
                 >
                   {message.type === 'success' ? (
-                    <Check size={18} className="mr-2 flex-shrink-0" />
+                    <Check size={18} className="flex-shrink-0" />
                   ) : (
-                    <AlertCircle size={18} className="mr-2 flex-shrink-0" />
+                    <AlertCircle size={18} className="flex-shrink-0" />
                   )}
-                  <span className="text-sm">{message.text}</span>
+                  <span className="text-sm font-medium">{message.text}</span>
                 </div>
               )}
 
               {/* Read-only Fields */}
-              <div className="space-y-3 bg-slate-900 p-4 rounded-lg">
+              <div className="space-y-4 p-5 rounded-2xl bg-white/5 border border-white/5">
                 <div>
-                  <label className="text-xs text-slate-400 uppercase tracking-wider">Email</label>
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">Email</label>
                   <p className="text-white font-medium break-all">{user?.email}</p>
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 uppercase tracking-wider">Role</label>
-                  <p className="text-white font-medium capitalize">
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">Role</label>
+                  <div className="inline-flex">
                     {role === 'admin' ? (
-                      <span className="bg-purple-900 text-purple-200 px-2 py-1 rounded text-xs">
+                      <span className="px-3 py-1.5 rounded-full bg-purple-500/10 text-purple-300 text-sm font-medium border border-purple-500/20">
                         Administrator
                       </span>
                     ) : (
-                      <span className="bg-blue-900 text-blue-200 px-2 py-1 rounded text-xs">
+                      <span className="px-3 py-1.5 rounded-full bg-blue-500/10 text-blue-300 text-sm font-medium border border-blue-500/20">
                         User
                       </span>
                     )}
-                  </p>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="text-xs text-slate-400 uppercase tracking-wider">
+                  <label className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-2 block">
                     Member Since
                   </label>
                   <p className="text-white font-medium">
@@ -180,7 +181,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
               {/* Editable Fields */}
               <div className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-slate-300 block mb-1">
+                  <label className="text-sm font-medium text-slate-300 mb-2 block">
                     Full Name
                   </label>
                   <input
@@ -188,13 +189,13 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                     name="full_name"
                     value={formData.full_name}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     placeholder="Enter your full name"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-slate-300 block mb-1">
+                  <label className="text-sm font-medium text-slate-300 mb-2 block">
                     Phone Number
                   </label>
                   <input
@@ -202,13 +203,13 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                     name="phone"
                     value={formData.phone}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     placeholder="+1 (555) 000-0000"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-slate-300 block mb-1">
+                  <label className="text-sm font-medium text-slate-300 mb-2 block">
                     Job Title
                   </label>
                   <input
@@ -216,13 +217,13 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                     name="job_title"
                     value={formData.job_title}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     placeholder="e.g., Software Engineer"
                   />
                 </div>
 
                 <div>
-                  <label className="text-sm font-medium text-slate-300 block mb-1">
+                  <label className="text-sm font-medium text-slate-300 mb-2 block">
                     Company
                   </label>
                   <input
@@ -230,7 +231,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                     name="company"
                     value={formData.company}
                     onChange={handleInputChange}
-                    className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
                     placeholder="Your company name"
                   />
                 </div>
@@ -241,17 +242,17 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
 
         {/* Footer */}
         {!isLoading && (
-          <div className="sticky bottom-0 flex gap-2 p-6 border-t border-slate-700 bg-slate-800">
+          <div className="flex gap-3 p-6 border-t border-white/5">
             <button
               onClick={onClose}
-              className="flex-1 px-4 py-2 bg-slate-700 text-white rounded hover:bg-slate-600 transition-colors font-medium"
+              className="flex-1 px-4 py-3 bg-white/5 text-white rounded-xl hover:bg-white/10 transition-all duration-200 font-medium"
             >
               Close
             </button>
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 hover:shadow-lg hover:shadow-blue-500/25 transition-all duration-200 font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {isSaving ? (
                 <>
