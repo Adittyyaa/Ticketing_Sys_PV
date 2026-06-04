@@ -24,6 +24,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [joiningDate, setJoiningDate] = useState('')
   const [role, setRole] = useState('')
+  const [isEditable, setIsEditable] = useState(true)
 
   // Load user data
   useEffect(() => {
@@ -79,10 +80,14 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
           full_name: data.full_name || '',
           phone: data.phone || '',
           job_title: data.job_title || '',
-          company: data.company || '',
+          company: 'PV Advisory',
         })
         setJoiningDate(data.created_at)
         setRole(data.role)
+        // Disable editing if user already has saved details
+        if (data.full_name || data.phone || data.job_title) {
+          setIsEditable(false)
+        }
       }
     } catch (error) {
       console.error('Error loading user data:', error)
@@ -222,61 +227,66 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
 
               {/* Editable Fields */}
               <div className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-slate-300 mb-2 block">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    name="full_name"
-                    value={formData.full_name}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    placeholder="Enter your full name"
-                  />
-                </div>
+                {isEditable && (
+                  <>
+                    <div>
+                      <label className="text-sm font-medium text-slate-300 mb-2 block">
+                        Full Name
+                      </label>
+                      <input
+                        type="text"
+                        name="full_name"
+                        value={formData.full_name}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        placeholder="Enter your full name"
+                      />
+                    </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-300 mb-2 block">
-                    Phone Number
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={formData.phone}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    placeholder="+1 (555) 000-0000"
-                  />
-                </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-300 mb-2 block">
+                        Phone Number
+                      </label>
+                      <input
+                        type="tel"
+                        name="phone"
+                        value={formData.phone}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        placeholder="+1 (555) 000-0000"
+                      />
+                    </div>
 
-                <div>
-                  <label className="text-sm font-medium text-slate-300 mb-2 block">
-                    Job Title
-                  </label>
-                  <input
-                    type="text"
-                    name="job_title"
-                    value={formData.job_title}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    placeholder="e.g., Software Engineer"
-                  />
-                </div>
+                    <div>
+                      <label className="text-sm font-medium text-slate-300 mb-2 block">
+                        Job Title
+                      </label>
+                      <input
+                        type="text"
+                        name="job_title"
+                        value={formData.job_title}
+                        onChange={handleInputChange}
+                        className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
+                        placeholder="e.g., Software Engineer"
+                      />
+                    </div>
+                  </>
+                )}
 
                 <div>
                   <label className="text-sm font-medium text-slate-300 mb-2 block">
                     Company
                   </label>
-                  <input
-                    type="text"
-                    name="company"
-                    value={formData.company}
-                    onChange={handleInputChange}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
-                    placeholder="Your company name"
-                  />
+                  <div className="px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white">
+                    PV Advisory
+                  </div>
                 </div>
+
+                {!isEditable && (
+                  <div className="p-4 rounded-2xl bg-blue-500/10 text-blue-300 border border-blue-500/20">
+                    <p className="text-sm font-medium">✓ Profile saved. Details are locked and cannot be changed.</p>
+                  </div>
+                )}
               </div>
             </>
           )}
