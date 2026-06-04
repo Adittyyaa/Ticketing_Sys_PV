@@ -15,7 +15,7 @@ import Link from 'next/link'
 export default function AdminDashboard() {
   const router = useRouter()
   const { user, setUser, setLoading, isAdmin, setIsAdmin } = useAuthStore()
-  const { tickets, setTickets, filters } = useTicketStore()
+  const { setTickets, filters } = useTicketStore()
   const [activeTab, setActiveTab] = useState<'my' | 'others'>('my')
   const [myTickets, setMyTickets] = useState<Ticket[]>([])
   const [otherTickets, setOtherTickets] = useState<Ticket[]>([])

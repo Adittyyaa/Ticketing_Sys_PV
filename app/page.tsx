@@ -8,7 +8,7 @@ import { supabase } from '@/lib/supabase'
 
 export default function Home() {
   const router = useRouter()
-  const { user, setUser, loading, setLoading, setIsAdmin } = useAuthStore()
+  const { setUser, setLoading, setIsAdmin } = useAuthStore()
   const [timeout, setTimeout] = useState(false)
 
   useEffect(() => {

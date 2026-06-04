@@ -17,7 +17,7 @@ interface User {
 
 export default function UserManagementPage() {
   const router = useRouter()
-  const { user, isAdmin } = useAuthStore()
+  const { isAdmin } = useAuthStore()
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)

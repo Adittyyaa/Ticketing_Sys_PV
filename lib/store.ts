@@ -1,5 +1,11 @@
 import { create } from 'zustand'
-import { Ticket, User } from './types'
+import { Ticket, UserRole } from './types'
+
+interface AuthUser {
+  id: string
+  email: string
+  role?: UserRole
+}
 
 interface TicketStore {
   tickets: Ticket[]
@@ -39,8 +45,8 @@ export const useTicketStore = create<TicketStore>((set) => ({
 }))
 
 interface AuthStore {
-  user: User | null
-  setUser: (user: User | null) => void
+  user: AuthUser | null
+  setUser: (user: AuthUser | null) => void
   loading: boolean
   setLoading: (loading: boolean) => void
   isAdmin: boolean
