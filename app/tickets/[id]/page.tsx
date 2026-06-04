@@ -10,7 +10,6 @@ import Link from 'next/link'
 import { Ticket, Status, Priority } from '@/lib/types'
 import { formatDistanceToNow, format } from 'date-fns'
 import jsPDF from 'jspdf'
-import html2canvas from 'html2canvas'
 
 import CommentsSection from '@/components/CommentsSection'
 import AttachmentsSection from '@/components/AttachmentsSection'
