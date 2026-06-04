@@ -71,35 +71,35 @@ export default function AdminDashboard() {
     checkAuth()
   }, [setUser, setLoading, setIsAdmin, router])
 
-  useEffect(() => {
+  const fetchAllTickets = async () => {
     if (!user || !isAdmin) return
 
-    const fetchAllTickets = async () => {
-      try {
-        let query = supabase.from('tbl_tickets').select('*').order('created_at', { ascending: false })
+    try {
+      let query = supabase.from('tbl_tickets').select('*').order('created_at', { ascending: false })
 
-        if (filters.search) {
-          query = query.ilike('title', `%${filters.search}%`)
-        }
-
-        const { data, error } = await query
-
-        if (error) throw error
-
-        const allTickets = (data || []) as Ticket[]
-        
-        // Separate tickets into "my tickets" and "other tickets"
-        const my = allTickets.filter(ticket => ticket.user_id === user.id)
-        const others = allTickets.filter(ticket => ticket.user_id !== user.id)
-        
-        setMyTickets(my)
-        setOtherTickets(others)
-        setTickets(allTickets)
-      } catch (error) {
-        console.error('Failed to fetch tickets:', error)
+      if (filters.search) {
+        query = query.ilike('title', `%${filters.search}%`)
       }
-    }
 
+      const { data, error } = await query
+
+      if (error) throw error
+
+      const allTickets = (data || []) as Ticket[]
+      
+      // Separate tickets into "my tickets" and "other tickets"
+      const my = allTickets.filter(ticket => ticket.user_id === user.id)
+      const others = allTickets.filter(ticket => ticket.user_id !== user.id)
+      
+      setMyTickets(my)
+      setOtherTickets(others)
+      setTickets(allTickets)
+    } catch (error) {
+      console.error('Failed to fetch tickets:', error)
+    }
+  }
+
+  useEffect(() => {
     fetchAllTickets()
   }, [user, isAdmin, filters.search, setTickets])
 
@@ -153,7 +153,13 @@ export default function AdminDashboard() {
             </div>
             <div className="flex gap-3 mb-2">
               <ExportButton tickets={displayedTickets} />
-              <Link href="/admin/users" className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors">
+              <Link href="/admin/manage-admins" className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+                Manage Admins
+              </Link>
+              <Link href="/admin/users" className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors">
                 Add User
               </Link>
             </div>
@@ -165,7 +171,7 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-semibold text-white mb-4">
             {activeTab === 'my' ? 'Tickets Raised by Me' : 'Tickets Raised by Other Users'}
           </h2>
-          <TicketTable tickets={displayedTickets} />
+          <TicketTable tickets={displayedTickets} onTicketsDeleted={fetchAllTickets} />
           {displayedTickets.length === 0 && (
             <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center">
               <p className="text-slate-400">No tickets found in this category</p>
