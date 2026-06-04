@@ -25,6 +25,10 @@ export interface User {
   avatar_url?: string
   role: UserRole
   created_at: string
+  phone?: string
+  job_title?: string
+  company?: string
+  bio?: string
 }
 
 export interface Comment {
