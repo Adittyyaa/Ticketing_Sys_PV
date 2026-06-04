@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, Plus, Download } from 'lucide-react'
+import { Search, Plus } from 'lucide-react'
 import { useTicketStore } from '@/lib/store'
 import Link from 'next/link'
 
@@ -19,10 +19,6 @@ export default function FilterBar() {
             <Plus size={18} />
             Add ticket
           </Link>
-          <button className="flex items-center gap-2 border border-slate-600 hover:border-slate-500 px-4 py-2 rounded-lg text-slate-300 font-medium transition-colors">
-            <Download size={18} />
-            Export
-          </button>
         </div>
       </div>
 

@@ -35,3 +35,7 @@ lerna-debug.log*
 
 # Vercel
 .vercel
+
+# Generated files
+*.pdf
+*.csv

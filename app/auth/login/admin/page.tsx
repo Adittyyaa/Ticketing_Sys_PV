@@ -7,7 +7,7 @@ import { Mail, Lock } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 
-export default function UserLoginPage() {
+export default function AdminLoginPage() {
   const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -28,19 +28,19 @@ export default function UserLoginPage() {
 
       if (signInError) throw signInError
 
-      // Verify user role
+      // Verify admin role
       const { data: userData } = await supabase
         .from('users')
         .select('role')
         .eq('id', data.user.id)
         .single()
 
-      if (userData?.role !== 'user') {
+      if (userData?.role !== 'admin') {
         await supabase.auth.signOut()
-        throw new Error('Invalid credentials for user login. Please use admin login.')
+        throw new Error('Invalid credentials for admin login. Please use user login.')
       }
 
-      router.push('/tickets')
+      router.push('/admin')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to login')
     } finally {
@@ -56,7 +56,7 @@ export default function UserLoginPage() {
       const { error: googleError } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/auth/callback?role=user`,
+          redirectTo: `${window.location.origin}/auth/callback?role=admin`,
         },
       })
 
@@ -73,8 +73,8 @@ export default function UserLoginPage() {
         <div className="bg-slate-900 border border-slate-700 rounded-lg p-8">
           <div className="text-center mb-8">
             <Image src="/logo.jpeg" alt="Logo" width={80} height={80} className="rounded-lg mx-auto mb-4" />
-            <h1 className="text-2xl font-semibold text-white">User Login</h1>
-            <p className="text-slate-400 text-sm mt-1">Access your support tickets</p>
+            <h1 className="text-2xl font-semibold text-white">Admin Login</h1>
+            <p className="text-slate-400 text-sm mt-1">Manage support tickets and users</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -129,8 +129,8 @@ export default function UserLoginPage() {
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-                  placeholder="you@example.com"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
+                  placeholder="admin@example.com"
                 />
               </div>
             </div>
@@ -144,7 +144,7 @@ export default function UserLoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
+                  className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 transition-colors"
                   placeholder="••••••••"
                 />
               </div>
@@ -153,7 +153,7 @@ export default function UserLoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900 px-4 py-2 rounded-lg text-white font-medium transition-colors mt-6"
+              className="w-full bg-purple-600 hover:bg-purple-700 disabled:bg-purple-900 px-4 py-2 rounded-lg text-white font-medium transition-colors mt-6"
             >
               {loading ? 'Signing in...' : 'Sign in'}
             </button>
@@ -161,9 +161,9 @@ export default function UserLoginPage() {
 
           <div className="mt-6 text-center">
             <p className="text-slate-400 text-sm">
-              Don't have an account?{' '}
-              <Link href="/auth/signup" className="text-blue-400 hover:text-blue-300">
-                Sign up
+              Don't have an admin account?{' '}
+              <Link href="/auth/signup" className="text-purple-400 hover:text-purple-300">
+                Contact support
               </Link>
             </p>
           </div>

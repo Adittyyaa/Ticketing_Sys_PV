@@ -33,7 +33,7 @@ export default function NewTicketPage() {
         } = await supabase.auth.getSession()
 
         if (!session?.user) {
-          router.push('/auth/login')
+          router.push('/auth')
           return
         }
 
@@ -44,7 +44,7 @@ export default function NewTicketPage() {
         setLoading(false)
       } catch (error) {
         console.error('Auth check failed:', error)
-        router.push('/auth/login')
+        router.push('/auth')
       }
     }
 

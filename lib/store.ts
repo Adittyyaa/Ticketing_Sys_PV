@@ -43,6 +43,8 @@ interface AuthStore {
   setUser: (user: User | null) => void
   loading: boolean
   setLoading: (loading: boolean) => void
+  isAdmin: boolean
+  setIsAdmin: (isAdmin: boolean) => void
 }
 
 export const useAuthStore = create<AuthStore>((set) => ({
@@ -50,4 +52,6 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setUser: (user) => set({ user }),
   loading: true,
   setLoading: (loading) => set({ loading }),
+  isAdmin: false,
+  setIsAdmin: (isAdmin) => set({ isAdmin }),
 }))

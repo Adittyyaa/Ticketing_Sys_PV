@@ -5,10 +5,15 @@ import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import Header from '@/components/Header'
-import { ArrowLeft, Edit2, Trash2 } from 'lucide-react'
+import { ArrowLeft, Edit2, Trash2, Download } from 'lucide-react'
 import Link from 'next/link'
 import { Ticket, Status, Priority } from '@/lib/types'
-import { formatDistanceToNow } from 'date-fns'
+import { formatDistanceToNow, format } from 'date-fns'
+import jsPDF from 'jspdf'
+import html2canvas from 'html2canvas'
+
+import CommentsSection from '@/components/CommentsSection'
+import AttachmentsSection from '@/components/AttachmentsSection'
 
 const statusOptions: Status[] = ['UNTOUCHED', 'PENDING', 'OPENED', 'SOLVED']
 const priorityOptions: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
@@ -45,7 +50,7 @@ export default function TicketDetailPage() {
         } = await supabase.auth.getSession()
 
         if (!session?.user) {
-          router.push('/auth/login')
+          router.push('/auth')
           return
         }
 
@@ -56,7 +61,7 @@ export default function TicketDetailPage() {
         setLoading(false)
       } catch (error) {
         console.error('Auth check failed:', error)
-        router.push('/auth/login')
+        router.push('/auth')
       }
     }
 
@@ -128,6 +133,177 @@ export default function TicketDetailPage() {
     }
   }
 
+  const handleMarkResolved = async () => {
+    if (!ticket) return
+
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({
+          status: 'SOLVED',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', ticket.id)
+        .eq('user_id', user?.id)
+
+      if (error) throw error
+
+      setTicket({ ...ticket, status: 'SOLVED' })
+    } catch (error) {
+      console.error('Failed to mark as resolved:', error)
+      alert('Failed to mark as resolved')
+    }
+  }
+
+  const handleMarkUnresolved = async () => {
+    if (!ticket) return
+
+    try {
+      const { error } = await supabase
+        .from('tickets')
+        .update({
+          status: 'OPENED',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', ticket.id)
+        .eq('user_id', user?.id)
+
+      if (error) throw error
+
+      setTicket({ ...ticket, status: 'OPENED' })
+    } catch (error) {
+      console.error('Failed to mark as unresolved:', error)
+      alert('Failed to mark as unresolved')
+    }
+  }
+
+  const handleExportPDF = async () => {
+    if (!ticket) return
+
+    try {
+      const element = document.getElementById('ticket-content')
+      if (!element) return
+
+      // Use jsPDF with better text-based approach
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'mm',
+        format: 'a4',
+      })
+
+      const pageWidth = pdf.internal.pageSize.getWidth()
+      const margin = 15
+      let yPosition = margin
+
+      // Add logo at top
+      try {
+        const logoImg = document.querySelector('img[src="/logo.jpeg"]') as HTMLImageElement
+        if (logoImg) {
+          pdf.addImage(logoImg.src, 'JPEG', margin, yPosition, 25, 25)
+          yPosition += 30
+        }
+      } catch (e) {
+        console.log('Logo not added')
+      }
+
+      // Set font for header
+      pdf.setFont(undefined, 'bold')
+      pdf.setFontSize(16)
+      pdf.text(`Ticket #${ticket.number}`, margin, yPosition)
+      yPosition += 10
+
+      pdf.setFontSize(12)
+      pdf.setFont(undefined, 'normal')
+      pdf.text(`${ticket.title}`, margin, yPosition)
+      yPosition += 15
+
+      // Add metadata
+      pdf.setFontSize(10)
+      pdf.setTextColor(120, 130, 140)
+      pdf.text(`Generated on: ${format(new Date(), 'PPP p')}`, margin, yPosition)
+      yPosition += 8
+
+      // Reset text color
+      pdf.setTextColor(0, 0, 0)
+      pdf.setFontSize(11)
+      pdf.setFont(undefined, 'bold')
+
+      // Add ticket details
+      yPosition += 5
+      pdf.text('Ticket Details:', margin, yPosition)
+      yPosition += 8
+
+      pdf.setFont(undefined, 'normal')
+      pdf.setFontSize(10)
+
+      const detailsText = [
+        `Status: ${ticket.status}`,
+        `Priority: ${ticket.priority}`,
+        `Category: ${ticket.category}`,
+        `Created: ${format(new Date(ticket.created_at), 'PPP p')}`,
+        `Last Updated: ${format(new Date(ticket.updated_at), 'PPP p')}`,
+      ]
+
+      detailsText.forEach((text) => {
+        if (yPosition > pageWidth - 20) {
+          pdf.addPage()
+          yPosition = margin
+        }
+        pdf.text(text, margin + 5, yPosition)
+        yPosition += 7
+      })
+
+      yPosition += 5
+      pdf.setFont(undefined, 'bold')
+      pdf.text('Description:', margin, yPosition)
+      yPosition += 8
+
+      // Add description with word wrap
+      pdf.setFont(undefined, 'normal')
+      const descriptionLines = pdf.splitTextToSize(ticket.description, pageWidth - margin * 2)
+      descriptionLines.forEach((line: string) => {
+        if (yPosition > pageWidth - 20) {
+          pdf.addPage()
+          yPosition = margin
+        }
+        pdf.text(line, margin, yPosition)
+        yPosition += 6
+      })
+
+      // Add tags if any
+      if (ticket.tags.length > 0) {
+        yPosition += 5
+        if (yPosition > pageWidth - 20) {
+          pdf.addPage()
+          yPosition = margin
+        }
+
+        pdf.setFont(undefined, 'bold')
+        pdf.text('Tags:', margin, yPosition)
+        yPosition += 8
+
+        pdf.setFont(undefined, 'normal')
+        pdf.setFontSize(9)
+        const tagsText = ticket.tags.join(', ')
+        const tagsLines = pdf.splitTextToSize(tagsText, pageWidth - margin * 2)
+        tagsLines.forEach((line: string) => {
+          if (yPosition > pageWidth - 20) {
+            pdf.addPage()
+            yPosition = margin
+          }
+          pdf.text(line, margin, yPosition)
+          yPosition += 6
+        })
+      }
+
+      // Download PDF
+      pdf.save(`ticket-${ticket.number}.pdf`)
+    } catch (error) {
+      console.error('Failed to export PDF:', error)
+      alert('Failed to export PDF. Please try again.')
+    }
+  }
+
   if (!user || loading) return null
 
   if (!ticket) {
@@ -150,13 +326,37 @@ export default function TicketDetailPage() {
           Back to tickets
         </Link>
 
-        <div className="bg-slate-900 border border-slate-700 rounded-lg p-6">
+        <div className="bg-slate-900 border border-slate-700 rounded-lg p-6" id="ticket-content">
           <div className="flex items-start justify-between mb-6">
             <div>
               <p className="text-sm text-slate-400 mb-2">#{ticket.number}</p>
               <h1 className="text-3xl font-semibold text-white">{ticket.title}</h1>
             </div>
-            <div className="flex gap-2">
+            <div className="flex gap-2 flex-wrap justify-end">
+              <button
+                onClick={handleExportPDF}
+                className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white transition-colors"
+              >
+                <Download size={18} />
+                Export PDF
+              </button>
+              {ticket.status === 'SOLVED' ? (
+                <button
+                  onClick={handleMarkUnresolved}
+                  className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white transition-colors font-medium"
+                  title="Mark as unresolved"
+                >
+                  Unresolved
+                </button>
+              ) : (
+                <button
+                  onClick={handleMarkResolved}
+                  className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 rounded-lg text-white transition-colors font-medium"
+                  title="Mark as resolved"
+                >
+                  Resolved
+                </button>
+              )}
               <button
                 onClick={() => setIsEditing(!isEditing)}
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors"
@@ -264,6 +464,16 @@ export default function TicketDetailPage() {
               </div>
             </div>
           </div>
+        </div>
+
+        {/* Comments Section */}
+        <div className="mt-6">
+          <CommentsSection ticketId={ticketId} />
+        </div>
+
+        {/* Attachments Section */}
+        <div className="mt-6">
+          <AttachmentsSection ticketId={ticketId} />
         </div>
       </main>
     </div>
