@@ -44,11 +44,37 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
         .single()
 
       if (error) {
-        console.error('Error loading user data:', error)
-        throw error
-      }
+        if (error.code === 'PGRST116') {
+          // User record doesn't exist, create it
+          console.log('Creating user record...')
+          const { data: newUser, error: createError } = await supabase
+            .from('tbl_users')
+            .insert([{
+              id: user.id,
+              email: user.email || '',
+              full_name: user.user_metadata?.full_name || '',
+              role: 'user',
+              created_at: new Date().toISOString(),
+            }])
+            .select()
+            .single()
 
-      if (data) {
+          if (createError) throw createError
+
+          if (newUser) {
+            setFormData({
+              full_name: newUser.full_name || '',
+              phone: newUser.phone || '',
+              job_title: newUser.job_title || '',
+              company: newUser.company || '',
+            })
+            setJoiningDate(newUser.created_at)
+            setRole(newUser.role)
+          }
+        } else {
+          throw error
+        }
+      } else if (data) {
         setFormData({
           full_name: data.full_name || '',
           phone: data.phone || '',
@@ -81,7 +107,8 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
     setMessage(null)
 
     try {
-      const { error } = await supabase
+      // Try to update first
+      const { error: updateError } = await supabase
         .from('tbl_users')
         .update({
           full_name: formData.full_name,
@@ -91,7 +118,22 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
         })
         .eq('id', user.id)
 
-      if (error) throw error
+      if (updateError) {
+        // If update fails, try to insert
+        const { error: insertError } = await supabase
+          .from('tbl_users')
+          .insert([{
+            id: user.id,
+            email: user.email || '',
+            full_name: formData.full_name,
+            phone: formData.phone,
+            job_title: formData.job_title,
+            company: formData.company,
+            role: 'user',
+          }])
+
+        if (insertError) throw insertError
+      }
 
       setMessage({ type: 'success', text: 'Account details updated successfully!' })
       setTimeout(() => setMessage(null), 3000)
