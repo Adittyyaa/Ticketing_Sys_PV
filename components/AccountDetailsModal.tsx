@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { X, Loader, Check, AlertCircle } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
-import { formatDistanceToNow, format } from 'date-fns'
+import { format } from 'date-fns'
 
 interface AccountDetailsModalProps {
   isOpen: boolean
@@ -172,9 +172,6 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                     Member Since
                   </label>
                   <p className="text-white font-medium">
-                    {joiningDate && formatDistanceToNow(new Date(joiningDate), { addSuffix: true })}
-                  </p>
-                  <p className="text-xs text-slate-500 mt-1">
                     {joiningDate && format(new Date(joiningDate), 'MMM d, yyyy')}
                   </p>
                 </div>
