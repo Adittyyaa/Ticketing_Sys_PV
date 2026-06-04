@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Comment } from '@/lib/types'
 import { useAuthStore } from '@/lib/store'
 import { Send, Trash2 } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
@@ -21,12 +20,13 @@ export default function CommentsSection({ ticketId }: CommentsSectionProps) {
 
   useEffect(() => {
     fetchComments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
 
   const fetchComments = async () => {
     try {
       const { data, error } = await supabase
-        .from('comments')
+        .from('tbl_comments')
         .select('*')
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true })
@@ -54,7 +54,7 @@ export default function CommentsSection({ ticketId }: CommentsSectionProps) {
     setSubmitting(true)
     try {
       const { data, error } = await supabase
-        .from('comments')
+        .from('tbl_comments')
         .insert([
           {
             ticket_id: ticketId,
@@ -72,7 +72,7 @@ export default function CommentsSection({ ticketId }: CommentsSectionProps) {
         throw error
       }
 
-      setComments([...comments, data])
+      setComments(prev => [...prev, data])
       setNewComment('')
     } catch (error) {
       console.error('Failed to post comment:', error)
@@ -87,7 +87,7 @@ export default function CommentsSection({ ticketId }: CommentsSectionProps) {
 
     try {
       const { error } = await supabase
-        .from('comments')
+        .from('tbl_comments')
         .delete()
         .eq('id', commentId)
 

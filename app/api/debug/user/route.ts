@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
 
     // Get user from database
     const { data: dbUser, error: dbError } = await supabaseAdmin
-      .from('users')
+      .from('tbl_users')
       .select('*')
       .eq('id', authUser.id)
       .single()

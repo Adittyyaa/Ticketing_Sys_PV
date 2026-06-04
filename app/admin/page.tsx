@@ -34,7 +34,7 @@ export default function AdminDashboard() {
 
         // Check if user is admin - use service role to bypass RLS if needed
         const { data: userData, error } = await supabase
-          .from('users')
+          .from('tbl_users')
           .select('id, email, full_name, role')
           .eq('id', session.user.id)
           .single()
@@ -76,7 +76,7 @@ export default function AdminDashboard() {
 
     const fetchAllTickets = async () => {
       try {
-        let query = supabase.from('tickets').select('*').order('created_at', { ascending: false })
+        let query = supabase.from('tbl_tickets').select('*').order('created_at', { ascending: false })
 
         if (filters.search) {
           query = query.ilike('title', `%${filters.search}%`)

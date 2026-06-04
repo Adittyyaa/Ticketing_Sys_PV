@@ -30,7 +30,7 @@ export default function AdminLoginPage() {
 
       // Verify admin role
       const { data: userData } = await supabase
-        .from('users')
+        .from('tbl_users')
         .select('role')
         .eq('id', data.user.id)
         .single()

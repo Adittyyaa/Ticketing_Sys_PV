@@ -35,7 +35,7 @@ export default function UserManagementPage() {
 
   const fetchUsers = async () => {
     try {
-      const { data } = await supabase.from('users').select('*').order('created_at', { ascending: false })
+      const { data } = await supabase.from('tbl_users').select('*').order('created_at', { ascending: false })
       setUsers(data || [])
     } catch (err) {
       console.error('Error fetching users:', err)
@@ -78,7 +78,7 @@ export default function UserManagementPage() {
     if (!confirm('Delete this user?')) return
 
     try {
-      await supabase.from('users').delete().eq('id', userId)
+      await supabase.from('tbl_users').delete().eq('id', userId)
       setMessage('User deleted')
       fetchUsers()
     } catch (err) {

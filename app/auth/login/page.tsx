@@ -30,7 +30,7 @@ export default function UserLoginPage() {
 
       // Verify user role
       const { data: userData } = await supabase
-        .from('users')
+        .from('tbl_users')
         .select('role')
         .eq('id', data.user.id)
         .single()

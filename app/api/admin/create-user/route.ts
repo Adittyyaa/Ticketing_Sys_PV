@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
     // Create user profile
     if (authData.user) {
       const { error: profileErr } = await supabaseAdmin
-        .from('users')
+        .from('tbl_users')
         .insert([
           {
             id: authData.user.id,

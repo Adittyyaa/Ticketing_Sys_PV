@@ -73,7 +73,7 @@ export default function TicketDetailPage() {
     const fetchTicket = async () => {
       try {
         const { data, error } = await supabase
-          .from('tickets')
+          .from('tbl_tickets')
           .select('*')
           .eq('id', ticketId)
           .eq('user_id', user.id)
@@ -99,7 +99,7 @@ export default function TicketDetailPage() {
 
     try {
       const { error } = await supabase
-        .from('tickets')
+        .from('tbl_tickets')
         .update({
           ...editData,
           updated_at: new Date().toISOString(),
@@ -121,7 +121,7 @@ export default function TicketDetailPage() {
     if (!confirm('Are you sure you want to delete this ticket?')) return
 
     try {
-      const { error } = await supabase.from('tickets').delete().eq('id', ticket?.id).eq('user_id', user?.id)
+      const { error } = await supabase.from('tbl_tickets').delete().eq('id', ticket?.id).eq('user_id', user?.id)
 
       if (error) throw error
 
@@ -137,7 +137,7 @@ export default function TicketDetailPage() {
 
     try {
       const { error } = await supabase
-        .from('tickets')
+        .from('tbl_tickets')
         .update({
           status: 'SOLVED',
           updated_at: new Date().toISOString(),
@@ -159,7 +159,7 @@ export default function TicketDetailPage() {
 
     try {
       const { error } = await supabase
-        .from('tickets')
+        .from('tbl_tickets')
         .update({
           status: 'OPENED',
           updated_at: new Date().toISOString(),
@@ -206,13 +206,13 @@ export default function TicketDetailPage() {
       }
 
       // Set font for header
-      pdf.setFont(undefined, 'bold')
+      pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(16)
       pdf.text(`Ticket #${ticket.number}`, margin, yPosition)
       yPosition += 10
 
       pdf.setFontSize(12)
-      pdf.setFont(undefined, 'normal')
+      pdf.setFont('helvetica', 'normal')
       pdf.text(`${ticket.title}`, margin, yPosition)
       yPosition += 15
 
@@ -225,14 +225,14 @@ export default function TicketDetailPage() {
       // Reset text color
       pdf.setTextColor(0, 0, 0)
       pdf.setFontSize(11)
-      pdf.setFont(undefined, 'bold')
+      pdf.setFont('helvetica', 'bold')
 
       // Add ticket details
       yPosition += 5
       pdf.text('Ticket Details:', margin, yPosition)
       yPosition += 8
 
-      pdf.setFont(undefined, 'normal')
+      pdf.setFont('helvetica', 'normal')
       pdf.setFontSize(10)
 
       const detailsText = [
@@ -253,12 +253,12 @@ export default function TicketDetailPage() {
       })
 
       yPosition += 5
-      pdf.setFont(undefined, 'bold')
+      pdf.setFont('helvetica', 'bold')
       pdf.text('Description:', margin, yPosition)
       yPosition += 8
 
       // Add description with word wrap
-      pdf.setFont(undefined, 'normal')
+      pdf.setFont('helvetica', 'normal')
       const descriptionLines = pdf.splitTextToSize(ticket.description, pageWidth - margin * 2)
       descriptionLines.forEach((line: string) => {
         if (yPosition > pageWidth - 20) {
@@ -277,11 +277,11 @@ export default function TicketDetailPage() {
           yPosition = margin
         }
 
-        pdf.setFont(undefined, 'bold')
+        pdf.setFont('helvetica', 'bold')
         pdf.text('Tags:', margin, yPosition)
         yPosition += 8
 
-        pdf.setFont(undefined, 'normal')
+        pdf.setFont('helvetica', 'normal')
         pdf.setFontSize(9)
         const tagsText = ticket.tags.join(', ')
         const tagsLines = pdf.splitTextToSize(tagsText, pageWidth - margin * 2)

@@ -13,7 +13,7 @@ export default function AnalyticsDashboard() {
     const fetchAnalytics = async () => {
       try {
         const { data, error } = await supabase
-          .from('ticket_analytics')
+          .from('tbl_ticket_analytics')
           .select('*')
           .single()
 

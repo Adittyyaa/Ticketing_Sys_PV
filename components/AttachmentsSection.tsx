@@ -18,12 +18,13 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
 
   useEffect(() => {
     fetchAttachments()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
 
   const fetchAttachments = async () => {
     try {
       const { data, error } = await supabase
-        .from('attachments')
+        .from('tbl_attachments')
         .select('*')
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: false })
@@ -61,7 +62,7 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
 
         // Save metadata to database
         const { data, error: dbError } = await supabase
-          .from('attachments')
+          .from('tbl_attachments')
           .insert([
             {
               ticket_id: ticketId,
@@ -77,7 +78,7 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
 
         if (dbError) throw dbError
 
-        setAttachments([data, ...attachments])
+        setAttachments(prev => [data, ...prev])
       }
     } catch (error) {
       console.error('Failed to upload file:', error)
@@ -101,7 +102,7 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
 
       // Delete from database
       const { error: dbError } = await supabase
-        .from('attachments')
+        .from('tbl_attachments')
         .delete()
         .eq('id', attachment.id)
 

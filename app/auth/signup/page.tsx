@@ -36,7 +36,7 @@ export default function SignUpPage() {
 
       // Create user profile with 'user' role
       if (authData.user) {
-        await supabase.from('users').insert([
+        await supabase.from('tbl_users').insert([
           {
             id: authData.user.id,
             email: email,

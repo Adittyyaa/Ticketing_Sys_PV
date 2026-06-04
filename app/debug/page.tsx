@@ -23,7 +23,7 @@ export default function DebugPage() {
 
         // Try to get user from database
         const { data: userData, error: userError } = await supabase
-          .from('users')
+          .from('tbl_users')
           .select('*')
           .eq('id', session.user.id)
           .single()

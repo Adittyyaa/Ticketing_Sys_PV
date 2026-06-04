@@ -29,7 +29,7 @@ export default function UnifiedLoginPage() {
   const redirectBasedOnRole = async (userId: string) => {
     try {
       const { data: userData } = await supabase
-        .from('users')
+        .from('tbl_users')
         .select('role')
         .eq('id', userId)
         .single()
@@ -60,7 +60,7 @@ export default function UnifiedLoginPage() {
       if (data.user) {
         // Get user role
         const { data: userData } = await supabase
-          .from('users')
+          .from('tbl_users')
           .select('role, full_name')
           .eq('id', data.user.id)
           .single()

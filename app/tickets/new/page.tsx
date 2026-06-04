@@ -58,7 +58,7 @@ export default function NewTicketPage() {
     setLocalLoading(true)
     try {
       const { data, error } = await supabase
-        .from('tickets')
+        .from('tbl_tickets')
         .insert([
           {
             title: formData.title,

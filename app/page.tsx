@@ -29,7 +29,7 @@ export default function Home() {
         if (session?.user) {
           // Check user role
           const { data: userData } = await supabase
-            .from('users')
+            .from('tbl_users')
             .select('role')
             .eq('id', session.user.id)
             .single()

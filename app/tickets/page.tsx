@@ -12,7 +12,7 @@ import { Ticket } from '@/lib/types'
 export default function TicketsPage() {
   const router = useRouter()
   const { user, setUser, setLoading } = useAuthStore()
-  const { tickets, setTickets, filters } = useTicketStore()
+  const { setTickets, filters } = useTicketStore()
   const [activeTab, setActiveTab] = useState<'my' | 'others'>('my')
   const [myTickets, setMyTickets] = useState<Ticket[]>([])
   const [otherTickets, setOtherTickets] = useState<Ticket[]>([])
@@ -31,7 +31,7 @@ export default function TicketsPage() {
 
         // Get user role from database
         const { data: userData } = await supabase
-          .from('users')
+          .from('tbl_users')
           .select('id, email, full_name, role')
           .eq('id', session.user.id)
           .single()
@@ -58,7 +58,7 @@ export default function TicketsPage() {
       try {
         // Fetch my tickets
         let myQuery = supabase
-          .from('tickets')
+          .from('tbl_tickets')
           .select('*')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
@@ -75,7 +75,7 @@ export default function TicketsPage() {
 
         // Fetch other users' tickets (admin or viewable tickets)
         let othersQuery = supabase
-          .from('tickets')
+          .from('tbl_tickets')
           .select('*')
           .neq('user_id', user.id)
           .order('created_at', { ascending: false })
