@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
-import Link from 'next/link'
 import { Form, Input, Button, Card, message, Typography, Alert } from 'antd'
 import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
@@ -11,12 +10,13 @@ import { useAuthStore } from '@/lib/store'
 
 const { Title, Text } = Typography
 
-export default function UnifiedLoginPage() {
+export default function LoginPage() {
   const router = useRouter()
   const { setUser, setLoading, setIsAdmin } = useAuthStore()
   const [form] = Form.useForm()
   const [loading, setLocalLoading] = useState(false)
   const [error, setError] = useState('')
+  const [showAdminLogin, setShowAdminLogin] = useState(false)
 
   useEffect(() => {
     const checkSession = async () => {
@@ -101,21 +101,21 @@ export default function UnifiedLoginPage() {
         backgroundColor: '#0a0e1a',
       }}
     >
-      <div style={{ width: '100%', maxWidth: '420px' }}>
+      <div style={{ width: '100%', maxWidth: '400px' }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
           <Image 
             src="/logo.jpeg" 
             alt="Logo" 
-            width={80} 
-            height={80} 
+            width={72} 
+            height={72} 
             style={{ borderRadius: '8px', display: 'inline-block', marginBottom: '12px' }} 
           />
-          <Title level={2} style={{ margin: '12px 0 4px 0', color: '#ffffff' }}>
-            Ticket System
+          <Title level={3} style={{ margin: '12px 0 4px 0', color: '#ffffff' }}>
+            {showAdminLogin ? 'Admin Login' : 'User Login'}
           </Title>
-          <Text style={{ color: '#94a3b8', fontSize: '14px' }}>
-            Support & Issue Tracking
+          <Text style={{ color: '#94a3b8', fontSize: '13px' }}>
+            {showAdminLogin ? 'Manage tickets and users' : 'Access your support tickets'}
           </Text>
         </div>
 
@@ -124,7 +124,6 @@ export default function UnifiedLoginPage() {
           style={{
             backgroundColor: '#1e293b',
             borderColor: '#334155',
-            marginBottom: '12px',
           }}
         >
           {error && (
@@ -154,7 +153,7 @@ export default function UnifiedLoginPage() {
             >
               <Input
                 prefix={<UserOutlined style={{ color: '#64748b' }} />}
-                placeholder="you@example.com"
+                placeholder={showAdminLogin ? 'admin@pvadvisory.com' : 'you@example.com'}
                 size="large"
                 style={{
                   backgroundColor: '#0f172a',
@@ -189,23 +188,64 @@ export default function UnifiedLoginPage() {
                 size="large"
                 icon={<LoginOutlined />}
                 loading={loading}
-                style={{ backgroundColor: '#3b82f6', borderColor: '#3b82f6' }}
+                style={{ 
+                  backgroundColor: showAdminLogin ? '#a78bfa' : '#3b82f6',
+                  borderColor: showAdminLogin ? '#a78bfa' : '#3b82f6',
+                }}
               >
                 Sign In
               </Button>
             </Form.Item>
           </Form>
 
+          {/* Toggle Admin Login */}
           <div style={{ textAlign: 'center', marginTop: '16px' }}>
             <Text style={{ color: '#94a3b8', fontSize: '13px' }}>
-              User?{' '}
-              <Link href="/auth/login/user" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none' }}>
-                User Login
-              </Link>
-              {' '} | {' '}
-              <Link href="/auth/login/admin" style={{ color: '#a78bfa', fontWeight: 'bold', textDecoration: 'none' }}>
-                Admin Login
-              </Link>
+              {showAdminLogin ? (
+                <>
+                  User?{' '}
+                  <button
+                    onClick={() => {
+                      setShowAdminLogin(false)
+                      form.resetFields()
+                      setError('')
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#3b82f6',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      textDecoration: 'none',
+                      fontSize: '13px',
+                    }}
+                  >
+                    Back to User Login
+                  </button>
+                </>
+              ) : (
+                <>
+                  Admin?{' '}
+                  <button
+                    onClick={() => {
+                      setShowAdminLogin(true)
+                      form.resetFields()
+                      setError('')
+                    }}
+                    style={{
+                      background: 'none',
+                      border: 'none',
+                      color: '#a78bfa',
+                      fontWeight: 'bold',
+                      cursor: 'pointer',
+                      textDecoration: 'none',
+                      fontSize: '13px',
+                    }}
+                  >
+                    Admin Login
+                  </button>
+                </>
+              )}
             </Text>
           </div>
         </Card>

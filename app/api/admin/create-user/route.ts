@@ -11,10 +11,11 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     )
 
-    // Create auth user
+    // Create auth user with auto-confirm
     const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
+      email_confirm: true, // Auto-confirm email
       user_metadata: { full_name: fullName },
     })
 
@@ -30,13 +31,14 @@ export async function POST(request: NextRequest) {
             email,
             full_name: fullName,
             role: 'user',
+            created_at: new Date().toISOString(),
           },
         ])
 
       if (profileErr) throw new Error(profileErr.message)
     }
 
-    return NextResponse.json({ success: true, userId: authData.user.id })
+    return NextResponse.json({ success: true, userId: authData.user.id, message: 'User created successfully' })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create user' },
