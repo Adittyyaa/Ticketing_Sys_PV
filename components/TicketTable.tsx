@@ -152,7 +152,10 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
       key: 'number',
       width: 80,
       render: (number: number, record: Ticket) => (
-        <Link href={`/tickets/${record.id}`} className="text-blue-500 hover:text-blue-700">
+        <Link 
+          href={`/tickets/${record.id}`} 
+          style={{ color: '#3b82f6', textDecoration: 'none' }}
+        >
           #{number}
         </Link>
       ),
@@ -166,7 +169,10 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
       },
       render: (title: string, record: Ticket) => (
         <Tooltip title={title}>
-          <Link href={`/tickets/${record.id}`} className="text-blue-500 hover:text-blue-700">
+          <Link 
+            href={`/tickets/${record.id}`} 
+            style={{ color: '#3b82f6', textDecoration: 'none' }}
+          >
             {title}
           </Link>
         </Tooltip>
