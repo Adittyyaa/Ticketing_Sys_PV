@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
+import { ConfigProvider } from 'antd'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Ticketing System',
-  description: 'Modern ticketing system for support and issue tracking',
+  title: 'Ticket System',
+  description: 'Support & Issue Tracking Platform',
 }
 
 export default function RootLayout({
@@ -13,7 +14,27 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body>{children}</body>
+      <body style={{ margin: 0, padding: 0, backgroundColor: '#0a0e1a' }}>
+        <ConfigProvider
+          theme={{
+            token: {
+              colorPrimary: '#3b82f6',
+              colorBgBase: '#0a0e1a',
+              colorTextBase: '#f1f5f9',
+              borderRadius: 8,
+              colorBorder: '#334155',
+              colorBgContainer: '#1e293b',
+              colorBgElevated: '#1e293b',
+              colorTextSecondary: '#94a3b8',
+              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
+            },
+          }}
+        >
+          <div style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
+            {children}
+          </div>
+        </ConfigProvider>
+      </body>
     </html>
   )
 }

@@ -3,8 +3,8 @@
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { Form, Input, Button, Card, message, Space, Typography, Alert } from 'antd'
-import { UserOutlined, LockOutlined } from '@ant-design/icons'
+import { Form, Input, Button, Card, message, Typography, Alert } from 'antd'
+import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
 import Image from 'next/image'
 import Link from 'next/link'
 
@@ -36,7 +36,7 @@ export default function AdminLoginPage() {
 
       if (userData?.role !== 'admin') {
         await supabase.auth.signOut()
-        throw new Error('Invalid credentials for admin login. Please use user login.')
+        throw new Error('Invalid credentials for admin login.')
       }
 
       message.success('Admin login successful!')
@@ -58,109 +58,113 @@ export default function AdminLoginPage() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '16px',
-        background: 'linear-gradient(135deg, #9333ea 0%, #7c3aed 100%)',
+        backgroundColor: '#0a0e1a',
       }}
     >
-      <Card
-        style={{
-          width: '100%',
-          maxWidth: '420px',
-          boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+      <div style={{ width: '100%', maxWidth: '400px' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
           <Image 
             src="/logo.jpeg" 
             alt="Logo" 
-            width={80} 
-            height={80} 
-            style={{ borderRadius: '8px', marginBottom: '16px', display: 'inline-block' }} 
+            width={72} 
+            height={72} 
+            style={{ borderRadius: '8px', display: 'inline-block', marginBottom: '12px' }} 
           />
-          <Title level={2} style={{ margin: '16px 0 8px 0', color: '#9333ea' }}>
+          <Title level={3} style={{ margin: '12px 0 4px 0', color: '#a78bfa' }}>
             Admin Login
           </Title>
-          <Text type="secondary">Manage support tickets and users</Text>
+          <Text style={{ color: '#94a3b8', fontSize: '13px' }}>
+            Manage support tickets and users
+          </Text>
         </div>
 
-        {error && (
-          <Alert
-            message="Login Error"
-            description={error}
-            type="error"
-            showIcon
-            closable
-            onClose={() => setError('')}
-            style={{ marginBottom: '16px' }}
-          />
-        )}
-
-        <Form
-          form={form}
-          layout="vertical"
-          onFinish={handleLogin}
-          autoComplete="off"
+        {/* Login Card */}
+        <Card
+          style={{
+            backgroundColor: '#1e293b',
+            borderColor: '#334155',
+          }}
         >
-          <Form.Item
-            label="Email Address"
-            name="email"
-            rules={[
-              { required: true, message: 'Please enter your email' },
-              { type: 'email', message: 'Please enter a valid email' },
-            ]}
-          >
-            <Input
-              prefix={<UserOutlined />}
-              placeholder="admin@pvadvisory.com"
-              size="large"
+          {error && (
+            <Alert
+              message={error}
+              type="error"
+              showIcon
+              closable
+              onClose={() => setError('')}
+              style={{ marginBottom: '16px' }}
             />
-          </Form.Item>
+          )}
 
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[{ required: true, message: 'Please enter your password' }]}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={handleLogin}
+            autoComplete="off"
           >
-            <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="••••••••"
-              size="large"
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button
-              type="primary"
-              htmlType="submit"
-              block
-              size="large"
-              loading={loading}
-              danger
-              style={{ backgroundColor: '#9333ea', borderColor: '#9333ea' }}
+            <Form.Item
+              label={<span style={{ color: '#cbd5e1' }}>Email</span>}
+              name="email"
+              rules={[
+                { required: true, message: 'Email required' },
+                { type: 'email', message: 'Invalid email' },
+              ]}
             >
-              Admin Sign In
-            </Button>
-          </Form.Item>
-        </Form>
+              <Input
+                prefix={<UserOutlined style={{ color: '#64748b' }} />}
+                placeholder="admin@pvadvisory.com"
+                size="large"
+                style={{
+                  backgroundColor: '#0f172a',
+                  borderColor: '#334155',
+                  color: '#ffffff',
+                }}
+              />
+            </Form.Item>
 
-        <Space direction="vertical" style={{ width: '100%' }}>
-          <div style={{ textAlign: 'center' }}>
-            <Text type="secondary">
+            <Form.Item
+              label={<span style={{ color: '#cbd5e1' }}>Password</span>}
+              name="password"
+              rules={[{ required: true, message: 'Password required' }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined style={{ color: '#64748b' }} />}
+                placeholder="••••••••"
+                size="large"
+                style={{
+                  backgroundColor: '#0f172a',
+                  borderColor: '#334155',
+                  color: '#ffffff',
+                }}
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <Button
+                type="primary"
+                htmlType="submit"
+                block
+                size="large"
+                icon={<LoginOutlined />}
+                loading={loading}
+                style={{ backgroundColor: '#a78bfa', borderColor: '#a78bfa' }}
+              >
+                Admin Sign In
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <Text style={{ color: '#94a3b8', fontSize: '13px' }}>
               User?{' '}
-              <Link href="/auth/login/user" style={{ color: '#1890ff', fontWeight: 'bold' }}>
+              <Link href="/auth/login/user" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none' }}>
                 User Login
               </Link>
             </Text>
           </div>
-          <div style={{ textAlign: 'center' }}>
-            <Text type="secondary">
-              Don't have an admin account?{' '}
-              <Link href="/auth/login" style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                Back
-              </Link>
-            </Text>
-          </div>
-        </Space>
-      </Card>
+        </Card>
+      </div>
     </div>
   )
 }

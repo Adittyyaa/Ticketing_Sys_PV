@@ -4,12 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
 import Link from 'next/link'
-import { Form, Input, Button, Card, message, Space, Typography, Alert, Divider, Row, Col } from 'antd'
-import { UserOutlined, LockOutlined, LoginOutlined, SafetyOutlined } from '@ant-design/icons'
+import { Form, Input, Button, Card, message, Typography, Alert } from 'antd'
+import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 
-const { Title, Text, Paragraph } = Typography
+const { Title, Text } = Typography
 
 export default function UnifiedLoginPage() {
   const router = useRouter()
@@ -98,38 +98,38 @@ export default function UnifiedLoginPage() {
         alignItems: 'center',
         justifyContent: 'center',
         padding: '16px',
-        background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+        backgroundColor: '#0a0e1a',
       }}
     >
-      <div style={{ width: '100%', maxWidth: '520px' }}>
+      <div style={{ width: '100%', maxWidth: '420px' }}>
         {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '40px' }}>
           <Image 
             src="/logo.jpeg" 
             alt="Logo" 
-            width={100} 
-            height={100} 
-            style={{ borderRadius: '12px', display: 'inline-block', marginBottom: '16px' }} 
+            width={80} 
+            height={80} 
+            style={{ borderRadius: '8px', display: 'inline-block', marginBottom: '12px' }} 
           />
-          <Title level={1} style={{ margin: '16px 0 8px 0', color: 'white' }}>
+          <Title level={2} style={{ margin: '12px 0 4px 0', color: '#ffffff' }}>
             Ticket System
           </Title>
-          <Text style={{ color: 'rgba(255, 255, 255, 0.8)', fontSize: '16px' }}>
-            Support & Issue Tracking Platform
+          <Text style={{ color: '#94a3b8', fontSize: '14px' }}>
+            Support & Issue Tracking
           </Text>
         </div>
 
         {/* Login Card */}
         <Card
           style={{
-            boxShadow: '0 10px 40px rgba(0, 0, 0, 0.3)',
-            marginBottom: '16px',
+            backgroundColor: '#1e293b',
+            borderColor: '#334155',
+            marginBottom: '12px',
           }}
         >
           {error && (
             <Alert
-              message="Login Error"
-              description={error}
+              message={error}
               type="error"
               showIcon
               closable
@@ -145,29 +145,39 @@ export default function UnifiedLoginPage() {
             autoComplete="off"
           >
             <Form.Item
-              label="Email Address"
+              label={<span style={{ color: '#cbd5e1' }}>Email</span>}
               name="email"
               rules={[
-                { required: true, message: 'Please enter your email' },
-                { type: 'email', message: 'Please enter a valid email' },
+                { required: true, message: 'Email required' },
+                { type: 'email', message: 'Invalid email' },
               ]}
             >
               <Input
-                prefix={<UserOutlined />}
+                prefix={<UserOutlined style={{ color: '#64748b' }} />}
                 placeholder="you@example.com"
                 size="large"
+                style={{
+                  backgroundColor: '#0f172a',
+                  borderColor: '#334155',
+                  color: '#ffffff',
+                }}
               />
             </Form.Item>
 
             <Form.Item
-              label="Password"
+              label={<span style={{ color: '#cbd5e1' }}>Password</span>}
               name="password"
-              rules={[{ required: true, message: 'Please enter your password' }]}
+              rules={[{ required: true, message: 'Password required' }]}
             >
               <Input.Password
-                prefix={<LockOutlined />}
+                prefix={<LockOutlined style={{ color: '#64748b' }} />}
                 placeholder="••••••••"
                 size="large"
+                style={{
+                  backgroundColor: '#0f172a',
+                  borderColor: '#334155',
+                  color: '#ffffff',
+                }}
               />
             </Form.Item>
 
@@ -179,68 +189,26 @@ export default function UnifiedLoginPage() {
                 size="large"
                 icon={<LoginOutlined />}
                 loading={loading}
+                style={{ backgroundColor: '#3b82f6', borderColor: '#3b82f6' }}
               >
                 Sign In
               </Button>
             </Form.Item>
           </Form>
 
-          <Divider>Quick Access</Divider>
-
-          <Row gutter={[12, 12]}>
-            <Col xs={12}>
-              <Link href="/auth/login/user" style={{ textDecoration: 'none' }}>
-                <Button block size="large" icon={<UserOutlined />}>
-                  User Login
-                </Button>
+          <div style={{ textAlign: 'center', marginTop: '16px' }}>
+            <Text style={{ color: '#94a3b8', fontSize: '13px' }}>
+              User?{' '}
+              <Link href="/auth/login/user" style={{ color: '#3b82f6', fontWeight: 'bold', textDecoration: 'none' }}>
+                User Login
               </Link>
-            </Col>
-            <Col xs={12}>
-              <Link href="/auth/login/admin" style={{ textDecoration: 'none' }}>
-                <Button block size="large" danger icon={<SafetyOutlined />}>
-                  Admin Login
-                </Button>
-              </Link>
-            </Col>
-          </Row>
-
-          <Divider />
-
-          <div style={{ textAlign: 'center' }}>
-            <Text type="secondary">
-              Don't have an account?{' '}
-              <Link href="/auth/signup" style={{ color: '#1890ff', fontWeight: 'bold' }}>
-                Sign up
+              {' '} | {' '}
+              <Link href="/auth/login/admin" style={{ color: '#a78bfa', fontWeight: 'bold', textDecoration: 'none' }}>
+                Admin Login
               </Link>
             </Text>
           </div>
         </Card>
-
-        {/* Info Cards */}
-        <Row gutter={[16, 16]}>
-          <Col xs={24} sm={12}>
-            <Card>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <div style={{ fontSize: '20px' }}>👤</div>
-                <Text strong>User Access</Text>
-                <Paragraph type="secondary" style={{ marginBottom: 0, fontSize: '12px' }}>
-                  View and manage your support tickets, track issues, and get real-time updates on ticket status.
-                </Paragraph>
-              </Space>
-            </Card>
-          </Col>
-          <Col xs={24} sm={12}>
-            <Card>
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <div style={{ fontSize: '20px' }}>🛡️</div>
-                <Text strong>Admin Access</Text>
-                <Paragraph type="secondary" style={{ marginBottom: 0, fontSize: '12px' }}>
-                  Manage all tickets, users, and system settings with full administrative privileges.
-                </Paragraph>
-              </Space>
-            </Card>
-          </Col>
-        </Row>
       </div>
     </div>
   )
