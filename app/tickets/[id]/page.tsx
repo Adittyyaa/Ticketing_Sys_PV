@@ -72,12 +72,26 @@ export default function TicketDetailPage() {
 
     const fetchTicket = async () => {
       try {
-        const { data, error } = await supabase
+        // First check if user is admin
+        const { data: userData } = await supabase
+          .from('tbl_users')
+          .select('role')
+          .eq('id', user.id)
+          .single()
+
+        const isAdmin = userData?.role === 'admin'
+
+        // Admins can see all tickets, regular users see only their own
+        let query = supabase
           .from('tbl_tickets')
           .select('*')
           .eq('id', ticketId)
-          .eq('user_id', user.id)
-          .single()
+
+        if (!isAdmin) {
+          query = query.eq('user_id', user.id)
+        }
+
+        const { data, error } = await query.single()
 
         if (error) throw error
 
@@ -98,14 +112,28 @@ export default function TicketDetailPage() {
     if (!ticket) return
 
     try {
-      const { error } = await supabase
+      // Check if user is admin
+      const { data: userData } = await supabase
+        .from('tbl_users')
+        .select('role')
+        .eq('id', user?.id || '')
+        .single()
+
+      const isAdmin = userData?.role === 'admin'
+
+      let query = supabase
         .from('tbl_tickets')
         .update({
           ...editData,
           updated_at: new Date().toISOString(),
         })
         .eq('id', ticket.id)
-        .eq('user_id', user?.id)
+
+      if (!isAdmin) {
+        query = query.eq('user_id', user?.id)
+      }
+
+      const { error } = await query
 
       if (error) throw error
 
@@ -121,7 +149,25 @@ export default function TicketDetailPage() {
     if (!confirm('Are you sure you want to delete this ticket?')) return
 
     try {
-      const { error } = await supabase.from('tbl_tickets').delete().eq('id', ticket?.id).eq('user_id', user?.id)
+      // Check if user is admin
+      const { data: userData } = await supabase
+        .from('tbl_users')
+        .select('role')
+        .eq('id', user?.id || '')
+        .single()
+
+      const isAdmin = userData?.role === 'admin'
+
+      let query = supabase
+        .from('tbl_tickets')
+        .delete()
+        .eq('id', ticket?.id)
+
+      if (!isAdmin) {
+        query = query.eq('user_id', user?.id)
+      }
+
+      const { error } = await query
 
       if (error) throw error
 
@@ -136,14 +182,28 @@ export default function TicketDetailPage() {
     if (!ticket) return
 
     try {
-      const { error } = await supabase
+      // Check if user is admin
+      const { data: userData } = await supabase
+        .from('tbl_users')
+        .select('role')
+        .eq('id', user?.id || '')
+        .single()
+
+      const isAdmin = userData?.role === 'admin'
+
+      let query = supabase
         .from('tbl_tickets')
         .update({
           status: 'SOLVED',
           updated_at: new Date().toISOString(),
         })
         .eq('id', ticket.id)
-        .eq('user_id', user?.id)
+
+      if (!isAdmin) {
+        query = query.eq('user_id', user?.id)
+      }
+
+      const { error } = await query
 
       if (error) throw error
 
@@ -158,14 +218,28 @@ export default function TicketDetailPage() {
     if (!ticket) return
 
     try {
-      const { error } = await supabase
+      // Check if user is admin
+      const { data: userData } = await supabase
+        .from('tbl_users')
+        .select('role')
+        .eq('id', user?.id || '')
+        .single()
+
+      const isAdmin = userData?.role === 'admin'
+
+      let query = supabase
         .from('tbl_tickets')
         .update({
           status: 'OPENED',
           updated_at: new Date().toISOString(),
         })
         .eq('id', ticket.id)
-        .eq('user_id', user?.id)
+
+      if (!isAdmin) {
+        query = query.eq('user_id', user?.id)
+      }
+
+      const { error } = await query
 
       if (error) throw error
 
