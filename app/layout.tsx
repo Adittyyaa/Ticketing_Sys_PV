@@ -1,5 +1,6 @@
 import type { Metadata } from 'next'
 import { ConfigProvider } from 'antd'
+import { InactivityLogoutProvider } from '@/components/InactivityLogoutProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -30,9 +31,11 @@ export default function RootLayout({
             },
           }}
         >
-          <div style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
-            {children}
-          </div>
+          <InactivityLogoutProvider>
+            <div style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
+              {children}
+            </div>
+          </InactivityLogoutProvider>
         </ConfigProvider>
       </body>
     </html>
