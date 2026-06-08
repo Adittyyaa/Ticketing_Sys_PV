@@ -166,13 +166,14 @@ export default function NewTicketPage() {
                 name="category"
                 rules={[{ required: true }]}
               >
-                <Select size="large" dropdownStyle={{ backgroundColor: '#1f2937' }}>
-                  {categories.map((cat) => (
-                    <Select.Option key={cat} value={cat}>
-                      {cat}
-                    </Select.Option>
-                  ))}
-                </Select>
+                <Select 
+                  size="large" 
+                  popupMatchSelectWidth={false}
+                  options={categories.map((cat) => ({
+                    label: cat,
+                    value: cat,
+                  }))}
+                />
               </Form.Item>
 
               <Form.Item
@@ -180,13 +181,14 @@ export default function NewTicketPage() {
                 name="priority"
                 rules={[{ required: true }]}
               >
-                <Select size="large" dropdownStyle={{ backgroundColor: '#1f2937' }}>
-                  {priorities.map((p) => (
-                    <Select.Option key={p} value={p}>
-                      {p}
-                    </Select.Option>
-                  ))}
-                </Select>
+                <Select 
+                  size="large" 
+                  popupMatchSelectWidth={false}
+                  options={priorities.map((p) => ({
+                    label: p,
+                    value: p,
+                  }))}
+                />
               </Form.Item>
             </div>
 
