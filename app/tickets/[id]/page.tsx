@@ -86,34 +86,39 @@ export default function TicketDetailPage() {
     checkAuth()
   }, [setUser, setLoading, router])
 
+  // Helper function to check if user is admin
+  const checkIsAdmin = async () => {
+    if (!user) return false
+    const { data } = await supabase
+      .from('tbl_users')
+      .select('role')
+      .eq('id', user.id)
+      .single()
+    return data?.role === 'admin'
+  }
+
+  // Helper function to build query with admin check
+  const buildTicketQuery = async (baseQuery: any) => {
+    const isAdmin = await checkIsAdmin()
+    return isAdmin ? baseQuery : baseQuery.eq('user_id', user?.id)
+  }
+
   useEffect(() => {
     if (!user) return
 
     const fetchTicket = async () => {
       try {
-        const { data: userData } = await supabase
-          .from('tbl_users')
-          .select('role')
-          .eq('id', user.id)
-          .single()
-
-        const isAdmin = userData?.role === 'admin'
-
         let query = supabase
           .from('tbl_tickets')
           .select('*')
           .eq('id', ticketId)
 
-        if (!isAdmin) {
-          query = query.eq('user_id', user.id)
-        }
-
+        query = await buildTicketQuery(query)
         const { data, error } = await query.single()
 
         if (error) throw error
 
         setTicket(data as Ticket)
-        
         form.setFieldsValue({
           priority: data.priority,
           status: data.status
@@ -134,14 +139,6 @@ export default function TicketDetailPage() {
     if (!ticket) return
 
     try {
-      const { data: userData } = await supabase
-        .from('tbl_users')
-        .select('role')
-        .eq('id', user?.id || '')
-        .single()
-
-      const isAdmin = userData?.role === 'admin'
-
       let query = supabase
         .from('tbl_tickets')
         .update({
@@ -151,10 +148,7 @@ export default function TicketDetailPage() {
         })
         .eq('id', ticket.id)
 
-      if (!isAdmin) {
-        query = query.eq('user_id', user?.id)
-      }
-
+      query = await buildTicketQuery(query)
       const { error } = await query
 
       if (error) throw error
@@ -181,23 +175,12 @@ export default function TicketDetailPage() {
       cancelText: 'Cancel',
       onOk: async () => {
         try {
-          const { data: userData } = await supabase
-            .from('tbl_users')
-            .select('role')
-            .eq('id', user?.id || '')
-            .single()
-
-          const isAdmin = userData?.role === 'admin'
-
           let query = supabase
             .from('tbl_tickets')
             .delete()
             .eq('id', ticket?.id)
 
-          if (!isAdmin) {
-            query = query.eq('user_id', user?.id)
-          }
-
+          query = await buildTicketQuery(query)
           const { error } = await query
 
           if (error) throw error
@@ -212,78 +195,174 @@ export default function TicketDetailPage() {
     })
   }
 
-  const handleMarkResolved = async () => {
+  const updateTicketStatus = async (newStatus: Status, successMessage: string) => {
     if (!ticket) return
 
     try {
-      const { data: userData } = await supabase
-        .from('tbl_users')
-        .select('role')
-        .eq('id', user?.id || '')
-        .single()
-
-      const isAdmin = userData?.role === 'admin'
-
       let query = supabase
         .from('tbl_tickets')
         .update({
-          status: 'SOLVED',
+          status: newStatus,
           updated_at: new Date().toISOString(),
         })
         .eq('id', ticket.id)
 
-      if (!isAdmin) {
-        query = query.eq('user_id', user?.id)
-      }
-
+      query = await buildTicketQuery(query)
       const { error } = await query
 
       if (error) throw error
 
-      setTicket({ ...ticket, status: 'SOLVED' })
-      form.setFieldsValue({ status: 'SOLVED' })
-      message.success('Ticket marked as resolved')
+      setTicket({ ...ticket, status: newStatus })
+      form.setFieldsValue({ status: newStatus })
+      message.success(successMessage)
     } catch (error) {
-      console.error('Failed to mark as resolved:', error)
-      message.error('Failed to mark as resolved')
+      console.error('Failed to update status:', error)
+      message.error('Failed to update ticket status')
     }
   }
 
-  const handleMarkUnresolved = async () => {
-    if (!ticket) return
+  const handleMarkResolved = () => updateTicketStatus('SOLVED', 'Ticket marked as resolved')
+  const handleMarkUnresolved = () => updateTicketStatus('OPENED', 'Ticket marked as unresolved')
 
-    try {
-      const { data: userData } = await supabase
-        .from('tbl_users')
-        .select('role')
-        .eq('id', user?.id || '')
-        .single()
-
-      const isAdmin = userData?.role === 'admin'
-
-      let query = supabase
-        .from('tbl_tickets')
-        .update({
-          status: 'OPENED',
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', ticket.id)
-
-      if (!isAdmin) {
-        query = query.eq('user_id', user?.id)
-      }
-
-      const { error } = await query
-
-      if (error) throw error
-
-      setTicket({ ...ticket, status: 'OPENED' })
-      form.setFieldsValue({ status: 'OPENED' })
-      message.success('Ticket marked as unresolved')
-    } catch (error) {
-      console.error('Failed to mark as unresolved:', error)
-      message.error('Failed to mark as unresolved')
+  // PDF Export Constants
+  const PDF_CONFIG = {
+    MARGIN: 15,
+    LOGO_SIZE: 25,
+    FONT_SIZE: {
+      TITLE: 16,
+      SUBTITLE: 12,
+      BODY: 10,
+      SMALL: 9,
+      SECTION: 11
+    },
+    LINE_HEIGHT: {
+      SMALL: 6,
+      NORMAL: 7,
+      LARGE: 8
     }
+  }
+
+  // Helper: Add logo to PDF
+  const addLogoToPDF = (pdf: jsPDF, yPosition: number): number => {
+    try {
+      const logoImg = document.querySelector('img[src="/logo.jpeg"]') as HTMLImageElement
+      if (logoImg) {
+        pdf.addImage(logoImg.src, 'JPEG', PDF_CONFIG.MARGIN, yPosition, PDF_CONFIG.LOGO_SIZE, PDF_CONFIG.LOGO_SIZE)
+        return yPosition + 30
+      }
+    } catch (e) {
+      console.log('Logo not added')
+    }
+    return yPosition
+  }
+
+  // Helper: Add ticket header to PDF
+  const addTicketHeader = (pdf: jsPDF, ticket: Ticket, yPosition: number): number => {
+    pdf.setFont('helvetica', 'bold')
+    pdf.setFontSize(PDF_CONFIG.FONT_SIZE.TITLE)
+    pdf.text(`Ticket #${ticket.number}`, PDF_CONFIG.MARGIN, yPosition)
+    yPosition += 10
+
+    pdf.setFontSize(PDF_CONFIG.FONT_SIZE.SUBTITLE)
+    pdf.setFont('helvetica', 'normal')
+    pdf.text(`${ticket.title}`, PDF_CONFIG.MARGIN, yPosition)
+    yPosition += 15
+
+    pdf.setFontSize(PDF_CONFIG.FONT_SIZE.BODY)
+    pdf.setTextColor(120, 130, 140)
+    pdf.text(`Generated on: ${format(new Date(), 'PPP p')}`, PDF_CONFIG.MARGIN, yPosition)
+    yPosition += 8
+
+    return yPosition
+  }
+
+  // Helper: Add ticket details section to PDF
+  const addTicketDetails = (pdf: jsPDF, ticket: Ticket, yPosition: number): number => {
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    
+    pdf.setTextColor(0, 0, 0)
+    pdf.setFontSize(PDF_CONFIG.FONT_SIZE.SECTION)
+    pdf.setFont('helvetica', 'bold')
+    yPosition += 5
+    pdf.text('Ticket Details:', PDF_CONFIG.MARGIN, yPosition)
+    yPosition += 8
+
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(PDF_CONFIG.FONT_SIZE.BODY)
+
+    const details = [
+      `Status: ${ticket.status}`,
+      `Priority: ${ticket.priority}`,
+      `Category: ${ticket.category}`,
+      `Created: ${format(new Date(ticket.created_at), 'PPP p')}`,
+      `Last Updated: ${format(new Date(ticket.updated_at), 'PPP p')}`,
+    ]
+
+    details.forEach((text) => {
+      if (yPosition > pageWidth - 20) {
+        pdf.addPage()
+        yPosition = PDF_CONFIG.MARGIN
+      }
+      pdf.text(text, PDF_CONFIG.MARGIN + 5, yPosition)
+      yPosition += PDF_CONFIG.LINE_HEIGHT.NORMAL
+    })
+
+    return yPosition
+  }
+
+  // Helper: Add description section to PDF
+  const addDescription = (pdf: jsPDF, ticket: Ticket, yPosition: number): number => {
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    
+    yPosition += 5
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Description:', PDF_CONFIG.MARGIN, yPosition)
+    yPosition += 8
+
+    pdf.setFont('helvetica', 'normal')
+    const descriptionLines = pdf.splitTextToSize(ticket.description, pageWidth - PDF_CONFIG.MARGIN * 2)
+    descriptionLines.forEach((line: string) => {
+      if (yPosition > pageWidth - 20) {
+        pdf.addPage()
+        yPosition = PDF_CONFIG.MARGIN
+      }
+      pdf.text(line, PDF_CONFIG.MARGIN, yPosition)
+      yPosition += PDF_CONFIG.LINE_HEIGHT.SMALL
+    })
+
+    return yPosition
+  }
+
+  // Helper: Add tags section to PDF
+  const addTags = (pdf: jsPDF, ticket: Ticket, yPosition: number): number => {
+    if (ticket.tags.length === 0) return yPosition
+    
+    const pageWidth = pdf.internal.pageSize.getWidth()
+    
+    yPosition += 5
+    if (yPosition > pageWidth - 20) {
+      pdf.addPage()
+      yPosition = PDF_CONFIG.MARGIN
+    }
+
+    pdf.setFont('helvetica', 'bold')
+    pdf.text('Tags:', PDF_CONFIG.MARGIN, yPosition)
+    yPosition += 8
+
+    pdf.setFont('helvetica', 'normal')
+    pdf.setFontSize(PDF_CONFIG.FONT_SIZE.SMALL)
+    const tagsText = ticket.tags.join(', ')
+    const tagsLines = pdf.splitTextToSize(tagsText, pageWidth - PDF_CONFIG.MARGIN * 2)
+    tagsLines.forEach((line: string) => {
+      if (yPosition > pageWidth - 20) {
+        pdf.addPage()
+        yPosition = PDF_CONFIG.MARGIN
+      }
+      pdf.text(line, PDF_CONFIG.MARGIN, yPosition)
+      yPosition += PDF_CONFIG.LINE_HEIGHT.SMALL
+    })
+
+    return yPosition
   }
 
   const handleExportPDF = async () => {
@@ -296,103 +375,14 @@ export default function TicketDetailPage() {
         format: 'a4',
       })
 
-      const pageWidth = pdf.internal.pageSize.getWidth()
-      const margin = 15
-      let yPosition = margin
+      let yPosition = PDF_CONFIG.MARGIN
 
-      try {
-        const logoImg = document.querySelector('img[src="/logo.jpeg"]') as HTMLImageElement
-        if (logoImg) {
-          pdf.addImage(logoImg.src, 'JPEG', margin, yPosition, 25, 25)
-          yPosition += 30
-        }
-      } catch (e) {
-        console.log('Logo not added')
-      }
-
-      pdf.setFont('helvetica', 'bold')
-      pdf.setFontSize(16)
-      pdf.text(`Ticket #${ticket.number}`, margin, yPosition)
-      yPosition += 10
-
-      pdf.setFontSize(12)
-      pdf.setFont('helvetica', 'normal')
-      pdf.text(`${ticket.title}`, margin, yPosition)
-      yPosition += 15
-
-      pdf.setFontSize(10)
-      pdf.setTextColor(120, 130, 140)
-      pdf.text(`Generated on: ${format(new Date(), 'PPP p')}`, margin, yPosition)
-      yPosition += 8
-
-      pdf.setTextColor(0, 0, 0)
-      pdf.setFontSize(11)
-      pdf.setFont('helvetica', 'bold')
-
-      yPosition += 5
-      pdf.text('Ticket Details:', margin, yPosition)
-      yPosition += 8
-
-      pdf.setFont('helvetica', 'normal')
-      pdf.setFontSize(10)
-
-      const detailsText = [
-        `Status: ${ticket.status}`,
-        `Priority: ${ticket.priority}`,
-        `Category: ${ticket.category}`,
-        `Created: ${format(new Date(ticket.created_at), 'PPP p')}`,
-        `Last Updated: ${format(new Date(ticket.updated_at), 'PPP p')}`,
-      ]
-
-      detailsText.forEach((text) => {
-        if (yPosition > pageWidth - 20) {
-          pdf.addPage()
-          yPosition = margin
-        }
-        pdf.text(text, margin + 5, yPosition)
-        yPosition += 7
-      })
-
-      yPosition += 5
-      pdf.setFont('helvetica', 'bold')
-      pdf.text('Description:', margin, yPosition)
-      yPosition += 8
-
-      pdf.setFont('helvetica', 'normal')
-      const descriptionLines = pdf.splitTextToSize(ticket.description, pageWidth - margin * 2)
-      descriptionLines.forEach((line: string) => {
-        if (yPosition > pageWidth - 20) {
-          pdf.addPage()
-          yPosition = margin
-        }
-        pdf.text(line, margin, yPosition)
-        yPosition += 6
-      })
-
-      if (ticket.tags.length > 0) {
-        yPosition += 5
-        if (yPosition > pageWidth - 20) {
-          pdf.addPage()
-          yPosition = margin
-        }
-
-        pdf.setFont('helvetica', 'bold')
-        pdf.text('Tags:', margin, yPosition)
-        yPosition += 8
-
-        pdf.setFont('helvetica', 'normal')
-        pdf.setFontSize(9)
-        const tagsText = ticket.tags.join(', ')
-        const tagsLines = pdf.splitTextToSize(tagsText, pageWidth - margin * 2)
-        tagsLines.forEach((line: string) => {
-          if (yPosition > pageWidth - 20) {
-            pdf.addPage()
-            yPosition = margin
-          }
-          pdf.text(line, margin, yPosition)
-          yPosition += 6
-        })
-      }
+      // Build PDF sections
+      yPosition = addLogoToPDF(pdf, yPosition)
+      yPosition = addTicketHeader(pdf, ticket, yPosition)
+      yPosition = addTicketDetails(pdf, ticket, yPosition)
+      yPosition = addDescription(pdf, ticket, yPosition)
+      yPosition = addTags(pdf, ticket, yPosition)
 
       pdf.save(`ticket-${ticket.number}.pdf`)
       message.success('PDF exported successfully')

@@ -51,6 +51,55 @@ export default function AdminDashboard() {
   // EFFECTS
   // ============================================
 
+  // Helper: Create user profile if it doesn't exist
+  const createUserProfile = async (session: any) => {
+    const { data: newUser, error } = await supabase
+      .from('tbl_users')
+      .insert([
+        {
+          id: session.user.id,
+          email: session.user.email || '',
+          full_name: session.user.user_metadata?.full_name || '',
+          role: 'user',
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single()
+
+    if (error) {
+      console.error('Failed to create user profile:', error)
+      return null
+    }
+    console.log('User profile created:', newUser)
+    return newUser
+  }
+
+  // Helper: Verify user has admin role
+  const verifyAdminRole = async (userId: string) => {
+    let { data: userData, error } = await supabase
+      .from('tbl_users')
+      .select('id, email, full_name, role')
+      .eq('id', userId)
+      .single()
+
+    console.log('Admin check - Initial fetch:', { userData, error })
+
+    // Create profile if doesn't exist (safety check)
+    if (error?.code === 'PGRST116') {
+      console.log('User record not found, creating profile...')
+      const session = await supabase.auth.getSession()
+      userData = await createUserProfile(session.data.session)
+      if (!userData) return false
+    } else if (error) {
+      console.error('User data fetch error:', error)
+      return false
+    }
+
+    // Check if user is admin
+    return userData?.role === 'admin'
+  }
+
   /**
    * Authentication and admin role verification
    * Auto-creates user profile if doesn't exist
@@ -67,48 +116,10 @@ export default function AdminDashboard() {
           return
         }
 
-        // Check if user is admin
-        let { data: userData, error } = await supabase
-          .from('tbl_users')
-          .select('id, email, full_name, role')
-          .eq('id', session.user.id)
-          .single()
-
-        console.log('Admin check - Initial fetch:', { userData, error })
-
-        // If user record doesn't exist, create it (should not happen for admin, but safety check)
-        if (error?.code === 'PGRST116') {
-          console.log('User record not found, creating profile...')
-          const { data: newUser, error: createError } = await supabase
-            .from('tbl_users')
-            .insert([
-              {
-                id: session.user.id,
-                email: session.user.email || '',
-                full_name: session.user.user_metadata?.full_name || '',
-                role: 'user', // Default role, admin must be promoted manually
-                created_at: new Date().toISOString(),
-              },
-            ])
-            .select()
-            .single()
-
-          if (createError) {
-            console.error('Failed to create user profile:', createError)
-            router.push('/tickets')
-            return
-          }
-          userData = newUser
-          console.log('User profile created:', newUser)
-        } else if (error) {
-          console.error('User data fetch error:', error)
-          router.push('/tickets')
-          return
-        }
-
         // Verify admin role
-        if (!userData || userData.role !== 'admin') {
-          console.log('Not admin, redirecting. Role:', userData?.role)
+        const isUserAdmin = await verifyAdminRole(session.user.id)
+        if (!isUserAdmin) {
+          console.log('Not admin, redirecting.')
           router.push('/tickets')
           return
         }
@@ -141,6 +152,30 @@ export default function AdminDashboard() {
   // API FUNCTIONS
   // ============================================
 
+  // Helper: Build ticket query with search filter
+  const buildTicketQuery = () => {
+    let query = supabase
+      .from('tbl_tickets')
+      .select('*')
+      .order('created_at', { ascending: false })
+
+    if (filters.search) {
+      query = query.ilike('title', `%${filters.search}%`)
+    }
+
+    return query
+  }
+
+  // Helper: Separate tickets by ownership
+  const separateTicketsByOwnership = (allTickets: Ticket[], userId: string) => {
+    const myTickets = allTickets.filter(ticket => ticket.user_id === userId)
+    const otherTickets = allTickets.filter(ticket => ticket.user_id !== userId)
+    
+    console.log('My tickets:', myTickets.length, 'Other tickets:', otherTickets.length)
+    
+    return { myTickets, otherTickets }
+  }
+
   /**
    * Fetch all tickets for admin dashboard
    * Separates into "my tickets" and "other users' tickets"
@@ -154,13 +189,7 @@ export default function AdminDashboard() {
     try {
       console.log('Fetching tickets for admin user:', user.id)
       
-      // Build query with optional search filter
-      let query = supabase.from('tbl_tickets').select('*').order('created_at', { ascending: false })
-
-      if (filters.search) {
-        query = query.ilike('title', `%${filters.search}%`)
-      }
-
+      const query = buildTicketQuery()
       const { data, error } = await query
 
       console.log('Ticket fetch response:', { data, error })
@@ -174,15 +203,11 @@ export default function AdminDashboard() {
       const allTickets = (data || []) as Ticket[]
       console.log('Total tickets fetched:', allTickets.length)
       
-      // Separate tickets by ownership
-      const my = allTickets.filter(ticket => ticket.user_id === user.id)
-      const others = allTickets.filter(ticket => ticket.user_id !== user.id)
-      
-      console.log('My tickets:', my.length, 'Other tickets:', others.length)
+      const { myTickets: my, otherTickets: others } = separateTicketsByOwnership(allTickets, user.id)
       
       setMyTickets(my)
       setOtherTickets(others)
-      setTickets(allTickets) // Update global store
+      setTickets(allTickets)
     } catch (error) {
       console.error('Failed to fetch tickets:', error)
       setTicketError(error instanceof Error ? error.message : 'Failed to fetch tickets')
