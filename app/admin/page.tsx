@@ -19,6 +19,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState<'my' | 'others'>('my')
   const [myTickets, setMyTickets] = useState<Ticket[]>([])
   const [otherTickets, setOtherTickets] = useState<Ticket[]>([])
+  const [isLoadingTickets, setIsLoadingTickets] = useState(true)
+  const [ticketError, setTicketError] = useState<string | null>(null)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -74,7 +76,12 @@ export default function AdminDashboard() {
   const fetchAllTickets = async () => {
     if (!user || !isAdmin) return
 
+    setIsLoadingTickets(true)
+    setTicketError(null)
+
     try {
+      console.log('Fetching tickets for admin user:', user.id)
+      
       let query = supabase.from('tbl_tickets').select('*').order('created_at', { ascending: false })
 
       if (filters.search) {
@@ -83,19 +90,35 @@ export default function AdminDashboard() {
 
       const { data, error } = await query
 
-      if (error) throw error
+      console.log('Ticket fetch response:', { data, error })
+
+      if (error) {
+        console.error('RLS or query error:', error)
+        setTicketError(error.message)
+        throw error
+      }
 
       const allTickets = (data || []) as Ticket[]
+      console.log('Total tickets fetched:', allTickets.length)
       
       // Separate tickets into "my tickets" and "other tickets"
       const my = allTickets.filter(ticket => ticket.user_id === user.id)
       const others = allTickets.filter(ticket => ticket.user_id !== user.id)
+      
+      console.log('My tickets:', my.length, 'Other tickets:', others.length)
       
       setMyTickets(my)
       setOtherTickets(others)
       setTickets(allTickets)
     } catch (error) {
       console.error('Failed to fetch tickets:', error)
+      setTicketError(error instanceof Error ? error.message : 'Failed to fetch tickets')
+      // Don't let errors silently fail - log them
+      if (error instanceof Error) {
+        console.error('Error details:', error.message, error.stack)
+      }
+    } finally {
+      setIsLoadingTickets(false)
     }
   }
 
@@ -117,6 +140,15 @@ export default function AdminDashboard() {
       </div>
       <FilterBar />
       <main className="max-w-6xl mx-auto p-6">
+        {/* Error message if ticket fetching failed */}
+        {ticketError && (
+          <div className="mb-6 bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-300">
+            <p className="font-medium">Error loading tickets:</p>
+            <p className="text-sm">{ticketError}</p>
+            <p className="text-xs text-red-400 mt-2">Check browser console for more details.</p>
+          </div>
+        )}
+
         {/* Analytics Dashboard */}
         <AnalyticsDashboard />
 
@@ -171,11 +203,19 @@ export default function AdminDashboard() {
           <h2 className="text-xl font-semibold text-white mb-4">
             {activeTab === 'my' ? 'Tickets Raised by Me' : 'Tickets Raised by Other Users'}
           </h2>
-          <TicketTable tickets={displayedTickets} onTicketsDeleted={fetchAllTickets} />
-          {displayedTickets.length === 0 && (
+          {isLoadingTickets ? (
             <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center">
-              <p className="text-slate-400">No tickets found in this category</p>
+              <p className="text-slate-400">Loading tickets...</p>
             </div>
+          ) : (
+            <>
+              <TicketTable tickets={displayedTickets} onTicketsDeleted={fetchAllTickets} />
+              {displayedTickets.length === 0 && (
+                <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center">
+                  <p className="text-slate-400">No tickets found in this category</p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
