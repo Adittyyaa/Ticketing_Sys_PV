@@ -88,11 +88,11 @@ export default function UserLoginPage() {
         >
           {error && (
             <Alert
-              message={error}
+              description={error}
               type="error"
               showIcon
               closable
-              onClose={() => setError('')}
+              afterClose={() => setError('')}
               style={{ marginBottom: '16px' }}
             />
           )}

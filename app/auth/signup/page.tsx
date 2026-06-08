@@ -123,18 +123,18 @@ export default function SignUpPage() {
         >
           {error && (
             <Alert
-              message={error}
+              description={error}
               type="error"
               showIcon
               closable
-              onClose={() => setError('')}
+              afterClose={() => setError('')}
               style={{ marginBottom: '16px' }}
             />
           )}
 
           {success && (
             <Alert
-              message={success}
+              description={success}
               type="success"
               showIcon
               style={{ marginBottom: '16px' }}
