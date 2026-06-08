@@ -34,18 +34,41 @@ export default function AdminDashboard() {
           return
         }
 
-        // Check if user is admin - use service role to bypass RLS if needed
-        const { data: userData, error } = await supabase
+        // Check if user is admin
+        let { data: userData, error } = await supabase
           .from('tbl_users')
           .select('id, email, full_name, role')
           .eq('id', session.user.id)
           .single()
 
-        console.log('Admin check - User data:', userData, 'Error:', error)
+        console.log('Admin check - Initial fetch:', { userData, error })
 
-        if (error) {
+        // If user record doesn't exist, create it
+        if (error?.code === 'PGRST116') {
+          console.log('User record not found, creating profile...')
+          const { data: newUser, error: createError } = await supabase
+            .from('tbl_users')
+            .insert([
+              {
+                id: session.user.id,
+                email: session.user.email || '',
+                full_name: session.user.user_metadata?.full_name || '',
+                role: 'user', // Default role, admin must be promoted manually
+                created_at: new Date().toISOString(),
+              },
+            ])
+            .select()
+            .single()
+
+          if (createError) {
+            console.error('Failed to create user profile:', createError)
+            router.push('/tickets')
+            return
+          }
+          userData = newUser
+          console.log('User profile created:', newUser)
+        } else if (error) {
           console.error('User data fetch error:', error)
-          console.log('Trying to fetch without RLS...')
           router.push('/tickets')
           return
         }
