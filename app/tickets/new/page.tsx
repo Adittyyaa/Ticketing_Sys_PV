@@ -2,12 +2,16 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowLeft } from 'lucide-react'
+import { Layout, Card, Form, Input, Select, Button, Space, Row, Col, Typography } from 'antd'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import Header from '@/components/Header'
-import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { Category, Priority, Status } from '@/lib/types'
+
+const { Content } = Layout
+const { Title, Text } = Typography
 
 const categories: Category[] = ['Bug Report', 'Technical Issue', 'Account Inquiry', 'New Feature Request', 'Other']
 const priorities: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
@@ -112,104 +116,101 @@ export default function NewTicketPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950">
+    <Layout style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
       <Header />
-      <main className="max-w-2xl mx-auto p-6">
-        <Link href="/tickets" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-6">
+      <Content style={{ margin: '0 auto', maxWidth: '800px', padding: '24px' }}>
+        <Link href="/tickets" style={{ color: '#60a5fa', textDecoration: 'none', marginBottom: '24px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
           <ArrowLeft size={18} />
           Back to tickets
         </Link>
 
-        <div className="bg-slate-900 border border-slate-700 rounded-lg p-6">
-          <h1 className="text-2xl font-semibold text-white mb-6">Create New Ticket</h1>
+        <Card style={{ backgroundColor: '#111827', borderColor: '#374151' }}>
+          <Title level={2} style={{ color: '#fff', marginBottom: '24px' }}>Create New Ticket</Title>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Title *</label>
-              <input
-                type="text"
-                required
+          <Form layout="vertical" onFinish={handleSubmit}>
+            <Form.Item label={<span style={{ color: '#cbd5e1' }}>Title</span>} required>
+              <Input
                 value={formData.title}
                 onChange={(e) => setFormData({ ...formData, title: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Brief title of the issue"
+                size="large"
+                style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
               />
-            </div>
+            </Form.Item>
 
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Description *</label>
-              <textarea
-                required
+            <Form.Item label={<span style={{ color: '#cbd5e1' }}>Description</span>} required>
+              <Input.TextArea
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 rows={5}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors resize-none"
                 placeholder="Detailed description of the issue"
+                style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
               />
-            </div>
+            </Form.Item>
 
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Category *</label>
-                <select
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value as Category })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                >
-                  {categories.map((cat) => (
-                    <option key={cat} value={cat}>
-                      {cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
+            <Row gutter={16}>
+              <Col span={12}>
+                <Form.Item label={<span style={{ color: '#cbd5e1' }}>Category</span>} required>
+                  <Select
+                    value={formData.category}
+                    onChange={(value) => setFormData({ ...formData, category: value as Category })}
+                    size="large"
+                    style={{ width: '100%' }}
+                    dropdownStyle={{ backgroundColor: '#1f2937' }}
+                  >
+                    {categories.map((cat) => (
+                      <Select.Option key={cat} value={cat}>{cat}</Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+              <Col span={12}>
+                <Form.Item label={<span style={{ color: '#cbd5e1' }}>Priority</span>} required>
+                  <Select
+                    value={formData.priority}
+                    onChange={(value) => setFormData({ ...formData, priority: value as Priority })}
+                    size="large"
+                    style={{ width: '100%' }}
+                    dropdownStyle={{ backgroundColor: '#1f2937' }}
+                  >
+                    {priorities.map((p) => (
+                      <Select.Option key={p} value={p}>{p}</Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Col>
+            </Row>
 
-              <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">Priority *</label>
-                <select
-                  value={formData.priority}
-                  onChange={(e) => setFormData({ ...formData, priority: e.target.value as Priority })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
-                >
-                  {priorities.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">Tags</label>
-              <input
-                type="text"
+            <Form.Item label={<span style={{ color: '#cbd5e1' }}>Tags</span>}>
+              <Input
                 value={formData.tags}
                 onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
-                className="w-full bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
                 placeholder="Separate tags with commas (e.g. bug, website, urgent)"
+                size="large"
+                style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
               />
-              <p className="text-xs text-slate-400 mt-1">Separate multiple tags with commas</p>
-            </div>
+              <Text style={{ color: '#9ca3af', fontSize: '12px' }}>Separate multiple tags with commas</Text>
+            </Form.Item>
 
-            <div className="flex gap-3 pt-4">
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-900 px-6 py-2 rounded-lg text-white font-medium transition-colors"
-              >
-                {loading ? 'Creating...' : 'Create Ticket'}
-              </button>
-              <Link
-                href="/tickets"
-                className="flex-1 bg-slate-700 hover:bg-slate-600 px-6 py-2 rounded-lg text-white font-medium transition-colors text-center"
-              >
-                Cancel
-              </Link>
-            </div>
-          </form>
-        </div>
-      </main>
-    </div>
+            <Form.Item>
+              <Space style={{ width: '100%' }}>
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={loading}
+                  size="large"
+                  style={{ flex: 1, width: '200px' }}
+                >
+                  {loading ? 'Creating...' : 'Create Ticket'}
+                </Button>
+                <Link href="/tickets">
+                  <Button size="large" style={{ width: '120px' }}>Cancel</Button>
+                </Link>
+              </Space>
+            </Form.Item>
+          </Form>
+        </Card>
+      </Content>
+    </Layout>
   )
 }
