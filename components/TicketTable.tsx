@@ -9,11 +9,23 @@ import { DeleteOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 
+// ============================================
+// TYPE DEFINITIONS
+// ============================================
+
 interface TicketTableProps {
   tickets: Ticket[]
-  onTicketsDeleted?: () => void
+  onTicketsDeleted?: () => void // Callback after tickets are deleted
 }
 
+// ============================================
+// CONFIGURATION OBJECTS
+// ============================================
+
+/**
+ * Priority display configuration
+ * Maps priority enum to color and label
+ */
 const priorityConfig: Record<Priority, { color: string; label: string }> = {
   LOW: { color: 'green', label: 'Low' },
   MEDIUM: { color: 'blue', label: 'Medium' },
@@ -21,6 +33,10 @@ const priorityConfig: Record<Priority, { color: string; label: string }> = {
   URGENT: { color: 'red', label: 'Urgent' },
 }
 
+/**
+ * Status display configuration
+ * Maps status enum to Ant Design tag color and label
+ */
 const statusConfig: Record<Status, { color: string; label: string }> = {
   UNTOUCHED: { color: 'default', label: 'Untouched' },
   PENDING: { color: 'warning', label: 'Pending' },
@@ -28,6 +44,9 @@ const statusConfig: Record<Status, { color: string; label: string }> = {
   SOLVED: { color: 'success', label: 'Solved' },
 }
 
+/**
+ * Category color mapping for tags
+ */
 const categoryConfig: Record<string, string> = {
   'Bug Report': 'red',
   'Technical Issue': 'purple',
@@ -36,14 +55,48 @@ const categoryConfig: Record<string, string> = {
   'Other': 'default',
 }
 
-export default function TicketTable({ tickets, onTicketsDeleted }: TicketTableProps) {
-  const { isAdmin } = useAuthStore()
-  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([])
-  const [isDeleting, setIsDeleting] = useState(false)
+// ============================================
+// MAIN COMPONENT
+// ============================================
 
+/**
+ * TicketTable Component
+ * Displays tickets in a sortable, filterable table
+ * Features:
+ * - Bulk selection (admin only)
+ * - Bulk delete with confirmation
+ * - Clickable rows to view ticket details
+ * - Color-coded priority and status tags
+ * - Responsive pagination
+ */
+export default function TicketTable({ tickets, onTicketsDeleted }: TicketTableProps) {
+  // ============================================
+  // STATE & HOOKS
+  // ============================================
+  
+  const { isAdmin } = useAuthStore() // Check if current user is admin
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([]) // Selected ticket IDs
+  const [isDeleting, setIsDeleting] = useState(false) // Deletion in progress
+
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
+
+  /**
+   * Handle bulk delete of selected tickets
+   * Only available to admins
+   * Shows confirmation modal before deleting
+   */
+
+  /**
+   * Handle bulk delete of selected tickets
+   * Only available to admins
+   * Shows confirmation modal before deleting
+   */
   const handleBulkDelete = async () => {
     if (selectedRowKeys.length === 0) return
 
+    // Show confirmation modal
     Modal.confirm({
       title: 'Delete Tickets',
       content: `Are you sure you want to delete ${selectedRowKeys.length} ticket(s)? This action cannot be undone.`,
@@ -53,9 +106,11 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
       onOk: async () => {
         setIsDeleting(true)
         try {
+          // Get current session for authentication
           const { data: { session } } = await supabase.auth.getSession()
           if (!session) throw new Error('No active session')
 
+          // Call API to delete tickets
           const response = await fetch('/api/admin/bulk-delete-tickets', {
             method: 'POST',
             headers: {
@@ -68,6 +123,7 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
           const result = await response.json()
           if (!response.ok) throw new Error(result.error || 'Failed to delete tickets')
 
+          // Success - clear selection and refresh
           message.success(`Successfully deleted ${selectedRowKeys.length} ticket(s)`)
           setSelectedRowKeys([])
           if (onTicketsDeleted) onTicketsDeleted()
@@ -79,6 +135,15 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
       }
     })
   }
+
+  // ============================================
+  // TABLE COLUMN DEFINITIONS
+  // ============================================
+
+  /**
+   * Define table columns with custom renderers
+   * Each column has sort, filter, and display logic
+   */
 
   const columns = [
     {
@@ -97,7 +162,7 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
       dataIndex: 'title',
       key: 'title',
       ellipsis: {
-        showTitle: false,
+        showTitle: false, // Use Tooltip instead
       },
       render: (title: string, record: Ticket) => (
         <Tooltip title={title}>
@@ -153,6 +218,7 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
       width: 150,
       render: (tags: string[]) => (
         <Space size={4} wrap>
+          {/* Show first 2 tags, indicate if more exist */}
           {tags.slice(0, 2).map((tag) => (
             <Tag key={tag}>{tag}</Tag>
           ))}
@@ -162,8 +228,15 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
     },
   ]
 
+  // ============================================
+  // RENDER
+  // ============================================
+
   return (
     <div>
+      {/* ============================================ */}
+      {/* BULK ACTIONS BAR (Admin Only) */}
+      {/* ============================================ */}
       {isAdmin && selectedRowKeys.length > 0 && (
         <div style={{ marginBottom: 16, padding: '12px', background: '#f6f8fb', borderRadius: '4px' }}>
           <Space>
@@ -180,23 +253,26 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
         </div>
       )}
 
+      {/* ============================================ */}
+      {/* TICKET TABLE */}
+      {/* ============================================ */}
       <Table
         columns={columns}
         dataSource={tickets.map((ticket) => ({
           ...ticket,
-          key: ticket.id,
+          key: ticket.id, // Required by Ant Design Table
         }))}
-        pagination={{ pageSize: 20 }}
+        pagination={{ pageSize: 20 }} // 20 tickets per page
         rowSelection={
           isAdmin
             ? {
               selectedRowKeys,
               onChange: (keys) => setSelectedRowKeys(keys as string[]),
             }
-            : undefined
+            : undefined // Only show checkboxes for admins
         }
         loading={false}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1200 }} // Horizontal scroll on small screens
       />
     </div>
   )

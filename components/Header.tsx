@@ -12,21 +12,55 @@ import AccountDetailsModal from './AccountDetailsModal'
 
 const { Header } = Layout
 
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+/**
+ * NavigationHeader Component
+ * Top navigation bar with logo, actions, and user menu
+ * Features:
+ * - Company logo with clickable home link
+ * - Admin dashboard quick access (for admins only)
+ * - Notifications button with badge
+ * - Account details modal trigger
+ * - User menu with email, role, and logout
+ */
 export default function NavigationHeader() {
-  const { user, setUser, isAdmin } = useAuthStore()
+  // ============================================
+  // STATE & HOOKS
+  // ============================================
+  
+  const { user, setUser, isAdmin } = useAuthStore() // Get user info and admin status
   const router = useRouter()
   const [showAccountModal, setShowAccountModal] = useState(false)
 
+  // ============================================
+  // EVENT HANDLERS
+  // ============================================
+
+  /**
+   * Handle user logout
+   * Signs out from Supabase and redirects to auth page
+   */
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setUser(null)
     router.push('/auth')
   }
 
+  // ============================================
+  // DROPDOWN MENU CONFIGURATION
+  // ============================================
+
+  /**
+   * User dropdown menu items
+   * Shows: Email, Role badge, Logout option
+   */
   const menuItems = [
     {
       key: 'email',
-      disabled: true,
+      disabled: true, // Display only (not clickable)
       label: (
         <div style={{ padding: '8px 0' }}>
           <div style={{ fontSize: '12px', color: '#999' }}>Logged in as</div>
@@ -37,15 +71,15 @@ export default function NavigationHeader() {
       ),
     } as const,
     {
-      type: 'divider' as const,
+      type: 'divider' as const, // Visual separator
     },
     {
       key: 'role',
-      disabled: true,
+      disabled: true, // Display only
       label: (
         <div style={{ fontSize: '12px' }}>
           <Badge 
-            color={isAdmin ? '#722ed1' : '#1890ff'} 
+            color={isAdmin ? '#722ed1' : '#1890ff'} // Purple for admin, blue for user
             text={isAdmin ? 'Administrator' : 'User'} 
           />
         </div>
@@ -58,10 +92,14 @@ export default function NavigationHeader() {
       key: 'logout',
       icon: <LogoutOutlined />,
       label: 'Logout',
-      danger: true,
+      danger: true, // Red styling
       onClick: handleLogout,
     } as const,
   ]
+
+  // ============================================
+  // RENDER
+  // ============================================
 
   return (
     <>
@@ -76,9 +114,11 @@ export default function NavigationHeader() {
           height: '64px',
         }}
       >
-        {/* Logo Section */}
+        {/* ============================================ */}
+        {/* LEFT SECTION: Logo */}
+        {/* ============================================ */}
         <Link 
-          href={isAdmin ? '/admin' : '/tickets'}
+          href={isAdmin ? '/admin' : '/tickets'} // Admin goes to admin dashboard, users to tickets
           style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}
         >
           <Image 
@@ -88,13 +128,17 @@ export default function NavigationHeader() {
             height={40} 
             style={{ borderRadius: '8px' }}
           />
+          {/* Title hidden on mobile, shown on larger screens */}
           <span style={{ color: '#fff', fontSize: '18px', fontWeight: '600', display: 'none', marginLeft: '12px' }}>
             Ticket System
           </span>
         </Link>
 
-        {/* Right Navigation */}
+        {/* ============================================ */}
+        {/* RIGHT SECTION: Navigation Actions */}
+        {/* ============================================ */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+          {/* Admin Dashboard Link (only visible to admins) */}
           {isAdmin && (
             <Link href="/admin">
               <Tooltip title="Admin Dashboard">
@@ -108,15 +152,17 @@ export default function NavigationHeader() {
             </Link>
           )}
 
+          {/* Notifications Button */}
           <Tooltip title="Notifications">
             <Button 
               type="text"
-              icon={<Badge count={0} offset={[-5, 5]}><BellOutlined /></Badge>}
+              icon={<Badge count={0} offset={[-5, 5]}><BellOutlined /></Badge>} // Badge shows notification count
               size="large"
               style={{ color: '#fff' }}
             />
           </Tooltip>
 
+          {/* Account Details Button */}
           <Tooltip title="Account">
             <Button
               type="text"
@@ -127,7 +173,7 @@ export default function NavigationHeader() {
             />
           </Tooltip>
 
-          {/* User Menu */}
+          {/* User Menu Dropdown */}
           <Dropdown menu={{ items: menuItems }} placement="bottomRight">
             <Button
               type="text"
@@ -139,7 +185,11 @@ export default function NavigationHeader() {
         </div>
       </Header>
 
-      {/* Account Details Modal */}
+      {/* ============================================ */}
+      {/* MODALS */}
+      {/* ============================================ */}
+      
+      {/* Account Details Modal - Opens when user clicks account button */}
       <AccountDetailsModal isOpen={showAccountModal} onClose={() => setShowAccountModal(false)} />
     </>
   )
