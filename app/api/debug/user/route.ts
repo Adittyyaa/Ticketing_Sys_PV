@@ -2,6 +2,11 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
+  // Security: Only allow in development mode
+  if (process.env.NODE_ENV === 'production') {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
+
   try {
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
@@ -20,7 +25,7 @@ export async function GET(request: NextRequest) {
     const { data: { user: authUser }, error: authError } = await supabaseAdmin.auth.getUser(token)
 
     if (authError || !authUser) {
-      return NextResponse.json({ error: 'Invalid token', details: authError }, { status: 401 })
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
     // Get user from database
@@ -30,17 +35,18 @@ export async function GET(request: NextRequest) {
       .eq('id', authUser.id)
       .single()
 
+    // Return generic error message in dev but don't expose full details
     return NextResponse.json({
       authUser: {
         id: authUser.id,
         email: authUser.email,
       },
       dbUser: dbUser || null,
-      dbError: dbError?.message || null,
+      dbError: dbError ? 'Database error occurred' : null,
     })
   } catch (error) {
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'Internal error' },
       { status: 500 }
     )
   }

@@ -55,18 +55,39 @@ export default function NewTicketPage() {
     e.preventDefault()
     if (!user) return
 
+    // Input validation
+    if (!formData.title.trim() || formData.title.length > 255) {
+      alert('Title must be between 1 and 255 characters')
+      return
+    }
+
+    if (!formData.description.trim() || formData.description.length > 5000) {
+      alert('Description must be between 1 and 5000 characters')
+      return
+    }
+
+    const tags = formData.tags
+      .split(',')
+      .map(t => t.trim())
+      .filter(t => t.length > 0 && t.length <= 50)
+
+    if (tags.length > 10) {
+      alert('Maximum 10 tags allowed')
+      return
+    }
+
     setLocalLoading(true)
     try {
       const { data, error } = await supabase
         .from('tbl_tickets')
         .insert([
           {
-            title: formData.title,
-            description: formData.description,
+            title: formData.title.trim(),
+            description: formData.description.trim(),
             category: formData.category,
             priority: formData.priority,
             status: 'UNTOUCHED' as Status,
-            tags: formData.tags.split(',').map((t) => t.trim()),
+            tags: tags,
             user_id: user.id,
           },
         ])

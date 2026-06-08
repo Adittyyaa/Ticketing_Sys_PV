@@ -44,16 +44,38 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
 
     setUploading(true)
 
+    const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'text/plain']
+    const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
+    const MAX_FILES_PER_TICKET = 10
+
     try {
-      for (const file of Array.from(files)) {
-        // Max 10MB
-        if (file.size > 10 * 1024 * 1024) {
-          alert(`${file.name} is too large. Max size is 10MB.`)
+      const fileArray = Array.from(files)
+      
+      if (fileArray.length > MAX_FILES_PER_TICKET) {
+        alert(`Maximum ${MAX_FILES_PER_TICKET} files allowed`)
+        return
+      }
+
+      for (const file of fileArray) {
+        // Validate file size
+        if (file.size > MAX_FILE_SIZE) {
+          alert(`${file.name} exceeds 5MB limit`)
           continue
         }
 
+        // Validate file type
+        if (!ALLOWED_TYPES.includes(file.type)) {
+          alert(`${file.type} files not allowed. Allowed: images, PDF, text`)
+          continue
+        }
+
+        // Sanitize filename
+        const sanitizedName = file.name
+          .replace(/[^a-zA-Z0-9.-]/g, '_')
+          .substring(0, 100)
+
         // Upload to storage
-        const filePath = `${user.id}/${ticketId}/${Date.now()}-${file.name}`
+        const filePath = `${user.id}/${ticketId}/${Date.now()}-${sanitizedName}`
         const { error: uploadError } = await supabase.storage
           .from('ticket-attachments')
           .upload(filePath, file)

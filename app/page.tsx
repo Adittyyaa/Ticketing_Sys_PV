@@ -9,22 +9,26 @@ import { supabase } from '@/lib/supabase'
 export default function Home() {
   const router = useRouter()
   const { setUser, setLoading, setIsAdmin } = useAuthStore()
-  const [timeout, setTimeout] = useState(false)
+  const [timeout, setTimeoutState] = useState(false)
 
   useEffect(() => {
     const timer = setInterval(() => {
-      setTimeout(true)
+      setTimeoutState(true)
     }, 5000)
 
     return () => clearInterval(timer)
   }, [])
 
   useEffect(() => {
+    let isMounted = true
+
     const checkAuth = async () => {
       try {
         const {
           data: { session },
         } = await supabase.auth.getSession()
+
+        if (!isMounted) return
 
         if (session?.user) {
           // Check user role
@@ -33,6 +37,8 @@ export default function Home() {
             .select('role')
             .eq('id', session.user.id)
             .single()
+
+          if (!isMounted) return
 
           const isAdmin = userData?.role === 'admin'
           setIsAdmin(isAdmin)
@@ -50,17 +56,27 @@ export default function Home() {
             router.push('/tickets')
           }
         } else {
-          router.push('/auth')
+          if (isMounted) {
+            router.push('/auth')
+          }
         }
       } catch (error) {
         console.error('Auth check failed:', error)
-        router.push('/auth')
+        if (isMounted) {
+          router.push('/auth')
+        }
       } finally {
-        setLoading(false)
+        if (isMounted) {
+          setLoading(false)
+        }
       }
     }
 
     checkAuth()
+
+    return () => {
+      isMounted = false
+    }
   }, [setUser, setLoading, setIsAdmin, router])
 
   return (

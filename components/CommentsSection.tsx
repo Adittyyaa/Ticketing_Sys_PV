@@ -150,7 +150,7 @@ export default function CommentsSection({ ticketId }: CommentsSectionProps) {
                   </button>
                 )}
               </div>
-              <p className="text-slate-200 whitespace-pre-wrap">{comment.content}</p>
+              <p className="text-slate-200 break-words">{comment.content}</p>
             </div>
           ))
         )}

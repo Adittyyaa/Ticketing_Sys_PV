@@ -22,10 +22,15 @@ Go to **SQL Editor** in your Supabase dashboard and run this SQL:
 
 ```sql
 -- Create users table to store user roles
-CREATE TABLE public.users (
+CREATE TABLE public.tbl_users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email VARCHAR(255) NOT NULL,
   full_name VARCHAR(255),
+  phone VARCHAR(20),
+  job_title VARCHAR(255),
+  company VARCHAR(255) DEFAULT 'PV Advisory',
+  avatar_url TEXT,
+  bio TEXT,
   role VARCHAR(20) NOT NULL DEFAULT 'user' CHECK (role IN ('user', 'admin')),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
@@ -33,7 +38,7 @@ CREATE TABLE public.users (
 );
 
 -- Create tickets table
-CREATE TABLE public.tickets (
+CREATE TABLE public.tbl_tickets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   number BIGSERIAL UNIQUE NOT NULL,
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -51,83 +56,161 @@ CREATE TABLE public.tickets (
   CONSTRAINT valid_category CHECK (category IN ('Bug Report', 'Technical Issue', 'Account Inquiry', 'New Feature Request', 'Other'))
 );
 
+-- Create comments table
+CREATE TABLE public.tbl_comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES public.tbl_tickets(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  commenter_name VARCHAR(255),
+  commenter_email VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
+-- Create attachments table
+CREATE TABLE public.tbl_attachments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES public.tbl_tickets(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  file_name VARCHAR(255) NOT NULL,
+  file_path TEXT NOT NULL,
+  file_size INTEGER NOT NULL,
+  file_type VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);
+
 -- Create index for faster queries
-CREATE INDEX idx_tickets_user_id ON public.tickets(user_id);
-CREATE INDEX idx_tickets_status ON public.tickets(status);
-CREATE INDEX idx_tickets_priority ON public.tickets(priority);
-CREATE INDEX idx_tickets_created_at ON public.tickets(created_at DESC);
-CREATE INDEX idx_users_role ON public.users(role);
+CREATE INDEX idx_tickets_user_id ON public.tbl_tickets(user_id);
+CREATE INDEX idx_tickets_status ON public.tbl_tickets(status);
+CREATE INDEX idx_tickets_priority ON public.tbl_tickets(priority);
+CREATE INDEX idx_tickets_created_at ON public.tbl_tickets(created_at DESC);
+CREATE INDEX idx_users_role ON public.tbl_users(role);
+CREATE INDEX idx_comments_ticket_id ON public.tbl_comments(ticket_id);
+CREATE INDEX idx_attachments_ticket_id ON public.tbl_attachments(ticket_id);
 
 -- Enable Row Level Security
-ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tbl_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tbl_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tbl_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.tbl_attachments ENABLE ROW LEVEL SECURITY;
 
--- Drop existing policies if they exist (run if updating)
-DROP POLICY IF EXISTS "Users can view their own profile" ON public.users;
-DROP POLICY IF EXISTS "Admins can view all profiles" ON public.users;
-DROP POLICY IF EXISTS "Users can view their own tickets" ON public.tickets;
-DROP POLICY IF EXISTS "Admins can view all tickets" ON public.tickets;
-DROP POLICY IF EXISTS "Users can create tickets" ON public.tickets;
-DROP POLICY IF EXISTS "Users can update their own tickets" ON public.tickets;
-DROP POLICY IF EXISTS "Admins can update any ticket" ON public.tickets;
-DROP POLICY IF EXISTS "Users can delete their own tickets" ON public.tickets;
-DROP POLICY IF EXISTS "Admins can delete any ticket" ON public.tickets;
+-- Drop existing policies if they exist
+DO $$ 
+DECLARE 
+    r RECORD;
+BEGIN
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'tbl_users' AND schemaname = 'public') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON public.tbl_users';
+    END LOOP;
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'tbl_tickets' AND schemaname = 'public') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON public.tbl_tickets';
+    END LOOP;
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'tbl_comments' AND schemaname = 'public') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON public.tbl_comments';
+    END LOOP;
+    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'tbl_attachments' AND schemaname = 'public') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON public.tbl_attachments';
+    END LOOP;
+END $$;
 
--- Users table RLS policies
-CREATE POLICY "Users can view their own profile"
-  ON public.users
-  FOR SELECT
-  USING (auth.uid() = id);
+-- Create helper function to get user role (cached for performance)
+CREATE OR REPLACE FUNCTION public.get_user_role()
+RETURNS TEXT AS $$
+  SELECT role FROM public.tbl_users WHERE id = auth.uid()
+$$ LANGUAGE sql SECURITY DEFINER STABLE;
 
-CREATE POLICY "Admins can view all profiles"
-  ON public.users
-  FOR SELECT
-  USING (
-    (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin'
-  );
+-- ============================================
+-- tbl_users RLS Policies
+-- ============================================
 
--- Tickets table RLS policies - Users can only see their own tickets
-CREATE POLICY "Users can view their own tickets"
-  ON public.tickets
-  FOR SELECT
-  USING (auth.uid() = user_id OR (SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+-- Users can view their own profile
+CREATE POLICY "tbl_users_select_own"
+ON public.tbl_users FOR SELECT
+USING (auth.uid() = id);
 
--- Admins can view all tickets
-CREATE POLICY "Admins can view all tickets"
-  ON public.tickets
-  FOR SELECT
-  USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+-- Users can insert their own record
+CREATE POLICY "tbl_users_insert_own"
+ON public.tbl_users FOR INSERT
+WITH CHECK (auth.uid() = id);
+
+-- Users can update their own record
+CREATE POLICY "tbl_users_update_own"
+ON public.tbl_users FOR UPDATE
+USING (auth.uid() = id)
+WITH CHECK (auth.uid() = id);
+
+-- ============================================
+-- tbl_tickets RLS Policies
+-- ============================================
+
+-- All authenticated users can view all tickets
+CREATE POLICY "tbl_tickets_select_all_authenticated"
+ON public.tbl_tickets FOR SELECT
+USING (auth.uid() IS NOT NULL);
 
 -- Users can create tickets
-CREATE POLICY "Users can create tickets"
-  ON public.tickets
-  FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+CREATE POLICY "tbl_tickets_insert_own"
+ON public.tbl_tickets FOR INSERT
+WITH CHECK (auth.uid() = user_id);
 
--- Users can update their own tickets
-CREATE POLICY "Users can update their own tickets"
-  ON public.tickets
-  FOR UPDATE
-  USING (auth.uid() = user_id)
-  WITH CHECK (auth.uid() = user_id);
+-- Users can update their own tickets, admins can update any
+CREATE POLICY "tbl_tickets_update_own_or_admin"
+ON public.tbl_tickets FOR UPDATE
+USING (auth.uid() = user_id OR public.get_user_role() = 'admin')
+WITH CHECK (auth.uid() = user_id OR public.get_user_role() = 'admin');
 
--- Admins can update any ticket
-CREATE POLICY "Admins can update any ticket"
-  ON public.tickets
-  FOR UPDATE
-  USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+-- Users can delete their own tickets, admins can delete any
+CREATE POLICY "tbl_tickets_delete_own_or_admin"
+ON public.tbl_tickets FOR DELETE
+USING (auth.uid() = user_id OR public.get_user_role() = 'admin');
 
--- Users can delete their own tickets
-CREATE POLICY "Users can delete their own tickets"
-  ON public.tickets
-  FOR DELETE
-  USING (auth.uid() = user_id);
+-- ============================================
+-- tbl_comments RLS Policies
+-- ============================================
 
--- Admins can delete any ticket
-CREATE POLICY "Admins can delete any ticket"
-  ON public.tickets
-  FOR DELETE
-  USING ((SELECT role FROM public.users WHERE id = auth.uid()) = 'admin');
+-- All authenticated users can view comments
+CREATE POLICY "tbl_comments_select_all"
+ON public.tbl_comments FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+-- Users can insert comments
+CREATE POLICY "tbl_comments_insert_own"
+ON public.tbl_comments FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+-- Users can delete their own comments, admins can delete any
+CREATE POLICY "tbl_comments_delete_own_or_admin"
+ON public.tbl_comments FOR DELETE
+USING (auth.uid() = user_id OR public.get_user_role() = 'admin');
+
+-- ============================================
+-- tbl_attachments RLS Policies
+-- ============================================
+
+-- All authenticated users can view attachments
+CREATE POLICY "tbl_attachments_select_all"
+ON public.tbl_attachments FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+-- Users can upload attachments to their tickets
+CREATE POLICY "tbl_attachments_insert_own"
+ON public.tbl_attachments FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+-- Users can delete their own attachments, admins can delete any
+CREATE POLICY "tbl_attachments_delete_own_or_admin"
+ON public.tbl_attachments FOR DELETE
+USING (auth.uid() = user_id OR public.get_user_role() = 'admin');
+
+-- Create index for faster queries
+CREATE INDEX idx_tickets_user_id ON public.tbl_tickets(user_id);
+CREATE INDEX idx_tickets_status ON public.tbl_tickets(status);
+CREATE INDEX idx_tickets_priority ON public.tbl_tickets(priority);
+CREATE INDEX idx_tickets_created_at ON public.tbl_tickets(created_at DESC);
+CREATE INDEX idx_users_role ON public.tbl_users(role);
+CREATE INDEX idx_comments_ticket_id ON public.tbl_comments(ticket_id);
+CREATE INDEX idx_attachments_ticket_id ON public.tbl_attachments(ticket_id);
 ```
 
 ## 4. Enable Authentication

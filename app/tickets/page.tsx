@@ -16,6 +16,7 @@ export default function TicketsPage() {
   const [activeTab, setActiveTab] = useState<'my' | 'others'>('my')
   const [myTickets, setMyTickets] = useState<Ticket[]>([])
   const [otherTickets, setOtherTickets] = useState<Ticket[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -55,16 +56,21 @@ export default function TicketsPage() {
     if (!user) return
 
     const fetchAllTickets = async () => {
+      setIsLoading(true)
       try {
+        // Sanitize search input
+        const sanitizedSearch = filters.search?.trim().substring(0, 100) || ''
+
         // Fetch my tickets
         let myQuery = supabase
           .from('tbl_tickets')
-          .select('*')
+          .select('*', { count: 'exact' })
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
+          .limit(50)
 
-        if (filters.search) {
-          myQuery = myQuery.ilike('title', `%${filters.search}%`)
+        if (sanitizedSearch) {
+          myQuery = myQuery.ilike('title', `%${sanitizedSearch}%`)
         }
 
         const { data: myData, error: myError } = await myQuery
@@ -73,28 +79,31 @@ export default function TicketsPage() {
         setMyTickets((myData || []) as Ticket[])
         setTickets((myData || []) as Ticket[])
 
-        // Fetch other users' tickets (admin or viewable tickets)
+        // Fetch other users' tickets with pagination
         let othersQuery = supabase
           .from('tbl_tickets')
-          .select('*')
+          .select('*', { count: 'exact' })
           .neq('user_id', user.id)
           .order('created_at', { ascending: false })
+          .limit(50)
 
-        if (filters.search) {
-          othersQuery = othersQuery.ilike('title', `%${filters.search}%`)
+        if (sanitizedSearch) {
+          othersQuery = othersQuery.ilike('title', `%${sanitizedSearch}%`)
         }
 
         const { data: othersData, error: othersError } = await othersQuery
         
         // If there's an RLS error, it means user doesn't have permission to view others' tickets
         if (othersError) {
-          console.log('Cannot fetch other tickets (expected for regular users):', othersError)
+          console.log('Cannot fetch other tickets (expected for regular users):', othersError.message)
           setOtherTickets([])
         } else {
           setOtherTickets((othersData || []) as Ticket[])
         }
       } catch (error) {
         console.error('Failed to fetch tickets:', error)
+      } finally {
+        setIsLoading(false)
       }
     }
 
@@ -149,15 +158,23 @@ export default function TicketsPage() {
           <h2 className="text-xl font-semibold text-white mb-4">
             {activeTab === 'my' ? 'Tickets Raised by Me' : 'Tickets Raised by Other Users'}
           </h2>
-          <TicketTable tickets={displayedTickets} />
-          {displayedTickets.length === 0 && (
+          {isLoading ? (
             <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center">
-              <p className="text-slate-400">
-                {activeTab === 'my' 
-                  ? 'No tickets found. Create your first ticket!' 
-                  : 'No other tickets available to view'}
-              </p>
+              <p className="text-slate-400">Loading tickets...</p>
             </div>
+          ) : (
+            <>
+              <TicketTable tickets={displayedTickets} />
+              {displayedTickets.length === 0 && (
+                <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center">
+                  <p className="text-slate-400">
+                    {activeTab === 'my' 
+                      ? 'No tickets found. Create your first ticket!' 
+                      : 'No other tickets available to view'}
+                  </p>
+                </div>
+              )}
+            </>
           )}
         </div>
       </main>
