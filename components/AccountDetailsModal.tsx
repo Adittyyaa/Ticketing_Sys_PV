@@ -77,7 +77,6 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
       if (error) {
         if (error.code === 'PGRST116') {
           // User record doesn't exist - create it
-          console.log('Creating user record...')
           const { data: newUser, error: createError } = await supabase
             .from('tbl_users')
             .insert([{

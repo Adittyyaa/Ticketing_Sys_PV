@@ -89,8 +89,13 @@ export default function TicketsPage() {
     const fetchAllTickets = async () => {
       setIsLoading(true)
       try {
-        // Sanitize search input for security
-        const sanitizedSearch = filters.search?.trim().substring(0, 100) || ''
+        // Sanitize and validate search input
+        const rawSearch = filters.search?.trim() || ''
+        
+        // Remove potential SQL injection characters and limit length
+        const sanitizedSearch = rawSearch
+          .replace(/[%;]/g, '') // Remove SQL wildcards that could cause issues
+          .substring(0, 100)
 
         // Fetch only user's tickets (privacy: users see only their tickets)
         let myQuery = supabase
@@ -98,10 +103,9 @@ export default function TicketsPage() {
           .select('*', { count: 'exact' })
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
-          .limit(50)
 
-        // Apply search filter if provided
-        if (sanitizedSearch) {
+        // Apply search filter if provided (minimum 2 characters to prevent performance issues)
+        if (sanitizedSearch && sanitizedSearch.length >= 2) {
           myQuery = myQuery.ilike('title', `%${sanitizedSearch}%`)
         }
 

@@ -5,8 +5,14 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
-        hostname: '**',
+        hostname: 'localhost',
       },
+      // Add your Supabase storage hostname here if needed
+      // Example:
+      // {
+      //   protocol: 'https',
+      //   hostname: 'your-project.supabase.co',
+      // },
     ],
   },
   async headers() {
@@ -33,6 +39,10 @@ const nextConfig = {
           {
             key: 'Permissions-Policy',
             value: 'camera=(), microphone=(), geolocation=()',
+          },
+          {
+            key: 'Strict-Transport-Security',
+            value: 'max-age=31536000; includeSubDomains',
           },
         ],
       },

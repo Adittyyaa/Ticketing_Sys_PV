@@ -71,7 +71,6 @@ export default function AdminDashboard() {
       console.error('Failed to create user profile:', error)
       return null
     }
-    console.log('User profile created:', newUser)
     return newUser
   }
 
@@ -83,11 +82,8 @@ export default function AdminDashboard() {
       .eq('id', userId)
       .single()
 
-    console.log('Admin check - Initial fetch:', { userData, error })
-
     // Create profile if doesn't exist (safety check)
     if (error?.code === 'PGRST116') {
-      console.log('User record not found, creating profile...')
       const session = await supabase.auth.getSession()
       userData = await createUserProfile(session.data.session)
       if (!userData) return false
@@ -119,7 +115,6 @@ export default function AdminDashboard() {
         // Verify admin role
         const isUserAdmin = await verifyAdminRole(session.user.id)
         if (!isUserAdmin) {
-          console.log('Not admin, redirecting.')
           router.push('/tickets')
           return
         }
@@ -170,9 +165,6 @@ export default function AdminDashboard() {
   const separateTicketsByOwnership = (allTickets: Ticket[], userId: string) => {
     const myTickets = allTickets.filter(ticket => ticket.user_id === userId)
     const otherTickets = allTickets.filter(ticket => ticket.user_id !== userId)
-    
-    console.log('My tickets:', myTickets.length, 'Other tickets:', otherTickets.length)
-    
     return { myTickets, otherTickets }
   }
 
@@ -187,12 +179,8 @@ export default function AdminDashboard() {
     setTicketError(null)
 
     try {
-      console.log('Fetching tickets for admin user:', user.id)
-      
       const query = buildTicketQuery()
       const { data, error } = await query
-
-      console.log('Ticket fetch response:', { data, error })
 
       if (error) {
         console.error('RLS or query error:', error)
@@ -201,7 +189,6 @@ export default function AdminDashboard() {
       }
 
       const allTickets = (data || []) as Ticket[]
-      console.log('Total tickets fetched:', allTickets.length)
       
       const { myTickets: my, otherTickets: others } = separateTicketsByOwnership(allTickets, user.id)
       
