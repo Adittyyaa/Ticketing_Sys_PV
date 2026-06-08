@@ -2,15 +2,42 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import Image from 'next/image'
+import { Spin, Space, Typography, Avatar } from 'antd'
+import { LoadingOutlined } from '@ant-design/icons'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
 
+const { Text } = Typography
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+/**
+ * Home Page Component
+ * Handles authentication check and redirects users based on their role
+ * Features:
+ * - Automatic session verification
+ * - Role-based routing (admin → /admin, user → /tickets)
+ * - Loading state with timeout indicator
+ * - Professional Ant Design loading screen
+ */
 export default function Home() {
+  // ============================================
+  // STATE & HOOKS
+  // ============================================
+  
   const router = useRouter()
   const { setUser, setLoading, setIsAdmin } = useAuthStore()
   const [timeout, setTimeoutState] = useState(false)
 
+  // ============================================
+  // EFFECTS
+  // ============================================
+
+  /**
+   * Show timeout message after 5 seconds
+   */
   useEffect(() => {
     const timer = setInterval(() => {
       setTimeoutState(true)
@@ -19,11 +46,15 @@ export default function Home() {
     return () => clearInterval(timer)
   }, [])
 
+  /**
+   * Check authentication status and redirect accordingly
+   */
   useEffect(() => {
     let isMounted = true
 
     const checkAuth = async () => {
       try {
+        // Get current session
         const {
           data: { session },
         } = await supabase.auth.getSession()
@@ -31,7 +62,7 @@ export default function Home() {
         if (!isMounted) return
 
         if (session?.user) {
-          // Check user role
+          // Check user role from database
           const { data: userData } = await supabase
             .from('tbl_users')
             .select('role')
@@ -56,6 +87,7 @@ export default function Home() {
             router.push('/tickets')
           }
         } else {
+          // No session - redirect to auth
           if (isMounted) {
             router.push('/auth')
           }
@@ -79,21 +111,44 @@ export default function Home() {
     }
   }, [setUser, setLoading, setIsAdmin, router])
 
+  // ============================================
+  // RENDER
+  // ============================================
+
   return (
-    <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-950 to-slate-900">
-      <div className="text-center">
-        <div className="mb-6">
-          <Image 
-            src="/logo.jpeg" 
-            alt="Logo" 
-            width={100} 
-            height={100} 
-            className="rounded-lg mx-auto animate-pulse"
+    <div style={{ 
+      minHeight: '100vh',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      background: 'linear-gradient(135deg, #0a0e1a 0%, #1a202c 100%)'
+    }}>
+      <Space direction="vertical" size="large" align="center">
+        {/* Company Logo */}
+        <Avatar 
+          src="/logo.jpeg" 
+          size={100}
+          style={{ borderRadius: '12px' }}
+        />
+        
+        {/* Loading Spinner with Text */}
+        <Space direction="vertical" size="middle" align="center">
+          <Spin 
+            indicator={<LoadingOutlined style={{ fontSize: 24, color: '#3b82f6' }} spin />}
+            size="large"
           />
-        </div>
-        <p className="text-slate-400 text-lg">Loading...</p>
-        {timeout && <p className="text-slate-500 text-sm mt-2">Taking longer than expected</p>}
-      </div>
+          <Text style={{ color: '#94a3b8', fontSize: '18px' }}>
+            Loading...
+          </Text>
+          
+          {/* Timeout Message */}
+          {timeout && (
+            <Text style={{ color: '#64748b', fontSize: '14px' }}>
+              Taking longer than expected
+            </Text>
+          )}
+        </Space>
+      </Space>
     </div>
   )
 }

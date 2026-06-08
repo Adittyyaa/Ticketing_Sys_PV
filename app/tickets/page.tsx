@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Layout, Typography, Card, Spin, Empty, Space } from 'antd'
+import { FileTextOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import Header from '@/components/Header'
@@ -9,13 +11,41 @@ import FilterBar from '@/components/FilterBar'
 import TicketTable from '@/components/TicketTable'
 import { Ticket } from '@/lib/types'
 
+const { Content } = Layout
+const { Title, Paragraph } = Typography
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+/**
+ * TicketsPage Component
+ * User dashboard for viewing and managing personal tickets
+ * Features:
+ * - Authentication verification
+ * - Personal tickets only (filtered by user_id)
+ * - Search functionality through FilterBar
+ * - Empty state for new users
+ * - Loading states with Ant Design components
+ */
 export default function TicketsPage() {
+  // ============================================
+  // STATE & HOOKS
+  // ============================================
+  
   const router = useRouter()
   const { user, setUser, setLoading } = useAuthStore()
   const { setTickets, filters } = useTicketStore()
   const [myTickets, setMyTickets] = useState<Ticket[]>([])
   const [isLoading, setIsLoading] = useState(false)
 
+  // ============================================
+  // EFFECTS
+  // ============================================
+
+  /**
+   * Authentication check and user data setup
+   */
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -50,16 +80,19 @@ export default function TicketsPage() {
     checkAuth()
   }, [setUser, setLoading, router])
 
+  /**
+   * Fetch user's tickets with search filtering
+   */
   useEffect(() => {
     if (!user) return
 
     const fetchAllTickets = async () => {
       setIsLoading(true)
       try {
-        // Sanitize search input
+        // Sanitize search input for security
         const sanitizedSearch = filters.search?.trim().substring(0, 100) || ''
 
-        // Fetch only user's tickets
+        // Fetch only user's tickets (privacy: users see only their tickets)
         let myQuery = supabase
           .from('tbl_tickets')
           .select('*', { count: 'exact' })
@@ -67,6 +100,7 @@ export default function TicketsPage() {
           .order('created_at', { ascending: false })
           .limit(50)
 
+        // Apply search filter if provided
         if (sanitizedSearch) {
           myQuery = myQuery.ilike('title', `%${sanitizedSearch}%`)
         }
@@ -75,7 +109,7 @@ export default function TicketsPage() {
         if (myError) throw myError
 
         setMyTickets((myData || []) as Ticket[])
-        setTickets((myData || []) as Ticket[])
+        setTickets((myData || []) as Ticket[]) // Update global state
       } catch (error) {
         console.error('Failed to fetch tickets:', error)
       } finally {
@@ -86,41 +120,75 @@ export default function TicketsPage() {
     fetchAllTickets()
   }, [user, filters.search, setTickets])
 
+  // Don't render until user is loaded
   if (!user) {
     return null
   }
 
+  // ============================================
+  // RENDER
+  // ============================================
+
   return (
-    <div className="min-h-screen bg-slate-950">
+    <Layout style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
+      {/* ============================================ */}
+      {/* HEADER & FILTERS */}
+      {/* ============================================ */}
       <Header />
       <FilterBar />
-      <main className="max-w-6xl mx-auto p-6">
-        {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-white mb-2">My Tickets</h1>
-          <p className="text-slate-400">View and manage all your support tickets</p>
+
+      {/* ============================================ */}
+      {/* MAIN CONTENT */}
+      {/* ============================================ */}
+      <Content style={{ margin: '0 auto', maxWidth: '1200px', padding: '24px' }}>
+        {/* Page Header */}
+        <div style={{ marginBottom: '24px' }}>
+          <Title level={2} style={{ color: '#fff', marginBottom: '8px' }}>
+            My Tickets
+          </Title>
+          <Paragraph style={{ color: '#94a3b8', margin: 0 }}>
+            View and manage all your support tickets
+          </Paragraph>
         </div>
 
-        {/* Ticket Table */}
-        <div>
+        {/* ============================================ */}
+        {/* TICKETS TABLE */}
+        {/* ============================================ */}
+        <Card style={{ backgroundColor: '#111827', borderColor: '#374151' }}>
           {isLoading ? (
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center">
-              <p className="text-slate-400">Loading tickets...</p>
+            // Loading State
+            <div style={{ textAlign: 'center', padding: '48px 0' }}>
+              <Spin size="large" />
+              <Paragraph style={{ color: '#94a3b8', marginTop: '16px', marginBottom: 0 }}>
+                Loading tickets...
+              </Paragraph>
             </div>
           ) : (
             <>
+              {/* Tickets Table */}
               <TicketTable tickets={myTickets} />
+              
+              {/* Empty State */}
               {myTickets.length === 0 && (
-                <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center">
-                  <p className="text-slate-400">
-                    No tickets found. Create your first ticket!
-                  </p>
-                </div>
+                <Empty
+                  image={<FileTextOutlined style={{ fontSize: '64px', color: '#64748b' }} />}
+                  description={
+                    <Space direction="vertical" size="small">
+                      <span style={{ color: '#94a3b8', fontSize: '16px' }}>
+                        No tickets found
+                      </span>
+                      <span style={{ color: '#64748b', fontSize: '14px' }}>
+                        Create your first ticket to get started!
+                      </span>
+                    </Space>
+                  }
+                  style={{ padding: '48px 0' }}
+                />
               )}
             </>
           )}
-        </div>
-      </main>
-    </div>
+        </Card>
+      </Content>
+    </Layout>
   )
 }

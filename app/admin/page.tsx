@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { Layout, Typography, Alert, Tabs, Space, Button, Card, Spin, Empty, Badge } from 'antd'
+import { UserOutlined, TeamOutlined, PlusOutlined, SettingOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import Header from '@/components/Header'
@@ -12,7 +14,30 @@ import ExportButton from '@/components/ExportButton'
 import { Ticket } from '@/lib/types'
 import Link from 'next/link'
 
+const { Content } = Layout
+const { Title, Paragraph, Text } = Typography
+const { TabPane } = Tabs
+
+// ============================================
+// MAIN COMPONENT
+// ============================================
+
+/**
+ * AdminDashboard Component
+ * Administrator dashboard for managing all tickets and users
+ * Features:
+ * - Admin-only access with role verification
+ * - Analytics dashboard with ticket statistics
+ * - Tabbed view: My Tickets vs Other Users' Tickets
+ * - Bulk ticket operations and export
+ * - User and admin management links
+ * - Auto-profile creation for new admins
+ */
 export default function AdminDashboard() {
+  // ============================================
+  // STATE & HOOKS
+  // ============================================
+  
   const router = useRouter()
   const { user, setUser, setLoading, isAdmin, setIsAdmin } = useAuthStore()
   const { setTickets, filters } = useTicketStore()
@@ -22,6 +47,14 @@ export default function AdminDashboard() {
   const [isLoadingTickets, setIsLoadingTickets] = useState(true)
   const [ticketError, setTicketError] = useState<string | null>(null)
 
+  // ============================================
+  // EFFECTS
+  // ============================================
+
+  /**
+   * Authentication and admin role verification
+   * Auto-creates user profile if doesn't exist
+   */
   useEffect(() => {
     const checkAuth = async () => {
       try {
@@ -43,7 +76,7 @@ export default function AdminDashboard() {
 
         console.log('Admin check - Initial fetch:', { userData, error })
 
-        // If user record doesn't exist, create it
+        // If user record doesn't exist, create it (should not happen for admin, but safety check)
         if (error?.code === 'PGRST116') {
           console.log('User record not found, creating profile...')
           const { data: newUser, error: createError } = await supabase
@@ -73,13 +106,14 @@ export default function AdminDashboard() {
           return
         }
 
+        // Verify admin role
         if (!userData || userData.role !== 'admin') {
           console.log('Not admin, redirecting. Role:', userData?.role)
           router.push('/tickets')
           return
         }
 
-        // User is admin
+        // Set admin user
         setUser({
           id: session.user.id,
           email: session.user.email || '',
@@ -96,6 +130,21 @@ export default function AdminDashboard() {
     checkAuth()
   }, [setUser, setLoading, setIsAdmin, router])
 
+  /**
+   * Fetch all tickets and update them when filters change
+   */
+  useEffect(() => {
+    fetchAllTickets()
+  }, [user, isAdmin, filters.search, setTickets])
+
+  // ============================================
+  // API FUNCTIONS
+  // ============================================
+
+  /**
+   * Fetch all tickets for admin dashboard
+   * Separates into "my tickets" and "other users' tickets"
+   */
   const fetchAllTickets = async () => {
     if (!user || !isAdmin) return
 
@@ -105,6 +154,7 @@ export default function AdminDashboard() {
     try {
       console.log('Fetching tickets for admin user:', user.id)
       
+      // Build query with optional search filter
       let query = supabase.from('tbl_tickets').select('*').order('created_at', { ascending: false })
 
       if (filters.search) {
@@ -124,7 +174,7 @@ export default function AdminDashboard() {
       const allTickets = (data || []) as Ticket[]
       console.log('Total tickets fetched:', allTickets.length)
       
-      // Separate tickets into "my tickets" and "other tickets"
+      // Separate tickets by ownership
       const my = allTickets.filter(ticket => ticket.user_id === user.id)
       const others = allTickets.filter(ticket => ticket.user_id !== user.id)
       
@@ -132,11 +182,10 @@ export default function AdminDashboard() {
       
       setMyTickets(my)
       setOtherTickets(others)
-      setTickets(allTickets)
+      setTickets(allTickets) // Update global store
     } catch (error) {
       console.error('Failed to fetch tickets:', error)
       setTicketError(error instanceof Error ? error.message : 'Failed to fetch tickets')
-      // Don't let errors silently fail - log them
       if (error instanceof Error) {
         console.error('Error details:', error.message, error.stack)
       }
@@ -145,103 +194,163 @@ export default function AdminDashboard() {
     }
   }
 
-  useEffect(() => {
-    fetchAllTickets()
-  }, [user, isAdmin, filters.search, setTickets])
-
+  // Don't render until auth is complete
   if (!user || !isAdmin) {
     return null
   }
 
   const displayedTickets = activeTab === 'my' ? myTickets : otherTickets
 
+  // ============================================
+  // RENDER
+  // ============================================
+
   return (
-    <div className="min-h-screen bg-slate-950">
+    <Layout style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
+      {/* ============================================ */}
+      {/* HEADER & ADMIN INDICATOR */}
+      {/* ============================================ */}
       <Header />
-      <div className="bg-blue-900/20 border-b border-blue-700 px-6 py-3">
-        <p className="text-blue-300 text-sm">ADMIN DASHBOARD - Managing all tickets</p>
+      
+      {/* Admin Dashboard Indicator */}
+      <div style={{ 
+        backgroundColor: '#1e3a8a', 
+        borderBottom: '1px solid #3b82f6', 
+        padding: '12px 24px' 
+      }}>
+        <Text style={{ color: '#93c5fd', fontSize: '14px' }}>
+          ADMIN DASHBOARD - Managing all tickets
+        </Text>
       </div>
+
       <FilterBar />
-      <main className="max-w-6xl mx-auto p-6">
-        {/* Error message if ticket fetching failed */}
+
+      {/* ============================================ */}
+      {/* MAIN CONTENT */}
+      {/* ============================================ */}
+      <Content style={{ margin: '0 auto', maxWidth: '1200px', padding: '24px' }}>
+        {/* Error Alert */}
         {ticketError && (
-          <div className="mb-6 bg-red-900/20 border border-red-700 rounded-lg p-4 text-red-300">
-            <p className="font-medium">Error loading tickets:</p>
-            <p className="text-sm">{ticketError}</p>
-            <p className="text-xs text-red-400 mt-2">Check browser console for more details.</p>
-          </div>
+          <Alert
+            message="Error loading tickets"
+            description={
+              <div>
+                <div>{ticketError}</div>
+                <div style={{ fontSize: '12px', marginTop: '8px', opacity: 0.8 }}>
+                  Check browser console for more details.
+                </div>
+              </div>
+            }
+            type="error"
+            style={{ marginBottom: '24px' }}
+            showIcon
+          />
         )}
 
-        {/* Analytics Dashboard */}
+        {/* ============================================ */}
+        {/* ANALYTICS DASHBOARD */}
+        {/* ============================================ */}
         <AnalyticsDashboard />
 
-        {/* Tabs */}
-        <div className="mb-6">
-          <div className="flex items-center justify-between border-b border-slate-700">
-            <div className="flex gap-1">
-              <button
-                onClick={() => setActiveTab('my')}
-                className={`px-6 py-3 font-medium transition-colors relative ${
-                  activeTab === 'my'
-                    ? 'text-blue-400 border-b-2 border-blue-400'
-                    : 'text-slate-400 hover:text-slate-300'
-                }`}
-              >
-                My Tickets
-                <span className="ml-2 px-2 py-0.5 bg-slate-700 rounded text-xs">
-                  {myTickets.length}
-                </span>
-              </button>
-              <button
-                onClick={() => setActiveTab('others')}
-                className={`px-6 py-3 font-medium transition-colors relative ${
-                  activeTab === 'others'
-                    ? 'text-blue-400 border-b-2 border-blue-400'
-                    : 'text-slate-400 hover:text-slate-300'
-                }`}
-              >
-                Other Tickets
-                <span className="ml-2 px-2 py-0.5 bg-slate-700 rounded text-xs">
-                  {otherTickets.length}
-                </span>
-              </button>
-            </div>
-            <div className="flex gap-3 mb-2">
-              <ExportButton tickets={displayedTickets} />
-              <Link href="/admin/manage-admins" className="px-6 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg text-white font-medium transition-colors flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-                Manage Admins
-              </Link>
-              <Link href="/admin/users" className="px-6 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white font-medium transition-colors">
-                Add User
-              </Link>
-            </div>
-          </div>
-        </div>
+        {/* ============================================ */}
+        {/* TABS AND ACTION BUTTONS */}
+        {/* ============================================ */}
+        <Card style={{ backgroundColor: '#111827', borderColor: '#374151' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+            {/* Tab Navigation */}
+            <Tabs 
+              activeKey={activeTab}
+              onChange={(key) => setActiveTab(key as 'my' | 'others')}
+              type="card"
+            >
+              <TabPane 
+                tab={
+                  <span>
+                    <UserOutlined />
+                    My Tickets
+                    <Badge 
+                      count={myTickets.length} 
+                      style={{ backgroundColor: '#374151', marginLeft: '8px' }}
+                    />
+                  </span>
+                } 
+                key="my" 
+              />
+              <TabPane 
+                tab={
+                  <span>
+                    <TeamOutlined />
+                    Other Tickets
+                    <Badge 
+                      count={otherTickets.length} 
+                      style={{ backgroundColor: '#374151', marginLeft: '8px' }}
+                    />
+                  </span>
+                } 
+                key="others" 
+              />
+            </Tabs>
 
-        {/* Ticket Table */}
-        <div>
-          <h2 className="text-xl font-semibold text-white mb-4">
-            {activeTab === 'my' ? 'Tickets Raised by Me' : 'Tickets Raised by Other Users'}
-          </h2>
-          {isLoadingTickets ? (
-            <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center">
-              <p className="text-slate-400">Loading tickets...</p>
-            </div>
-          ) : (
-            <>
-              <TicketTable tickets={displayedTickets} onTicketsDeleted={fetchAllTickets} />
-              {displayedTickets.length === 0 && (
-                <div className="bg-slate-900 border border-slate-700 rounded-lg p-8 text-center">
-                  <p className="text-slate-400">No tickets found in this category</p>
-                </div>
-              )}
-            </>
-          )}
-        </div>
-      </main>
-    </div>
+            {/* Action Buttons */}
+            <Space>
+              <ExportButton tickets={displayedTickets} />
+              <Link href="/admin/manage-admins">
+                <Button 
+                  type="primary" 
+                  icon={<SettingOutlined />}
+                  style={{ backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}
+                >
+                  Manage Admins
+                </Button>
+              </Link>
+              <Link href="/admin/users">
+                <Button 
+                  type="primary" 
+                  icon={<PlusOutlined />}
+                >
+                  Add User
+                </Button>
+              </Link>
+            </Space>
+          </div>
+
+          {/* ============================================ */}
+          {/* TICKET TABLE */}
+          {/* ============================================ */}
+          <div>
+            <Title level={4} style={{ color: '#fff', marginBottom: '16px' }}>
+              {activeTab === 'my' ? 'Tickets Raised by Me' : 'Tickets Raised by Other Users'}
+            </Title>
+            
+            {isLoadingTickets ? (
+              // Loading State
+              <div style={{ textAlign: 'center', padding: '48px 0' }}>
+                <Spin size="large" />
+                <Paragraph style={{ color: '#94a3b8', marginTop: '16px', marginBottom: 0 }}>
+                  Loading tickets...
+                </Paragraph>
+              </div>
+            ) : (
+              <>
+                {/* Tickets Table */}
+                <TicketTable tickets={displayedTickets} onTicketsDeleted={fetchAllTickets} />
+                
+                {/* Empty State */}
+                {displayedTickets.length === 0 && (
+                  <Empty
+                    description={
+                      <span style={{ color: '#94a3b8' }}>
+                        No tickets found in this category
+                      </span>
+                    }
+                    style={{ padding: '48px 0' }}
+                  />
+                )}
+              </>
+            )}
+          </div>
+        </Card>
+      </Content>
+    </Layout>
   )
 }
