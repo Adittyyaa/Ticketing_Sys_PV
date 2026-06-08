@@ -1,71 +1,79 @@
 'use client'
 
-import { Search, Plus } from 'lucide-react'
+import { Input, Select, Button, Space, DatePicker } from 'antd'
+import { PlusOutlined, SearchOutlined } from '@ant-design/icons'
 import { useTicketStore } from '@/lib/store'
 import Link from 'next/link'
 
-export default function FilterBar() {
+export default function TicketFilterBar() {
   const { filters, setFilters } = useTicketStore()
 
   return (
-    <div className="bg-slate-900 border-b border-slate-700 p-6">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-2xl font-semibold text-white">Ticket Management</h2>
-        <div className="flex items-center gap-2">
-          <Link
-            href="/tickets/new"
-            className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white font-medium transition-colors"
+    <div style={{ background: '#111827', borderBottom: '1px solid #374151', padding: '24px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '600', color: 'white', margin: 0 }}>
+          Ticket Management
+        </h2>
+        <Link href="/tickets/new">
+          <Button 
+            type="primary" 
+            icon={<PlusOutlined />}
+            size="large"
           >
-            <Plus size={18} />
-            Add ticket
-          </Link>
-        </div>
+            Add Ticket
+          </Button>
+        </Link>
       </div>
 
-      <div className="flex gap-4 items-center flex-wrap">
-        <div className="relative flex-1 min-w-xs">
-          <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            placeholder="Search for tickets"
-            value={filters.search}
-            onChange={(e) => setFilters({ search: e.target.value })}
-            className="w-full bg-slate-800 border border-slate-700 rounded-lg pl-10 pr-4 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 transition-colors"
-          />
-        </div>
-
-        <select
-          className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
-          defaultValue="all"
-        >
-          <option value="all">All</option>
-        </select>
-
-        <select
-          className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
-          defaultValue="all"
-        >
-          <option value="all">All</option>
-          <option value="low">Low Priority</option>
-          <option value="medium">Medium Priority</option>
-          <option value="high">High Priority</option>
-          <option value="urgent">Urgent Priority</option>
-        </select>
-
-        <input
-          type="date"
-          className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+      <Space wrap size="middle" style={{ width: '100%' }}>
+        <Input
+          placeholder="Search tickets..."
+          prefix={<SearchOutlined />}
+          value={filters.search}
+          onChange={(e) => setFilters({ search: e.target.value })}
+          style={{ width: '250px' }}
         />
 
-        <input
-          type="date"
-          className="bg-slate-800 border border-slate-700 rounded-lg px-4 py-2 text-white focus:outline-none focus:border-blue-500 transition-colors"
+        <Select
+          placeholder="Status"
+          defaultValue="all"
+          style={{ width: '150px' }}
+          options={[
+            { label: 'All', value: 'all' },
+            { label: 'Untouched', value: 'UNTOUCHED' },
+            { label: 'Pending', value: 'PENDING' },
+            { label: 'Opened', value: 'OPENED' },
+            { label: 'Solved', value: 'SOLVED' },
+          ]}
         />
 
-        <button className="bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white font-medium transition-colors">
+        <Select
+          placeholder="Priority"
+          defaultValue="all"
+          style={{ width: '150px' }}
+          options={[
+            { label: 'All', value: 'all' },
+            { label: 'Low', value: 'LOW' },
+            { label: 'Medium', value: 'MEDIUM' },
+            { label: 'High', value: 'HIGH' },
+            { label: 'Urgent', value: 'URGENT' },
+          ]}
+        />
+
+        <DatePicker 
+          placeholder="From Date"
+          style={{ width: '150px' }}
+        />
+
+        <DatePicker 
+          placeholder="To Date"
+          style={{ width: '150px' }}
+        />
+
+        <Button type="primary" icon={<SearchOutlined />}>
           Search
-        </button>
-      </div>
+        </Button>
+      </Space>
     </div>
   )
 }

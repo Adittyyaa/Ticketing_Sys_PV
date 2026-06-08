@@ -3,24 +3,34 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
-import { Send, Trash2 } from 'lucide-react'
+import { Button, Input, Form, Avatar, Empty, Popconfirm, message, Card, Skeleton, Divider } from 'antd'
+import { DeleteOutlined, SendOutlined } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
+
+interface CommentData {
+  id: string
+  ticket_id: string
+  user_id: string
+  content: string
+  commenter_name?: string
+  commenter_email?: string
+  created_at: string
+  updated_at: string
+}
 
 interface CommentsSectionProps {
   ticketId: string
 }
 
-export default function CommentsSection({ ticketId }: CommentsSectionProps) {
+export default function TicketComments({ ticketId }: CommentsSectionProps) {
   const { user, isAdmin } = useAuthStore()
-  const [comments, setComments] = useState<any[]>([])
-  const [newComment, setNewComment] = useState('')
-  const [commenterName, setCommenterName] = useState(user?.email || '')
+  const [comments, setComments] = useState<CommentData[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [form] = Form.useForm()
 
   useEffect(() => {
     fetchComments()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
 
   const fetchComments = async () => {
@@ -31,25 +41,18 @@ export default function CommentsSection({ ticketId }: CommentsSectionProps) {
         .eq('ticket_id', ticketId)
         .order('created_at', { ascending: true })
 
-      if (error) {
-        console.error('Fetch comments error:', error)
-        throw error
-      }
-
+      if (error) throw error
       setComments(data || [])
     } catch (error) {
       console.error('Failed to fetch comments:', error)
+      message.error('Failed to load comments')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newComment.trim() || !commenterName.trim() || !user) {
-      alert('Please enter both name and comment')
-      return
-    }
+  const handleSubmit = async (values: any) => {
+    if (!user) return
 
     setSubmitting(true)
     try {
@@ -59,32 +62,28 @@ export default function CommentsSection({ ticketId }: CommentsSectionProps) {
           {
             ticket_id: ticketId,
             user_id: user.id,
-            content: newComment.trim(),
-            commenter_name: commenterName.trim(),
+            content: values.content.trim(),
+            commenter_name: user.email,
             commenter_email: user.email,
           },
         ])
         .select('*')
         .single()
 
-      if (error) {
-        console.error('Comment insert error:', error)
-        throw error
-      }
+      if (error) throw error
 
-      setComments(prev => [...prev, data])
-      setNewComment('')
+      setComments((prev) => [...prev, data])
+      form.resetFields()
+      message.success('Comment added successfully')
     } catch (error) {
       console.error('Failed to post comment:', error)
-      alert('Failed to post comment. Check console for details.')
+      message.error('Failed to post comment')
     } finally {
       setSubmitting(false)
     }
   }
 
   const handleDelete = async (commentId: string) => {
-    if (!confirm('Delete this comment?')) return
-
     try {
       const { error } = await supabase
         .from('tbl_comments')
@@ -93,116 +92,91 @@ export default function CommentsSection({ ticketId }: CommentsSectionProps) {
 
       if (error) throw error
 
-      setComments(comments.filter((c) => c.id !== commentId))
+      setComments((prev) => prev.filter((c) => c.id !== commentId))
+      message.success('Comment deleted')
     } catch (error) {
       console.error('Failed to delete comment:', error)
-      alert('Failed to delete comment')
+      message.error('Failed to delete comment')
     }
   }
 
-  if (loading) {
-    return (
-      <div className="bg-slate-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Comments</h3>
-        <div className="animate-pulse space-y-4">
-          <div className="h-20 bg-slate-700 rounded"></div>
-          <div className="h-20 bg-slate-700 rounded"></div>
-        </div>
-      </div>
-    )
-  }
+  if (loading) return <Skeleton active paragraph={{ rows: 4 }} />
 
   return (
-    <div className="bg-slate-800 rounded-lg p-6">
-      <h3 className="text-lg font-semibold text-white mb-4">
-        Comments ({comments.length})
-      </h3>
-
-      {/* Comments List */}
-      <div className="space-y-4 mb-6">
+    <Card title={`Comments (${comments.length})`}>
+      <div style={{ marginBottom: 24 }}>
         {comments.length === 0 ? (
-          <p className="text-slate-400 text-sm text-center py-8">
-            No comments yet. Be the first to comment!
-          </p>
+          <Empty description="No comments yet" style={{ marginTop: 24 }} />
         ) : (
-          comments.map((comment) => (
-            <div
-              key={comment.id}
-              className="bg-slate-700/50 rounded-lg p-4 border border-slate-600"
-            >
-              <div className="flex justify-between items-start mb-2">
-                <div>
-                  <p className="text-white font-medium">
-                    {comment.commenter_name || 'Anonymous'}
+          comments.map((comment, index) => (
+            <div key={comment.id}>
+              <div style={{ display: 'flex', gap: '12px', marginBottom: '16px' }}>
+                <Avatar style={{ backgroundColor: '#3b82f6', flexShrink: 0 }}>
+                  {(comment.commenter_name || 'A').charAt(0).toUpperCase()}
+                </Avatar>
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                    <span style={{ fontWeight: '600', color: '#fff' }}>
+                      {comment.commenter_name || 'Anonymous'}
+                    </span>
+                    <span style={{ fontSize: '12px', color: '#999' }}>
+                      {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
+                    </span>
+                  </div>
+                  <p style={{ color: '#ddd', margin: '8px 0', wordBreak: 'break-word' }}>
+                    {comment.content}
                   </p>
-                  <p className="text-xs text-slate-400">
-                    {comment.commenter_email && <span className="mr-2">{comment.commenter_email}</span>}
-                    {formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}
-                  </p>
+                  {(user?.id === comment.user_id || isAdmin) && (
+                    <Popconfirm
+                      title="Delete comment?"
+                      description="Are you sure?"
+                      onConfirm={() => handleDelete(comment.id)}
+                      okText="Yes"
+                      cancelText="No"
+                    >
+                      <Button 
+                        type="text" 
+                        danger 
+                        size="small" 
+                        icon={<DeleteOutlined />}
+                      >
+                        Delete
+                      </Button>
+                    </Popconfirm>
+                  )}
                 </div>
-                {(user?.id === comment.user_id || isAdmin) && (
-                  <button
-                    onClick={() => handleDelete(comment.id)}
-                    className="text-red-400 hover:text-red-300 transition-colors p-1"
-                    title="Delete comment"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                )}
               </div>
-              <p className="text-slate-200 break-words">{comment.content}</p>
+              {index < comments.length - 1 && <Divider style={{ margin: '16px 0' }} />}
             </div>
           ))
         )}
       </div>
 
-      {/* Add Comment Form */}
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            Your Name *
-          </label>
-          <input
-            type="text"
-            value={commenterName}
-            onChange={(e) => setCommenterName(e.target.value)}
-            placeholder="Enter your name"
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-2 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            disabled={submitting}
-            required
-          />
-        </div>
+      <Divider />
 
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            Email: {user?.email}
-          </label>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            Comment *
-          </label>
-          <textarea
-            value={newComment}
-            onChange={(e) => setNewComment(e.target.value)}
-            placeholder="Write a comment..."
-            className="w-full bg-slate-700 border border-slate-600 rounded-lg px-4 py-3 text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none"
+      <Form form={form} onFinish={handleSubmit} layout="vertical">
+        <Form.Item
+          name="content"
+          rules={[{ required: true, message: 'Please enter a comment' }]}
+        >
+          <Input.TextArea
+            placeholder="Add a comment..."
             rows={3}
             disabled={submitting}
-            required
           />
-        </div>
+        </Form.Item>
 
-        <button
-          type="submit"
-          disabled={!newComment.trim() || !commenterName.trim() || submitting}
-          className="w-full px-6 py-3 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 disabled:cursor-not-allowed rounded-lg text-white font-medium transition-colors flex items-center justify-center gap-2"
-        >
-          <Send size={18} />
-          {submitting ? 'Posting...' : 'Post Comment'}
-        </button>
-      </form>
-    </div>
+        <Form.Item>
+          <Button
+            type="primary"
+            htmlType="submit"
+            loading={submitting}
+            icon={<SendOutlined />}
+          >
+            Post Comment
+          </Button>
+        </Form.Item>
+      </Form>
+    </Card>
   )
 }

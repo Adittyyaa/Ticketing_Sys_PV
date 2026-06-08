@@ -4,7 +4,8 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { Attachment } from '@/lib/types'
 import { useAuthStore } from '@/lib/store'
-import { Upload, File, Image as ImageIcon, Trash2, Download } from 'lucide-react'
+import { Upload, Card, Button, Empty, List, Popconfirm, message, Skeleton } from 'antd'
+import { DeleteOutlined, DownloadOutlined, InboxOutlined } from '@ant-design/icons'
 
 interface AttachmentsSectionProps {
   ticketId: string
@@ -13,12 +14,11 @@ interface AttachmentsSectionProps {
 export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps) {
   const { user, isAdmin } = useAuthStore()
   const [attachments, setAttachments] = useState<Attachment[]>([])
-  const [uploading, setUploading] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     fetchAttachments()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [ticketId])
 
   const fetchAttachments = async () => {
@@ -33,87 +33,72 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
       setAttachments(data || [])
     } catch (error) {
       console.error('Failed to fetch attachments:', error)
+      message.error('Failed to load attachments')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files
-    if (!files || files.length === 0 || !user) return
+  const handleFileUpload = async ({ file }: any) => {
+    if (!user) return
 
     setUploading(true)
 
     const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'text/plain']
-    const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
-    const MAX_FILES_PER_TICKET = 10
+    const MAX_FILE_SIZE = 5 * 1024 * 1024
 
     try {
-      const fileArray = Array.from(files)
-      
-      if (fileArray.length > MAX_FILES_PER_TICKET) {
-        alert(`Maximum ${MAX_FILES_PER_TICKET} files allowed`)
-        return
+      // Validate file type
+      if (!ALLOWED_TYPES.includes(file.type)) {
+        throw new Error('File type not allowed. Allowed: images, PDF, text')
       }
 
-      for (const file of fileArray) {
-        // Validate file size
-        if (file.size > MAX_FILE_SIZE) {
-          alert(`${file.name} exceeds 5MB limit`)
-          continue
-        }
-
-        // Validate file type
-        if (!ALLOWED_TYPES.includes(file.type)) {
-          alert(`${file.type} files not allowed. Allowed: images, PDF, text`)
-          continue
-        }
-
-        // Sanitize filename
-        const sanitizedName = file.name
-          .replace(/[^a-zA-Z0-9.-]/g, '_')
-          .substring(0, 100)
-
-        // Upload to storage
-        const filePath = `${user.id}/${ticketId}/${Date.now()}-${sanitizedName}`
-        const { error: uploadError } = await supabase.storage
-          .from('ticket-attachments')
-          .upload(filePath, file)
-
-        if (uploadError) throw uploadError
-
-        // Save metadata to database
-        const { data, error: dbError } = await supabase
-          .from('tbl_attachments')
-          .insert([
-            {
-              ticket_id: ticketId,
-              user_id: user.id,
-              file_name: file.name,
-              file_path: filePath,
-              file_size: file.size,
-              file_type: file.type,
-            },
-          ])
-          .select()
-          .single()
-
-        if (dbError) throw dbError
-
-        setAttachments(prev => [data, ...prev])
+      // Validate file size
+      if (file.size > MAX_FILE_SIZE) {
+        throw new Error('File exceeds 5MB limit')
       }
+
+      // Sanitize filename
+      const sanitizedName = file.name
+        .replace(/[^a-zA-Z0-9.-]/g, '_')
+        .substring(0, 100)
+
+      // Upload to storage
+      const filePath = `${user.id}/${ticketId}/${Date.now()}-${sanitizedName}`
+      const { error: uploadError } = await supabase.storage
+        .from('ticket-attachments')
+        .upload(filePath, file)
+
+      if (uploadError) throw uploadError
+
+      // Save metadata
+      const { data, error: dbError } = await supabase
+        .from('tbl_attachments')
+        .insert([
+          {
+            ticket_id: ticketId,
+            user_id: user.id,
+            file_name: file.name,
+            file_path: filePath,
+            file_size: file.size,
+            file_type: file.type,
+          },
+        ])
+        .select()
+        .single()
+
+      if (dbError) throw dbError
+
+      setAttachments((prev) => [data, ...prev])
+      message.success('File uploaded successfully')
     } catch (error) {
-      console.error('Failed to upload file:', error)
-      alert('Failed to upload file')
+      message.error(error instanceof Error ? error.message : 'Failed to upload file')
     } finally {
       setUploading(false)
-      e.target.value = '' // Reset input
     }
   }
 
   const handleDelete = async (attachment: Attachment) => {
-    if (!confirm(`Delete ${attachment.file_name}?`)) return
-
     try {
       // Delete from storage
       const { error: storageError } = await supabase.storage
@@ -130,10 +115,11 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
 
       if (dbError) throw dbError
 
-      setAttachments(attachments.filter((a) => a.id !== attachment.id))
+      setAttachments((prev) => prev.filter((a) => a.id !== attachment.id))
+      message.success('File deleted')
     } catch (error) {
       console.error('Failed to delete attachment:', error)
-      alert('Failed to delete attachment')
+      message.error('Failed to delete file')
     }
   }
 
@@ -145,7 +131,6 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
 
       if (error) throw error
 
-      // Create download link
       const url = URL.createObjectURL(data)
       const a = document.createElement('a')
       a.href = url
@@ -156,7 +141,7 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
       URL.revokeObjectURL(url)
     } catch (error) {
       console.error('Failed to download file:', error)
-      alert('Failed to download file')
+      message.error('Failed to download file')
     }
   }
 
@@ -166,91 +151,63 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
-  const isImage = (type: string) => type.startsWith('image/')
-
-  if (loading) {
-    return (
-      <div className="bg-slate-800 rounded-lg p-6">
-        <h3 className="text-lg font-semibold text-white mb-4">Attachments</h3>
-        <div className="animate-pulse h-32 bg-slate-700 rounded"></div>
-      </div>
-    )
-  }
+  if (loading) return <Skeleton active paragraph={{ rows: 4 }} />
 
   return (
-    <div className="bg-slate-800 rounded-lg p-6">
-      <div className="flex justify-between items-center mb-4">
-        <h3 className="text-lg font-semibold text-white">
-          Attachments ({attachments.length})
-        </h3>
-        <label className="cursor-pointer px-4 py-2 bg-blue-600 hover:bg-blue-700 disabled:bg-slate-600 rounded-lg text-white text-sm font-medium transition-colors flex items-center gap-2">
-          <Upload size={16} />
-          {uploading ? 'Uploading...' : 'Upload'}
-          <input
-            type="file"
-            multiple
-            onChange={handleFileUpload}
-            disabled={uploading}
-            className="hidden"
-            accept="image/*,.pdf,.doc,.docx,.txt"
-          />
-        </label>
-      </div>
-
+    <Card
+      title={`Attachments (${attachments.length})`}
+      extra={
+        <Upload
+          customRequest={(options) => handleFileUpload(options)}
+          showUploadList={false}
+          accept=".jpg,.jpeg,.png,.pdf,.txt"
+          disabled={uploading}
+        >
+          <Button loading={uploading} icon={<InboxOutlined />}>
+            Upload File
+          </Button>
+        </Upload>
+      }
+    >
       {attachments.length === 0 ? (
-        <div className="text-center py-8 border-2 border-dashed border-slate-600 rounded-lg">
-          <Upload size={48} className="mx-auto text-slate-500 mb-3" />
-          <p className="text-slate-400 text-sm">No attachments yet</p>
-          <p className="text-slate-500 text-xs mt-1">Max file size: 10MB</p>
-        </div>
+        <Empty description="No files attached" />
       ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {attachments.map((attachment) => (
-            <div
-              key={attachment.id}
-              className="bg-slate-700/50 rounded-lg p-4 border border-slate-600 flex items-start gap-3"
-            >
-              <div className="flex-shrink-0">
-                {isImage(attachment.file_type) ? (
-                  <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                    <ImageIcon size={20} className="text-green-400" />
-                  </div>
-                ) : (
-                  <div className="w-10 h-10 bg-blue-500/10 rounded-lg flex items-center justify-center">
-                    <File size={20} className="text-blue-400" />
-                  </div>
-                )}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-white text-sm font-medium truncate">
-                  {attachment.file_name}
-                </p>
-                <p className="text-slate-400 text-xs">
-                  {formatFileSize(attachment.file_size)}
-                </p>
-              </div>
-              <div className="flex gap-2">
-                <button
+        <List
+          dataSource={attachments}
+          renderItem={(attachment) => (
+            <List.Item
+              actions={[
+                <Button
+                  type="text"
+                  size="small"
+                  icon={<DownloadOutlined />}
                   onClick={() => handleDownload(attachment)}
-                  className="text-blue-400 hover:text-blue-300 transition-colors p-1"
-                  title="Download"
                 >
-                  <Download size={16} />
-                </button>
-                {(user?.id === attachment.user_id || isAdmin) && (
-                  <button
-                    onClick={() => handleDelete(attachment)}
-                    className="text-red-400 hover:text-red-300 transition-colors p-1"
-                    title="Delete"
+                  Download
+                </Button>,
+                (user?.id === attachment.user_id || isAdmin) && (
+                  <Popconfirm
+                    title="Delete file?"
+                    description={`Delete ${attachment.file_name}?`}
+                    onConfirm={() => handleDelete(attachment)}
+                    okText="Yes"
+                    cancelText="No"
                   >
-                    <Trash2 size={16} />
-                  </button>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+                    <Button type="text" danger size="small" icon={<DeleteOutlined />}>
+                      Delete
+                    </Button>
+                  </Popconfirm>
+                ),
+              ].filter(Boolean)}
+            >
+              <List.Item.Meta
+                title={attachment.file_name}
+                description={formatFileSize(attachment.file_size)}
+              />
+            </List.Item>
+          )}
+        />
       )}
-    </div>
+    </Card>
   )
 }
