@@ -1,6 +1,6 @@
 'use client'
 
-import { Bell, Menu, LogOut, LayoutDashboard, User } from 'lucide-react'
+import { Bell, Menu, LogOut, LayoutDashboard, User, X } from 'lucide-react'
 import Image from 'next/image'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
@@ -18,76 +18,96 @@ export default function Header() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     setUser(null)
+    setShowMenu(false)
     router.push('/auth')
   }
 
   return (
     <>
-      <header className="sticky top-0 z-40 glass backdrop-blur-md border-b border-white/5">
-        <div className="max-w-7xl mx-auto flex items-center justify-between px-6 lg:px-8 h-18">
+      <header className="sticky top-0 z-40 bg-slate-900 border-b border-slate-700 shadow-lg">
+        <div className="w-full px-4 sm:px-6 h-16 sm:h-18 flex items-center justify-between">
+          {/* Logo - Mobile Responsive */}
           <Link 
             href={isAdmin ? '/admin' : '/tickets'} 
-            className="flex items-center gap-3 hover:opacity-80 transition-all duration-200 group"
+            className="flex items-center gap-2 sm:gap-3 hover:opacity-80 transition-all duration-200 group min-h-14"
           >
-            <div className="relative">
+            <div className="relative flex-shrink-0">
               <Image 
                 src="/logo.jpeg" 
                 alt="Logo" 
-                width={36} 
-                height={36} 
-                className="rounded-xl shadow-lg group-hover:shadow-blue-500/20 transition-shadow" 
+                width={32} 
+                height={32} 
+                className="rounded-lg shadow-lg group-hover:shadow-blue-500/20 transition-shadow sm:w-9 sm:h-9" 
               />
             </div>
-            <h1 className="text-lg font-semibold text-white tracking-tight">Ticket System</h1>
+            <h1 className="text-base sm:text-lg font-semibold text-white tracking-tight hidden sm:block">
+              Ticket System
+            </h1>
           </Link>
 
-          <nav className="flex items-center gap-2">
+          {/* Navigation - Mobile Optimized */}
+          <nav className="flex items-center gap-1 sm:gap-2">
             {isAdmin && (
               <Link 
                 href="/admin" 
-                className="flex items-center gap-2 px-4 py-2 rounded-xl hover:bg-white/5 transition-all duration-200 text-slate-300 hover:text-white group"
+                className="flex items-center gap-1 px-2 sm:px-4 py-2 rounded-lg hover:bg-slate-800 transition-all duration-200 text-slate-300 hover:text-white group min-h-12"
+                title="Admin Dashboard"
               >
                 <LayoutDashboard size={18} className="group-hover:scale-110 transition-transform" />
-                <span className="text-sm font-medium">Admin</span>
+                <span className="text-xs sm:text-sm font-medium hidden sm:inline">Admin</span>
               </Link>
             )}
 
             <button 
-              className="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all duration-200 relative group"
+              className="p-2 sm:p-2.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all duration-200 relative group min-h-12"
               aria-label="Notifications"
+              title="Notifications"
             >
-              <Bell size={20} className="group-hover:scale-110 transition-transform" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-500 rounded-full ring-2 ring-slate-900"></span>
+              <Bell size={18} className="group-hover:scale-110 transition-transform sm:w-5 sm:h-5" />
+              <span className="absolute top-1 right-1 w-2 h-2 bg-blue-500 rounded-full ring-2 ring-slate-900"></span>
             </button>
 
             <button
               onClick={() => setShowAccountModal(true)}
-              className="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all duration-200 group"
+              className="p-2 sm:p-2.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all duration-200 group min-h-12"
               title="Account Details"
               aria-label="Account"
             >
-              <User size={20} className="group-hover:scale-110 transition-transform" />
+              <User size={18} className="group-hover:scale-110 transition-transform sm:w-5 sm:h-5" />
             </button>
 
+            {/* Menu Button - Mobile First */}
             <div className="relative">
               <button
                 onClick={() => setShowMenu(!showMenu)}
-                className="p-2.5 rounded-xl hover:bg-white/5 text-slate-400 hover:text-white transition-all duration-200 group"
+                className="p-2 sm:p-2.5 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition-all duration-200 group min-h-12"
                 aria-label="Menu"
+                title="Menu"
               >
-                <Menu size={20} className="group-hover:scale-110 transition-transform" />
+                {showMenu ? (
+                  <X size={18} className="group-hover:scale-110 transition-transform sm:w-5 sm:h-5" />
+                ) : (
+                  <Menu size={18} className="group-hover:scale-110 transition-transform sm:w-5 sm:h-5" />
+                )}
               </button>
 
+              {/* Dropdown Menu - Mobile Optimized */}
               {showMenu && (
                 <>
                   <div 
-                    className="fixed inset-0 z-40" 
+                    className="fixed inset-0 z-30 sm:hidden" 
                     onClick={() => setShowMenu(false)}
+                    aria-label="Close menu"
                   />
-                  <div className="absolute right-0 mt-3 w-80 glass rounded-2xl shadow-2xl z-50 animate-fade-in overflow-hidden">
-                    <div className="p-5 border-b border-white/5">
-                      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">Logged in as</p>
-                      <p className="text-white font-medium text-sm break-all leading-relaxed">{user?.email}</p>
+                  <div className="absolute right-0 mt-2 w-72 sm:w-80 glass rounded-lg shadow-2xl z-50 animate-fade-in overflow-hidden border border-slate-700">
+                    {/* User Info */}
+                    <div className="p-4 border-b border-slate-700">
+                      <p className="text-xs font-medium text-slate-400 uppercase tracking-wider mb-1.5">
+                        Logged in as
+                      </p>
+                      <p className="text-white font-medium text-sm break-all leading-relaxed">
+                        {user?.email}
+                      </p>
                       <div className="mt-2 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/5 text-xs font-medium capitalize">
                         {isAdmin ? (
                           <>
@@ -103,12 +123,14 @@ export default function Header() {
                       </div>
                     </div>
                     
+                    {/* Logout Button - Touch Friendly */}
                     <button
                       onClick={handleLogout}
-                      className="w-full flex items-center gap-3 px-5 py-4 text-red-400 hover:bg-red-500/10 transition-all duration-200 group"
+                      className="w-full flex items-center gap-3 px-4 py-3 sm:py-4 text-red-400 hover:bg-red-500/10 transition-all duration-200 group font-medium text-sm sm:text-base min-h-12"
+                      title="Logout"
                     >
-                      <LogOut size={18} className="group-hover:scale-110 transition-transform" />
-                      <span className="font-medium">Logout</span>
+                      <LogOut size={18} className="group-hover:scale-110 transition-transform flex-shrink-0" />
+                      <span>Logout</span>
                     </button>
                   </div>
                 </>

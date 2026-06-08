@@ -101,21 +101,39 @@ export default function LoginPage() {
         backgroundColor: '#0a0e1a',
       }}
     >
-      <div style={{ width: '100%', maxWidth: '400px' }}>
-        {/* Header */}
-        <div style={{ textAlign: 'center', marginBottom: '36px' }}>
-          <Image 
-            src="/logo.jpeg" 
-            alt="Logo" 
-            width={72} 
-            height={72} 
-            style={{ borderRadius: '8px', display: 'inline-block', marginBottom: '12px' }} 
-          />
-          <Title level={3} style={{ margin: '12px 0 4px 0', color: '#ffffff' }}>
+      <div style={{ width: '100%', maxWidth: '420px' }}>
+        {/* Header - Mobile Responsive */}
+        <div style={{ 
+          textAlign: 'center', 
+          marginBottom: '32px', 
+          paddingTop: '16px',
+          paddingBottom: '8px',
+        }}>
+          <div style={{ marginBottom: '12px' }}>
+            <Image 
+              src="/logo.jpeg" 
+              alt="Logo" 
+              width={72} 
+              height={72} 
+              style={{ 
+                borderRadius: '8px', 
+                display: 'inline-block',
+              }} 
+            />
+          </div>
+          <Title level={3} style={{ 
+            margin: '12px 0 4px 0', 
+            color: '#ffffff',
+            fontSize: 'clamp(20px, 5vw, 24px)',
+          }}>
             {showAdminLogin ? 'Admin Login' : 'User Login'}
           </Title>
-          <Text style={{ color: '#94a3b8', fontSize: '13px' }}>
-            {showAdminLogin ? 'Manage tickets and users' : 'Access your support tickets'}
+          <Text style={{ 
+            color: '#94a3b8', 
+            fontSize: 'clamp(12px, 3vw, 13px)',
+            display: 'block',
+          }}>
+            {showAdminLogin ? 'Manage tickets & users' : 'Access your tickets'}
           </Text>
         </div>
 
@@ -124,6 +142,9 @@ export default function LoginPage() {
           style={{
             backgroundColor: '#1e293b',
             borderColor: '#334155',
+            margin: '0 0 16px 0',
+            borderRadius: '12px',
+            padding: '20px',
           }}
         >
           {error && (
@@ -144,7 +165,7 @@ export default function LoginPage() {
             autoComplete="off"
           >
             <Form.Item
-              label={<span style={{ color: '#cbd5e1' }}>Email</span>}
+              label={<span style={{ color: '#cbd5e1', fontSize: 'clamp(12px, 2vw, 14px)' }}>Email</span>}
               name="email"
               rules={[
                 { required: true, message: 'Email required' },
@@ -159,12 +180,15 @@ export default function LoginPage() {
                   backgroundColor: '#0f172a',
                   borderColor: '#334155',
                   color: '#ffffff',
+                  padding: '10px 12px',
+                  fontSize: '16px',
+                  minHeight: '44px',
                 }}
               />
             </Form.Item>
 
             <Form.Item
-              label={<span style={{ color: '#cbd5e1' }}>Password</span>}
+              label={<span style={{ color: '#cbd5e1', fontSize: 'clamp(12px, 2vw, 14px)' }}>Password</span>}
               name="password"
               rules={[{ required: true, message: 'Password required' }]}
             >
@@ -176,6 +200,9 @@ export default function LoginPage() {
                   backgroundColor: '#0f172a',
                   borderColor: '#334155',
                   color: '#ffffff',
+                  padding: '10px 12px',
+                  fontSize: '16px',
+                  minHeight: '44px',
                 }}
               />
             </Form.Item>
@@ -191,6 +218,10 @@ export default function LoginPage() {
                 style={{ 
                   backgroundColor: showAdminLogin ? '#a78bfa' : '#3b82f6',
                   borderColor: showAdminLogin ? '#a78bfa' : '#3b82f6',
+                  height: '44px',
+                  fontSize: '16px',
+                  fontWeight: '600',
+                  minHeight: '44px',
                 }}
               >
                 Sign In
@@ -198,55 +229,47 @@ export default function LoginPage() {
             </Form.Item>
           </Form>
 
-          {/* Toggle Admin Login */}
-          <div style={{ textAlign: 'center', marginTop: '16px' }}>
-            <Text style={{ color: '#94a3b8', fontSize: '13px' }}>
-              {showAdminLogin ? (
-                <>
-                  User?{' '}
-                  <button
-                    onClick={() => {
-                      setShowAdminLogin(false)
-                      form.resetFields()
-                      setError('')
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#3b82f6',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      textDecoration: 'none',
-                      fontSize: '13px',
-                    }}
-                  >
-                    Back to User Login
-                  </button>
-                </>
-              ) : (
-                <>
-                  Admin?{' '}
-                  <button
-                    onClick={() => {
-                      setShowAdminLogin(true)
-                      form.resetFields()
-                      setError('')
-                    }}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#a78bfa',
-                      fontWeight: 'bold',
-                      cursor: 'pointer',
-                      textDecoration: 'none',
-                      fontSize: '13px',
-                    }}
-                  >
-                    Admin Login
-                  </button>
-                </>
-              )}
-            </Text>
+          {/* Toggle Button - Mobile Accessible */}
+          <div style={{ 
+            textAlign: 'center', 
+            marginTop: '16px',
+            paddingTop: '12px',
+          }}>
+            <button
+              onClick={() => {
+                setShowAdminLogin(!showAdminLogin)
+                form.resetFields()
+                setError('')
+              }}
+              style={{
+                background: 'transparent',
+                border: '1px solid #334155',
+                color: showAdminLogin ? '#3b82f6' : '#a78bfa',
+                fontWeight: '600',
+                cursor: 'pointer',
+                textDecoration: 'none',
+                fontSize: 'clamp(12px, 3vw, 14px)',
+                padding: '12px 16px',
+                borderRadius: '8px',
+                transition: 'all 0.2s ease',
+                minHeight: '44px',
+                minWidth: '160px',
+                display: 'inline-block',
+                width: '100%',
+                maxWidth: '240px',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = '#334155'
+                e.currentTarget.style.borderColor = showAdminLogin ? '#3b82f6' : '#a78bfa'
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = 'transparent'
+                e.currentTarget.style.borderColor = '#334155'
+              }}
+              aria-label={showAdminLogin ? 'Back to user login' : 'Switch to admin login'}
+            >
+              {showAdminLogin ? '← Back to User' : 'Admin → Switch'}
+            </button>
           </div>
         </Card>
       </div>
