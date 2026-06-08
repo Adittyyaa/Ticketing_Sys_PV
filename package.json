@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
+    "antd": "^6.4.3",
     "autoprefixer": "^10.4.16",
     "date-fns": "^2.30.0",
     "html2canvas": "^1.4.1",
