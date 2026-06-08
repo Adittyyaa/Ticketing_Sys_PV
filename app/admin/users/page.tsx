@@ -4,8 +4,12 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
-import Header from '@/components/Header'
+import NavigationHeader from '@/components/Header'
+import { Layout, Table, Form, Input, Button, message, Modal, Tag, Space, Card, Typography } from 'antd'
 import { Plus, Trash2 } from 'lucide-react'
+
+const { Content } = Layout
+const { Title } = Typography
 
 interface User {
   id: string
@@ -21,9 +25,8 @@ export default function UserManagementPage() {
   const [users, setUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState({ email: '', password: '', fullName: '' })
   const [submitting, setSubmitting] = useState(false)
-  const [message, setMessage] = useState('')
+  const [form] = Form.useForm()
 
   useEffect(() => {
     if (!isAdmin) {
@@ -35,22 +38,23 @@ export default function UserManagementPage() {
 
   const fetchUsers = async () => {
     try {
-      const { data } = await supabase.from('tbl_users').select('*').order('created_at', { ascending: false })
+      const { data } = await supabase
+        .from('tbl_users')
+        .select('*')
+        .order('created_at', { ascending: false })
       setUsers(data || [])
     } catch (err) {
       console.error('Error fetching users:', err)
+      message.error('Failed to load users')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleCreateUser = async (values: any) => {
     setSubmitting(true)
-    setMessage('')
 
     try {
-      // Get the session token
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
@@ -64,144 +68,224 @@ export default function UserManagementPage() {
           'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          fullName: formData.fullName,
+          email: values.email,
+          password: values.password,
+          fullName: values.fullName,
         }),
       })
 
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Failed to create user')
 
-      setMessage('User created successfully!')
-      setFormData({ email: '', password: '', fullName: '' })
+      message.success('User created successfully!')
+      form.resetFields()
       setShowForm(false)
       fetchUsers()
     } catch (err) {
-      setMessage(err instanceof Error ? err.message : 'Error creating user')
+      message.error(err instanceof Error ? err.message : 'Error creating user')
     } finally {
       setSubmitting(false)
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm('Delete this user?')) return
-
-    try {
-      await supabase.from('tbl_users').delete().eq('id', userId)
-      setMessage('User deleted')
-      fetchUsers()
-    } catch (err) {
-      setMessage('Error deleting user')
-    }
+  const handleDeleteUser = async (userId: string, email: string) => {
+    Modal.confirm({
+      title: 'Delete User',
+      content: `Are you sure you want to delete the user account for ${email}? This action cannot be undone.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          const { error } = await supabase.from('tbl_users').delete().eq('id', userId)
+          if (error) throw error
+          message.success('User deleted successfully')
+          fetchUsers()
+        } catch (err) {
+          message.error('Error deleting user')
+        }
+      }
+    })
   }
+
+  const columns = [
+    {
+      title: 'Full Name',
+      dataIndex: 'full_name',
+      key: 'full_name',
+      render: (text: string) => <span className="text-white font-medium">{text || 'N/A'}</span>,
+    },
+    {
+      title: 'Email Address',
+      dataIndex: 'email',
+      key: 'email',
+      render: (text: string) => <span className="text-slate-300">{text}</span>,
+    },
+    {
+      title: 'Role',
+      dataIndex: 'role',
+      key: 'role',
+      width: 120,
+      render: (role: string) => {
+        const isUserAdmin = role === 'admin'
+        return (
+          <Tag color={isUserAdmin ? 'purple' : 'blue'}>
+            {isUserAdmin ? 'Administrator' : 'User'}
+          </Tag>
+        )
+      },
+    },
+    {
+      title: 'Joined Date',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 150,
+      render: (date: string) => (
+        <span className="text-slate-400 text-sm">
+          {new Date(date).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+          })}
+        </span>
+      ),
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      width: 100,
+      render: (_: any, record: User) => (
+        <Button
+          type="text"
+          danger
+          icon={<Trash2 size={16} />}
+          onClick={() => handleDeleteUser(record.id, record.email)}
+        />
+      ),
+    },
+  ]
 
   if (loading) return null
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <Header />
-      <main className="max-w-6xl mx-auto p-6">
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-white">User Management</h1>
-          <button
-            onClick={() => setShowForm(!showForm)}
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white"
-          >
-            <Plus size={18} />
-            Add User
-          </button>
-        </div>
-
-        {message && (
-          <div className={`p-3 rounded mb-4 ${message.includes('Error') ? 'bg-red-900/20 text-red-300' : 'bg-green-900/20 text-green-300'}`}>
-            {message}
+    <Layout style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
+      <NavigationHeader />
+      <Content style={{ margin: '0 auto', maxWidth: '1200px', padding: '40px 24px', width: '100%' }}>
+        
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+          <div>
+            <Title level={2} style={{ color: '#fff', margin: 0 }}>User Management</Title>
+            <p className="text-slate-400 mt-1">Manage and create regular user accounts</p>
           </div>
-        )}
+          <Button
+            type="primary"
+            icon={<Plus size={16} />}
+            size="large"
+            onClick={() => setShowForm(!showForm)}
+          >
+            {showForm ? 'Cancel' : 'Add User'}
+          </Button>
+        </div>
 
         {showForm && (
-          <form onSubmit={handleCreateUser} className="bg-slate-900 border border-slate-700 rounded-lg p-6 mb-6">
-            <div className="grid grid-cols-3 gap-4 mb-4">
-              <input
-                type="text"
-                placeholder="Full Name"
-                value={formData.fullName}
-                onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                className="bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white"
-                required
-              />
-              <input
-                type="email"
-                placeholder="Email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                className="bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white"
-                required
-              />
-              <input
-                type="password"
-                placeholder="Password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                className="bg-slate-800 border border-slate-700 rounded px-3 py-2 text-white"
-                required
-              />
-            </div>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                disabled={submitting}
-                className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded text-white"
-              >
-                {submitting ? 'Creating...' : 'Create'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowForm(false)}
-                className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded text-white"
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+          <Card 
+            style={{ 
+              backgroundColor: '#111827', 
+              borderColor: '#374151', 
+              marginBottom: '24px',
+              borderRadius: '8px'
+            }}
+          >
+            <Title level={4} style={{ color: '#fff', marginTop: 0, marginBottom: '20px' }}>Create New User</Title>
+            
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleCreateUser}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                <Form.Item
+                  label={<span style={{ color: '#d1d5db' }}>Full Name</span>}
+                  name="fullName"
+                  rules={[{ required: true, message: 'Please enter full name' }]}
+                >
+                  <Input 
+                    placeholder="John Doe"
+                    size="large"
+                    style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label={<span style={{ color: '#d1d5db' }}>Email Address</span>}
+                  name="email"
+                  rules={[
+                    { required: true, message: 'Please enter email' },
+                    { type: 'email', message: 'Invalid email' }
+                  ]}
+                >
+                  <Input 
+                    placeholder="user@example.com"
+                    size="large"
+                    style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
+                  />
+                </Form.Item>
+                <Form.Item
+                  label={<span style={{ color: '#d1d5db' }}>Password</span>}
+                  name="password"
+                  rules={[
+                    { required: true, message: 'Please enter password' },
+                    { min: 6, message: 'Password must be at least 6 characters' }
+                  ]}
+                >
+                  <Input.Password 
+                    placeholder="••••••••"
+                    size="large"
+                    style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
+                  />
+                </Form.Item>
+              </div>
+
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Space>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={submitting}
+                    size="large"
+                  >
+                    Create User
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={() => {
+                      form.resetFields()
+                      setShowForm(false)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Card>
         )}
 
-        <div className="bg-slate-900 border border-slate-700 rounded-lg overflow-hidden">
-          <table className="w-full">
-            <thead className="bg-slate-800">
-              <tr>
-                <th className="px-4 py-3 text-left text-slate-300">Full Name</th>
-                <th className="px-4 py-3 text-left text-slate-300">Email</th>
-                <th className="px-4 py-3 text-left text-slate-300">Role</th>
-                <th className="px-4 py-3 text-left text-slate-300">Created</th>
-                <th className="px-4 py-3 text-left text-slate-300">Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {users.map((u) => (
-                <tr key={u.id} className="border-t border-slate-700 hover:bg-slate-800/50">
-                  <td className="px-4 py-3 text-white">{u.full_name}</td>
-                  <td className="px-4 py-3 text-slate-300">{u.email}</td>
-                  <td className="px-4 py-3">
-                    <span className={`px-2 py-1 rounded text-xs ${u.role === 'admin' ? 'bg-purple-900 text-purple-300' : 'bg-blue-900 text-blue-300'}`}>
-                      {u.role}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3 text-slate-400 text-sm">{new Date(u.created_at).toLocaleDateString()}</td>
-                  <td className="px-4 py-3">
-                    <button
-                      onClick={() => handleDeleteUser(u.id)}
-                      className="text-red-400 hover:text-red-300"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </main>
-    </div>
+        <Card 
+          style={{ 
+            backgroundColor: '#111827', 
+            borderColor: '#374151',
+            borderRadius: '8px'
+          }}
+          bodyStyle={{ padding: 0 }}
+        >
+          <Table
+            columns={columns}
+            dataSource={users.map(u => ({ ...u, key: u.id }))}
+            pagination={{ pageSize: 10 }}
+            locale={{ emptyText: <div className="text-slate-500 py-8">No users found</div> }}
+          />
+        </Card>
+      </Content>
+    </Layout>
   )
 }

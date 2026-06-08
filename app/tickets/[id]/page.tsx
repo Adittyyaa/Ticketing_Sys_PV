@@ -4,42 +4,61 @@ import { useEffect, useState } from 'react'
 import { useRouter, useParams } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
-import Header from '@/components/Header'
-import { ArrowLeft, Edit2, Trash2, Download } from 'lucide-react'
+import NavigationHeader from '@/components/Header'
+import { 
+  Layout, 
+  Button, 
+  Form,
+  Select,
+  message,
+  Modal,
+  Spin,
+  Typography
+} from 'antd'
+import { 
+  ArrowLeft,
+  Download,
+  Edit2,
+  Trash2
+} from 'lucide-react'
 import Link from 'next/link'
 import { Ticket, Status, Priority } from '@/lib/types'
 import { formatDistanceToNow, format } from 'date-fns'
 import jsPDF from 'jspdf'
 
-import CommentsSection from '@/components/CommentsSection'
+import TicketComments from '@/components/CommentsSection'
 import AttachmentsSection from '@/components/AttachmentsSection'
+
+const { Text } = Typography
+const { Content } = Layout
 
 const statusOptions: Status[] = ['UNTOUCHED', 'PENDING', 'OPENED', 'SOLVED']
 const priorityOptions: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
 const priorityColors: Record<Priority, string> = {
-  LOW: 'bg-green-900 text-green-200',
-  MEDIUM: 'bg-blue-900 text-blue-200',
-  HIGH: 'bg-yellow-900 text-yellow-200',
-  URGENT: 'bg-red-900 text-red-200',
+  LOW: 'bg-green-500/10 text-green-400 border border-green-500/20',
+  MEDIUM: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
+  HIGH: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+  URGENT: 'bg-red-500/10 text-red-400 border border-red-500/20',
 }
 
 const statusColors: Record<Status, string> = {
-  UNTOUCHED: 'bg-slate-700 text-slate-200',
-  PENDING: 'bg-yellow-900 text-yellow-200',
-  OPENED: 'bg-green-900 text-green-200',
-  SOLVED: 'bg-blue-900 text-blue-200',
+  UNTOUCHED: 'bg-slate-500/10 text-slate-400 border border-slate-500/20',
+  PENDING: 'bg-orange-500/10 text-orange-400 border border-orange-500/20',
+  OPENED: 'bg-green-500/10 text-green-400 border border-green-500/20',
+  SOLVED: 'bg-blue-500/10 text-blue-400 border border-blue-500/20',
 }
 
 export default function TicketDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { user, setUser, setLoading } = useAuthStore()
+  const [form] = Form.useForm()
   const ticketId = params.id as string
+  
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [loading, setLocalLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
-  const [editData, setEditData] = useState<Partial<Ticket>>({})
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -72,7 +91,6 @@ export default function TicketDetailPage() {
 
     const fetchTicket = async () => {
       try {
-        // First check if user is admin
         const { data: userData } = await supabase
           .from('tbl_users')
           .select('role')
@@ -81,7 +99,6 @@ export default function TicketDetailPage() {
 
         const isAdmin = userData?.role === 'admin'
 
-        // Admins can see all tickets, regular users see only their own
         let query = supabase
           .from('tbl_tickets')
           .select('*')
@@ -96,9 +113,14 @@ export default function TicketDetailPage() {
         if (error) throw error
 
         setTicket(data as Ticket)
-        setEditData(data)
+        
+        form.setFieldsValue({
+          priority: data.priority,
+          status: data.status
+        })
       } catch (error) {
         console.error('Failed to fetch ticket:', error)
+        message.error('Failed to load ticket')
         router.push('/tickets')
       } finally {
         setLocalLoading(false)
@@ -106,13 +128,12 @@ export default function TicketDetailPage() {
     }
 
     fetchTicket()
-  }, [user, ticketId, router])
+  }, [user, ticketId, router, form])
 
-  const handleSave = async () => {
+  const handleSave = async (values: { priority: Priority; status: Status }) => {
     if (!ticket) return
 
     try {
-      // Check if user is admin
       const { data: userData } = await supabase
         .from('tbl_users')
         .select('role')
@@ -124,7 +145,8 @@ export default function TicketDetailPage() {
       let query = supabase
         .from('tbl_tickets')
         .update({
-          ...editData,
+          priority: values.priority,
+          status: values.status,
           updated_at: new Date().toISOString(),
         })
         .eq('id', ticket.id)
@@ -137,52 +159,63 @@ export default function TicketDetailPage() {
 
       if (error) throw error
 
-      setTicket({ ...ticket, ...editData })
+      setTicket({ 
+        ...ticket, 
+        priority: values.priority,
+        status: values.status 
+      })
       setIsEditing(false)
+      message.success('Ticket updated successfully')
     } catch (error) {
       console.error('Failed to update ticket:', error)
-      alert('Failed to update ticket')
+      message.error('Failed to update ticket')
     }
   }
 
   const handleDelete = async () => {
-    if (!confirm('Are you sure you want to delete this ticket?')) return
+    Modal.confirm({
+      title: 'Delete Ticket',
+      content: 'Are you sure you want to delete this ticket? This action cannot be undone.',
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          const { data: userData } = await supabase
+            .from('tbl_users')
+            .select('role')
+            .eq('id', user?.id || '')
+            .single()
 
-    try {
-      // Check if user is admin
-      const { data: userData } = await supabase
-        .from('tbl_users')
-        .select('role')
-        .eq('id', user?.id || '')
-        .single()
+          const isAdmin = userData?.role === 'admin'
 
-      const isAdmin = userData?.role === 'admin'
+          let query = supabase
+            .from('tbl_tickets')
+            .delete()
+            .eq('id', ticket?.id)
 
-      let query = supabase
-        .from('tbl_tickets')
-        .delete()
-        .eq('id', ticket?.id)
+          if (!isAdmin) {
+            query = query.eq('user_id', user?.id)
+          }
 
-      if (!isAdmin) {
-        query = query.eq('user_id', user?.id)
+          const { error } = await query
+
+          if (error) throw error
+
+          message.success('Ticket deleted successfully')
+          router.push('/tickets')
+        } catch (error) {
+          console.error('Failed to delete ticket:', error)
+          message.error('Failed to delete ticket')
+        }
       }
-
-      const { error } = await query
-
-      if (error) throw error
-
-      router.push('/tickets')
-    } catch (error) {
-      console.error('Failed to delete ticket:', error)
-      alert('Failed to delete ticket')
-    }
+    })
   }
 
   const handleMarkResolved = async () => {
     if (!ticket) return
 
     try {
-      // Check if user is admin
       const { data: userData } = await supabase
         .from('tbl_users')
         .select('role')
@@ -208,9 +241,11 @@ export default function TicketDetailPage() {
       if (error) throw error
 
       setTicket({ ...ticket, status: 'SOLVED' })
+      form.setFieldsValue({ status: 'SOLVED' })
+      message.success('Ticket marked as resolved')
     } catch (error) {
       console.error('Failed to mark as resolved:', error)
-      alert('Failed to mark as resolved')
+      message.error('Failed to mark as resolved')
     }
   }
 
@@ -218,7 +253,6 @@ export default function TicketDetailPage() {
     if (!ticket) return
 
     try {
-      // Check if user is admin
       const { data: userData } = await supabase
         .from('tbl_users')
         .select('role')
@@ -244,9 +278,11 @@ export default function TicketDetailPage() {
       if (error) throw error
 
       setTicket({ ...ticket, status: 'OPENED' })
+      form.setFieldsValue({ status: 'OPENED' })
+      message.success('Ticket marked as unresolved')
     } catch (error) {
       console.error('Failed to mark as unresolved:', error)
-      alert('Failed to mark as unresolved')
+      message.error('Failed to mark as unresolved')
     }
   }
 
@@ -254,10 +290,6 @@ export default function TicketDetailPage() {
     if (!ticket) return
 
     try {
-      const element = document.getElementById('ticket-content')
-      if (!element) return
-
-      // Use jsPDF with better text-based approach
       const pdf = new jsPDF({
         orientation: 'portrait',
         unit: 'mm',
@@ -268,7 +300,6 @@ export default function TicketDetailPage() {
       const margin = 15
       let yPosition = margin
 
-      // Add logo at top
       try {
         const logoImg = document.querySelector('img[src="/logo.jpeg"]') as HTMLImageElement
         if (logoImg) {
@@ -279,7 +310,6 @@ export default function TicketDetailPage() {
         console.log('Logo not added')
       }
 
-      // Set font for header
       pdf.setFont('helvetica', 'bold')
       pdf.setFontSize(16)
       pdf.text(`Ticket #${ticket.number}`, margin, yPosition)
@@ -290,18 +320,15 @@ export default function TicketDetailPage() {
       pdf.text(`${ticket.title}`, margin, yPosition)
       yPosition += 15
 
-      // Add metadata
       pdf.setFontSize(10)
       pdf.setTextColor(120, 130, 140)
       pdf.text(`Generated on: ${format(new Date(), 'PPP p')}`, margin, yPosition)
       yPosition += 8
 
-      // Reset text color
       pdf.setTextColor(0, 0, 0)
       pdf.setFontSize(11)
       pdf.setFont('helvetica', 'bold')
 
-      // Add ticket details
       yPosition += 5
       pdf.text('Ticket Details:', margin, yPosition)
       yPosition += 8
@@ -331,7 +358,6 @@ export default function TicketDetailPage() {
       pdf.text('Description:', margin, yPosition)
       yPosition += 8
 
-      // Add description with word wrap
       pdf.setFont('helvetica', 'normal')
       const descriptionLines = pdf.splitTextToSize(ticket.description, pageWidth - margin * 2)
       descriptionLines.forEach((line: string) => {
@@ -343,7 +369,6 @@ export default function TicketDetailPage() {
         yPosition += 6
       })
 
-      // Add tags if any
       if (ticket.tags.length > 0) {
         yPosition += 5
         if (yPosition > pageWidth - 20) {
@@ -369,30 +394,49 @@ export default function TicketDetailPage() {
         })
       }
 
-      // Download PDF
       pdf.save(`ticket-${ticket.number}.pdf`)
+      message.success('PDF exported successfully')
     } catch (error) {
       console.error('Failed to export PDF:', error)
-      alert('Failed to export PDF. Please try again.')
+      message.error('Failed to export PDF. Please try again.')
     }
   }
 
-  if (!user || loading) return null
+  if (!user || loading) {
+    return (
+      <Layout style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
+        <NavigationHeader />
+        <Content style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          minHeight: 'calc(100vh - 64px)' 
+        }}>
+          <Spin size="large" />
+        </Content>
+      </Layout>
+    )
+  }
 
   if (!ticket) {
     return (
-      <div className="min-h-screen bg-slate-950">
-        <Header />
-        <main className="flex items-center justify-center min-h-[calc(100vh-64px)]">
-          <p className="text-slate-400">Ticket not found</p>
-        </main>
-      </div>
+      <Layout style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
+        <NavigationHeader />
+        <Content style={{ 
+          display: 'flex', 
+          alignItems: 'center', 
+          justifyContent: 'center',
+          minHeight: 'calc(100vh - 64px)' 
+        }}>
+          <Text style={{ color: '#94a3b8' }}>Ticket not found</Text>
+        </Content>
+      </Layout>
     )
   }
 
   return (
     <div className="min-h-screen bg-slate-950">
-      <Header />
+      <NavigationHeader />
       <main className="max-w-4xl mx-auto p-6">
         <Link href="/tickets" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-6">
           <ArrowLeft size={18} />
@@ -406,85 +450,107 @@ export default function TicketDetailPage() {
               <h1 className="text-3xl font-semibold text-white">{ticket.title}</h1>
             </div>
             <div className="flex gap-2 flex-wrap justify-end">
-              <button
+              <Button
                 onClick={handleExportPDF}
+                type="text"
                 className="flex items-center gap-2 px-4 py-2 bg-green-600 hover:bg-green-700 rounded-lg text-white transition-colors"
+                style={{ color: 'white', border: 'none' }}
               >
                 <Download size={18} />
                 Export PDF
-              </button>
+              </Button>
               {ticket.status === 'SOLVED' ? (
-                <button
+                <Button
                   onClick={handleMarkUnresolved}
+                  type="text"
                   className="flex items-center gap-2 px-4 py-2 bg-orange-600 hover:bg-orange-700 rounded-lg text-white transition-colors font-medium"
+                  style={{ color: 'white', border: 'none' }}
                   title="Mark as unresolved"
                 >
                   Unresolved
-                </button>
+                </Button>
               ) : (
-                <button
+                <Button
                   onClick={handleMarkResolved}
+                  type="text"
                   className="flex items-center gap-2 px-4 py-2 bg-teal-600 hover:bg-teal-700 rounded-lg text-white transition-colors font-medium"
+                  style={{ color: 'white', border: 'none' }}
                   title="Mark as resolved"
                 >
                   Resolved
-                </button>
+                </Button>
               )}
-              <button
+              <Button
                 onClick={() => setIsEditing(!isEditing)}
+                type="text"
                 className="flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg text-white transition-colors"
+                style={{ color: 'white', border: 'none' }}
               >
                 <Edit2 size={18} />
                 {isEditing ? 'Cancel' : 'Edit'}
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleDelete}
+                type="text"
                 className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg text-white transition-colors"
+                style={{ color: 'white', border: 'none' }}
               >
                 <Trash2 size={18} />
                 Delete
-              </button>
+              </Button>
             </div>
           </div>
 
           {isEditing && (
-            <div className="mb-6 p-4 bg-slate-800 rounded-lg border border-slate-700">
-              <div className="grid grid-cols-2 gap-4 mb-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Priority</label>
-                  <select
-                    value={editData.priority || 'MEDIUM'}
-                    onChange={(e) => setEditData({ ...editData, priority: e.target.value as Priority })}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                  >
-                    {priorityOptions.map((p) => (
-                      <option key={p} value={p}>
-                        {p}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Status</label>
-                  <select
-                    value={editData.status || 'UNTOUCHED'}
-                    onChange={(e) => setEditData({ ...editData, status: e.target.value as Status })}
-                    className="w-full bg-slate-700 border border-slate-600 rounded-lg px-3 py-2 text-white"
-                  >
-                    {statusOptions.map((s) => (
-                      <option key={s} value={s}>
-                        {s}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-              <button
-                onClick={handleSave}
-                className="w-full bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg text-white font-medium transition-colors"
+            <div className="mb-6 p-6 bg-slate-800/50 border border-slate-700 rounded-lg">
+              <Form
+                form={form}
+                layout="vertical"
+                onFinish={handleSave}
+                initialValues={{
+                  priority: ticket.priority,
+                  status: ticket.status
+                }}
               >
-                Save Changes
-              </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <Form.Item
+                    label={<span style={{ color: '#d1d5db' }}>Priority</span>}
+                    name="priority"
+                    rules={[{ required: true }]}
+                  >
+                    <Select size="large" dropdownStyle={{ backgroundColor: '#1f2937' }}>
+                      {priorityOptions.map((p) => (
+                        <Select.Option key={p} value={p}>
+                          {p}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                  <Form.Item
+                    label={<span style={{ color: '#d1d5db' }}>Status</span>}
+                    name="status"
+                    rules={[{ required: true }]}
+                  >
+                    <Select size="large" dropdownStyle={{ backgroundColor: '#1f2937' }}>
+                      {statusOptions.map((s) => (
+                        <Select.Option key={s} value={s}>
+                          {s}
+                        </Select.Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+                </div>
+                <Form.Item style={{ marginBottom: 0 }}>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    size="large"
+                    style={{ width: '100%' }}
+                  >
+                    Save Changes
+                  </Button>
+                </Form.Item>
+              </Form>
             </div>
           )}
 
@@ -541,7 +607,7 @@ export default function TicketDetailPage() {
 
         {/* Comments Section */}
         <div className="mt-6">
-          <CommentsSection ticketId={ticketId} />
+          <TicketComments ticketId={ticketId} />
         </div>
 
         {/* Attachments Section */}

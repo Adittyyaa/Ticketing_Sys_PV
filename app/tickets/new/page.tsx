@@ -2,16 +2,17 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { ArrowLeft } from 'lucide-react'
-import { Layout, Card, Form, Input, Select, Button, Space, Row, Col, Typography } from 'antd'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import Header from '@/components/Header'
 import Link from 'next/link'
 import { Category, Priority, Status } from '@/lib/types'
+import { Layout, Form, Input, Select, Button, message, Typography, Space } from 'antd'
+import { ArrowLeftOutlined } from '@ant-design/icons'
 
 const { Content } = Layout
 const { Title, Text } = Typography
+const { TextArea } = Input
 
 const categories: Category[] = ['Bug Report', 'Technical Issue', 'Account Inquiry', 'New Feature Request', 'Other']
 const priorities: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
@@ -21,13 +22,7 @@ export default function NewTicketPage() {
   const { user, setUser, setLoading } = useAuthStore()
   const { addTicket } = useTicketStore()
   const [loading, setLocalLoading] = useState(false)
-  const [formData, setFormData] = useState({
-    title: '',
-    description: '',
-    category: 'Bug Report' as Category,
-    priority: 'MEDIUM' as Priority,
-    tags: '',
-  })
+  const [form] = Form.useForm()
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -55,28 +50,24 @@ export default function NewTicketPage() {
     checkAuth()
   }, [setUser, setLoading, router])
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const onFinish = async (values: {
+    title: string
+    description: string
+    category: Category
+    priority: Priority
+    tags?: string
+  }) => {
     if (!user) return
 
-    // Input validation
-    if (!formData.title.trim() || formData.title.length > 255) {
-      alert('Title must be between 1 and 255 characters')
-      return
-    }
-
-    if (!formData.description.trim() || formData.description.length > 5000) {
-      alert('Description must be between 1 and 5000 characters')
-      return
-    }
-
-    const tags = formData.tags
-      .split(',')
-      .map(t => t.trim())
-      .filter(t => t.length > 0 && t.length <= 50)
+    const tags = values.tags
+      ? values.tags
+          .split(',')
+          .map(t => t.trim())
+          .filter(t => t.length > 0 && t.length <= 50)
+      : []
 
     if (tags.length > 10) {
-      alert('Maximum 10 tags allowed')
+      message.error('Maximum 10 tags allowed')
       return
     }
 
@@ -86,10 +77,10 @@ export default function NewTicketPage() {
         .from('tbl_tickets')
         .insert([
           {
-            title: formData.title.trim(),
-            description: formData.description.trim(),
-            category: formData.category,
-            priority: formData.priority,
+            title: values.title.trim(),
+            description: values.description.trim(),
+            category: values.category,
+            priority: values.priority,
             status: 'UNTOUCHED' as Status,
             tags: tags,
             user_id: user.id,
@@ -101,11 +92,12 @@ export default function NewTicketPage() {
 
       if (data && data[0]) {
         addTicket(data[0])
+        message.success('Ticket created successfully!')
         router.push('/tickets')
       }
     } catch (error) {
       console.error('Failed to create ticket:', error)
-      alert('Failed to create ticket. Please try again.')
+      message.error('Failed to create ticket. Please try again.')
     } finally {
       setLocalLoading(false)
     }
@@ -118,98 +110,123 @@ export default function NewTicketPage() {
   return (
     <Layout style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
       <Header />
-      <Content style={{ margin: '0 auto', maxWidth: '800px', padding: '24px' }}>
-        <Link href="/tickets" style={{ color: '#60a5fa', textDecoration: 'none', marginBottom: '24px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
-          <ArrowLeft size={18} />
+      <Content style={{ margin: '0 auto', maxWidth: '600px', padding: '40px 24px', width: '100%' }}>
+        <Link href="/tickets" style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', color: '#3b82f6', marginBottom: '24px' }}>
+          <ArrowLeftOutlined />
           Back to tickets
         </Link>
 
-        <Card style={{ backgroundColor: '#111827', borderColor: '#374151' }}>
-          <Title level={2} style={{ color: '#fff', marginBottom: '24px' }}>Create New Ticket</Title>
+        <div style={{ backgroundColor: '#111827', border: '1px solid #374151', borderRadius: '8px', padding: '32px' }}>
+          <Title level={3} style={{ color: '#fff', marginBottom: '24px', marginTop: 0 }}>Create New Ticket</Title>
 
-          <Form layout="vertical" onFinish={handleSubmit}>
-            <Form.Item label={<span style={{ color: '#cbd5e1' }}>Title</span>} required>
-              <Input
-                value={formData.title}
-                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+          <Form
+            form={form}
+            layout="vertical"
+            onFinish={onFinish}
+            initialValues={{
+              category: 'Bug Report',
+              priority: 'MEDIUM',
+              tags: '',
+            }}
+          >
+            <Form.Item
+              label={<span style={{ color: '#d1d5db' }}>Title</span>}
+              name="title"
+              rules={[
+                { required: true, message: 'Please enter a title' },
+                { max: 255, message: 'Title cannot exceed 255 characters' }
+              ]}
+            >
+              <Input 
                 placeholder="Brief title of the issue"
                 size="large"
                 style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
               />
             </Form.Item>
 
-            <Form.Item label={<span style={{ color: '#cbd5e1' }}>Description</span>} required>
-              <Input.TextArea
-                value={formData.description}
-                onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                rows={5}
+            <Form.Item
+              label={<span style={{ color: '#d1d5db' }}>Description</span>}
+              name="description"
+              rules={[
+                { required: true, message: 'Please enter a description' },
+                { max: 5000, message: 'Description cannot exceed 5000 characters' }
+              ]}
+            >
+              <TextArea
                 placeholder="Detailed description of the issue"
-                style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
+                rows={5}
+                size="large"
+                style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff', resize: 'none' }}
               />
             </Form.Item>
 
-            <Row gutter={16}>
-              <Col span={12}>
-                <Form.Item label={<span style={{ color: '#cbd5e1' }}>Category</span>} required>
-                  <Select
-                    value={formData.category}
-                    onChange={(value) => setFormData({ ...formData, category: value as Category })}
-                    size="large"
-                    style={{ width: '100%' }}
-                    dropdownStyle={{ backgroundColor: '#1f2937' }}
-                  >
-                    {categories.map((cat) => (
-                      <Select.Option key={cat} value={cat}>{cat}</Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-              <Col span={12}>
-                <Form.Item label={<span style={{ color: '#cbd5e1' }}>Priority</span>} required>
-                  <Select
-                    value={formData.priority}
-                    onChange={(value) => setFormData({ ...formData, priority: value as Priority })}
-                    size="large"
-                    style={{ width: '100%' }}
-                    dropdownStyle={{ backgroundColor: '#1f2937' }}
-                  >
-                    {priorities.map((p) => (
-                      <Select.Option key={p} value={p}>{p}</Select.Option>
-                    ))}
-                  </Select>
-                </Form.Item>
-              </Col>
-            </Row>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              <Form.Item
+                label={<span style={{ color: '#d1d5db' }}>Category</span>}
+                name="category"
+                rules={[{ required: true }]}
+              >
+                <Select size="large" dropdownStyle={{ backgroundColor: '#1f2937' }}>
+                  {categories.map((cat) => (
+                    <Select.Option key={cat} value={cat}>
+                      {cat}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
 
-            <Form.Item label={<span style={{ color: '#cbd5e1' }}>Tags</span>}>
+              <Form.Item
+                label={<span style={{ color: '#d1d5db' }}>Priority</span>}
+                name="priority"
+                rules={[{ required: true }]}
+              >
+                <Select size="large" dropdownStyle={{ backgroundColor: '#1f2937' }}>
+                  {priorities.map((p) => (
+                    <Select.Option key={p} value={p}>
+                      {p}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </div>
+
+            <Form.Item
+              label={<span style={{ color: '#d1d5db' }}>Tags</span>}
+              name="tags"
+              style={{ marginBottom: '8px' }}
+            >
               <Input
-                value={formData.tags}
-                onChange={(e) => setFormData({ ...formData, tags: e.target.value })}
                 placeholder="Separate tags with commas (e.g. bug, website, urgent)"
                 size="large"
                 style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
               />
-              <Text style={{ color: '#9ca3af', fontSize: '12px' }}>Separate multiple tags with commas</Text>
             </Form.Item>
+            <div style={{ marginBottom: '24px' }}>
+              <Text type="secondary" style={{ fontSize: '12px', color: '#9ca3af' }}>
+                Separate multiple tags with commas
+              </Text>
+            </div>
 
-            <Form.Item>
-              <Space style={{ width: '100%' }}>
+            <Form.Item style={{ marginBottom: 0 }}>
+              <Space style={{ width: '100%', display: 'flex' }} size="middle">
                 <Button
                   type="primary"
                   htmlType="submit"
                   loading={loading}
                   size="large"
-                  style={{ flex: 1, width: '200px' }}
+                  style={{ flex: 1, minWidth: '120px' }}
                 >
-                  {loading ? 'Creating...' : 'Create Ticket'}
+                  Create Ticket
                 </Button>
-                <Link href="/tickets">
-                  <Button size="large" style={{ width: '120px' }}>Cancel</Button>
+                <Link href="/tickets" style={{ flex: 1 }}>
+                  <Button size="large" style={{ width: '100%', minWidth: '120px' }}>
+                    Cancel
+                  </Button>
                 </Link>
               </Space>
             </Form.Item>
           </Form>
-        </Card>
+        </div>
       </Content>
     </Layout>
   )

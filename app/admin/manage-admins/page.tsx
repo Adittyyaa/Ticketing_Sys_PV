@@ -4,9 +4,13 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
-import Header from '@/components/Header'
-import { ShieldPlus, Trash2, Crown, User as UserIcon, AlertCircle, CheckCircle } from 'lucide-react'
+import NavigationHeader from '@/components/Header'
+import { ShieldPlus, Trash2, Crown, User as UserIcon, AlertCircle } from 'lucide-react'
 import Link from 'next/link'
+import { Layout, Table, Form, Input, Button, message, Modal, Tag, Space, Card, Typography } from 'antd'
+
+const { Content } = Layout
+const { Title } = Typography
 
 interface User {
   id: string
@@ -23,9 +27,8 @@ export default function ManageAdminsPage() {
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
-  const [formData, setFormData] = useState({ email: '', password: '', fullName: '' })
   const [submitting, setSubmitting] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [form] = Form.useForm()
 
   useEffect(() => {
     if (!isAdmin) {
@@ -48,15 +51,14 @@ export default function ManageAdminsPage() {
       }
     } catch (err) {
       console.error('Error fetching users:', err)
+      message.error('Failed to fetch users')
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCreateAdmin = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleCreateAdmin = async (values: any) => {
     setSubmitting(true)
-    setMessage(null)
 
     try {
       // Get current user's session token
@@ -70,26 +72,21 @@ export default function ManageAdminsPage() {
           'Authorization': `Bearer ${session.access_token}`
         },
         body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          fullName: formData.fullName,
+          email: values.email,
+          password: values.password,
+          fullName: values.fullName,
         }),
       })
 
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Failed to create admin')
 
-      setMessage({ type: 'success', text: 'Admin account created successfully!' })
-      setFormData({ email: '', password: '', fullName: '' })
+      message.success('Admin account created successfully!')
+      form.resetFields()
       setShowForm(false)
       fetchUsers()
-      
-      setTimeout(() => setMessage(null), 5000)
     } catch (err) {
-      setMessage({ 
-        type: 'error', 
-        text: err instanceof Error ? err.message : 'Error creating admin account' 
-      })
+      message.error(err instanceof Error ? err.message : 'Error creating admin account')
     } finally {
       setSubmitting(false)
     }
@@ -97,39 +94,104 @@ export default function ManageAdminsPage() {
 
   const handleDeleteAdmin = async (userId: string, userName: string) => {
     if (userId === user?.id) {
-      setMessage({ type: 'error', text: 'You cannot delete your own admin account' })
+      message.error('You cannot delete your own admin account')
       return
     }
 
-    if (!confirm(`Are you sure you want to remove admin access from ${userName}? This action cannot be undone.`)) {
-      return
-    }
+    Modal.confirm({
+      title: 'Revoke Admin Access',
+      content: `Are you sure you want to remove admin access from ${userName}? This action converts the account to a regular user.`,
+      okText: 'Revoke',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        try {
+          const { error } = await supabase
+            .from('tbl_users')
+            .update({ role: 'user' })
+            .eq('id', userId)
 
-    try {
-      // Update user role to 'user'
-      const { error } = await supabase
-        .from('tbl_users')
-        .update({ role: 'user' })
-        .eq('id', userId)
+          if (error) throw error
 
-      if (error) throw error
-
-      setMessage({ type: 'success', text: 'Admin privileges revoked successfully' })
-      fetchUsers()
-      setTimeout(() => setMessage(null), 5000)
-    } catch (err) {
-      setMessage({ 
-        type: 'error', 
-        text: 'Error revoking admin privileges' 
-      })
-    }
+          message.success('Admin privileges revoked successfully')
+          fetchUsers()
+        } catch (err) {
+          message.error('Error revoking admin privileges')
+        }
+      }
+    })
   }
+
+  const columns = [
+    {
+      title: 'Full Name',
+      dataIndex: 'full_name',
+      key: 'full_name',
+      render: (text: string, record: User) => (
+        <Space>
+          <div className="p-1.5 bg-purple-500/10 rounded-lg">
+            <Crown className="text-purple-400" size={14} />
+          </div>
+          <span className="text-white font-medium">{text}</span>
+          {record.id === user?.id && (
+            <Tag color="blue">You</Tag>
+          )}
+        </Space>
+      ),
+    },
+    {
+      title: 'Email Address',
+      dataIndex: 'email',
+      key: 'email',
+      render: (text: string) => <span className="text-slate-300">{text}</span>,
+    },
+    {
+      title: 'Role',
+      dataIndex: 'role',
+      key: 'role',
+      width: 150,
+      render: () => <Tag color="purple">Administrator</Tag>,
+    },
+    {
+      title: 'Created Date',
+      dataIndex: 'created_at',
+      key: 'created_at',
+      width: 150,
+      render: (date: string) => (
+        <span className="text-slate-400 text-sm">
+          {new Date(date).toLocaleDateString('en-US', { 
+            year: 'numeric', 
+            month: 'short', 
+            day: 'numeric' 
+          })}
+        </span>
+      ),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      width: 100,
+      render: (_: any, record: User) => (
+        record.id !== user?.id ? (
+          <Button
+            type="text"
+            danger
+            icon={<Trash2 size={16} />}
+            onClick={() => handleDeleteAdmin(record.id, record.full_name)}
+            title="Revoke Admin Access"
+          />
+        ) : (
+          <span className="text-slate-500 text-sm">Current User</span>
+        )
+      ),
+    },
+  ]
 
   if (loading) return null
 
   return (
-    <div className="min-h-screen bg-slate-950">
-      <Header />
+    <Layout style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
+      <NavigationHeader />
       
       {/* Admin Banner */}
       <div className="glass-light border-b border-purple-500/20 px-6 py-3">
@@ -139,108 +201,110 @@ export default function ManageAdminsPage() {
         </div>
       </div>
 
-      <main className="max-w-7xl mx-auto p-6">
+      <Content style={{ margin: '0 auto', maxWidth: '1200px', padding: '40px 24px', width: '100%' }}>
         {/* Header Section */}
         <div className="flex justify-between items-center mb-6">
           <div>
-            <h1 className="text-3xl font-bold text-white mb-2">Admin Management</h1>
-            <p className="text-slate-400">Create and manage administrator accounts with full system access</p>
+            <Title level={2} style={{ color: '#fff', margin: 0 }}>Admin Management</Title>
+            <p className="text-slate-400 mt-1">Create and manage administrator accounts with full system access</p>
           </div>
-          <div className="flex gap-3">
-            <Link 
-              href="/admin" 
-              className="px-4 py-2 glass-light rounded-xl text-slate-300 hover:text-white transition-all duration-200 flex items-center gap-2"
-            >
-              ← Back to Dashboard
+          <Space>
+            <Link href="/admin">
+              <Button size="large">← Dashboard</Button>
             </Link>
-            <button
+            <Button
+              type="primary"
+              icon={<ShieldPlus size={16} />}
+              size="large"
+              style={{ backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}
               onClick={() => setShowForm(!showForm)}
-              className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-xl text-white font-medium transition-all duration-200 shadow-lg hover:shadow-purple-500/25"
             >
-              <ShieldPlus size={18} />
               Create Admin Account
-            </button>
-          </div>
+            </Button>
+          </Space>
         </div>
-
-        {/* Message Alert */}
-        {message && (
-          <div className={`p-4 rounded-2xl mb-6 flex items-center gap-3 animate-fade-in ${
-            message.type === 'success'
-              ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-500/20'
-              : 'bg-red-500/10 text-red-300 border border-red-500/20'
-          }`}>
-            {message.type === 'success' ? (
-              <CheckCircle size={20} className="flex-shrink-0" />
-            ) : (
-              <AlertCircle size={20} className="flex-shrink-0" />
-            )}
-            <span className="font-medium">{message.text}</span>
-          </div>
-        )}
 
         {/* Create Admin Form */}
         {showForm && (
-          <div className="glass-light rounded-2xl p-6 mb-6 border border-white/5 animate-fade-in">
-            <h2 className="text-xl font-semibold text-white mb-4 flex items-center gap-2">
-              <ShieldPlus size={20} className="text-purple-400" />
-              Create New Admin Account
-            </h2>
-            <form onSubmit={handleCreateAdmin} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Full Name</label>
-                  <input
-                    type="text"
+          <Card 
+            style={{ 
+              backgroundColor: '#111827', 
+              borderColor: '#374151', 
+              marginBottom: '24px',
+              borderRadius: '8px'
+            }}
+          >
+            <Title level={4} style={{ color: '#fff', marginTop: 0, marginBottom: '20px' }}>Create New Admin Account</Title>
+            <Form
+              form={form}
+              layout="vertical"
+              onFinish={handleCreateAdmin}
+            >
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '16px' }}>
+                <Form.Item
+                  label={<span style={{ color: '#d1d5db' }}>Full Name</span>}
+                  name="fullName"
+                  rules={[{ required: true, message: 'Please enter full name' }]}
+                >
+                  <Input 
                     placeholder="John Doe"
-                    value={formData.fullName}
-                    onChange={(e) => setFormData({ ...formData, fullName: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                    required
+                    size="large"
+                    style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Email Address</label>
-                  <input
-                    type="email"
+                </Form.Item>
+                <Form.Item
+                  label={<span style={{ color: '#d1d5db' }}>Email Address</span>}
+                  name="email"
+                  rules={[
+                    { required: true, message: 'Please enter email' },
+                    { type: 'email', message: 'Invalid email' }
+                  ]}
+                >
+                  <Input 
                     placeholder="admin@pvadvisory.com"
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                    required
+                    size="large"
+                    style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-slate-300 mb-2">Password</label>
-                  <input
-                    type="password"
-                    placeholder="Minimum 6 characters"
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full px-4 py-3 bg-white/5 border border-white/10 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-purple-500 focus:ring-2 focus:ring-purple-500/20 transition-all"
-                    required
-                    minLength={6}
+                </Form.Item>
+                <Form.Item
+                  label={<span style={{ color: '#d1d5db' }}>Password</span>}
+                  name="password"
+                  rules={[
+                    { required: true, message: 'Please enter password' },
+                    { min: 6, message: 'Password must be at least 6 characters' }
+                  ]}
+                >
+                  <Input.Password 
+                    placeholder="••••••••"
+                    size="large"
+                    style={{ backgroundColor: '#1f2937', borderColor: '#374151', color: '#fff' }}
                   />
-                </div>
+                </Form.Item>
               </div>
-              <div className="flex gap-3">
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-6 py-3 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-xl text-white font-medium transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-purple-500/25"
-                >
-                  {submitting ? 'Creating Admin...' : 'Create Admin Account'}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-6 py-3 glass-light rounded-xl text-slate-300 hover:text-white transition-all duration-200"
-                >
-                  Cancel
-                </button>
-              </div>
-            </form>
-          </div>
+              <Form.Item style={{ marginBottom: 0 }}>
+                <Space>
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={submitting}
+                    size="large"
+                    style={{ backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}
+                  >
+                    Create Admin Account
+                  </Button>
+                  <Button
+                    size="large"
+                    onClick={() => {
+                      form.resetFields()
+                      setShowForm(false)
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </Space>
+              </Form.Item>
+            </Form>
+          </Card>
         )}
 
         {/* Statistics Cards */}
@@ -283,99 +347,51 @@ export default function ManageAdminsPage() {
         </div>
 
         {/* Admins Table */}
-        <div className="glass-light rounded-2xl overflow-hidden border border-white/5">
-          <div className="px-6 py-4 border-b border-white/5">
-            <h2 className="text-lg font-semibold text-white flex items-center gap-2">
-              <Crown size={20} className="text-purple-400" />
+        <Card 
+          style={{ 
+            backgroundColor: '#111827', 
+            borderColor: '#374151',
+            borderRadius: '8px'
+          }}
+          bodyStyle={{ padding: 0 }}
+          title={
+            <span style={{ color: '#fff', fontSize: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Crown size={18} className="text-purple-400" />
               Current Administrators
-            </h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-white/5">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Full Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Role
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Created
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-slate-400 uppercase tracking-wider">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/5">
-                {admins.map((admin) => (
-                  <tr key={admin.id} className="hover:bg-white/5 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-purple-500/10 rounded-lg">
-                          <Crown className="text-purple-400" size={16} />
-                        </div>
-                        <span className="text-white font-medium">{admin.full_name}</span>
-                        {admin.id === user?.id && (
-                          <span className="px-2 py-0.5 bg-blue-500/10 text-blue-300 text-xs rounded-full border border-blue-500/20">
-                            You
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-300">{admin.email}</td>
-                    <td className="px-6 py-4">
-                      <span className="px-3 py-1 rounded-full bg-purple-500/10 text-purple-300 text-xs font-medium border border-purple-500/20">
-                        Administrator
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-slate-400 text-sm">
-                      {new Date(admin.created_at).toLocaleDateString('en-US', { 
-                        year: 'numeric', 
-                        month: 'short', 
-                        day: 'numeric' 
-                      })}
-                    </td>
-                    <td className="px-6 py-4">
-                      {admin.id !== user?.id ? (
-                        <button
-                          onClick={() => handleDeleteAdmin(admin.id, admin.full_name)}
-                          className="p-2 rounded-lg text-red-400 hover:text-red-300 hover:bg-red-500/10 transition-all duration-200"
-                          title="Revoke Admin Access"
-                        >
-                          <Trash2 size={18} />
-                        </button>
-                      ) : (
-                        <span className="text-slate-600 text-sm">Current User</span>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
+            </span>
+          }
+        >
+          <Table
+            columns={columns}
+            dataSource={admins.map(u => ({ ...u, key: u.id }))}
+            pagination={{ pageSize: 10 }}
+            locale={{ emptyText: <div className="text-slate-500 py-8">No admins found</div> }}
+          />
+        </Card>
 
         {/* Info Box */}
-        <div className="mt-6 p-4 glass-light rounded-2xl border border-blue-500/20">
+        <Card 
+          style={{ 
+            backgroundColor: '#1e293b/30', 
+            borderColor: '#3b82f6/20', 
+            marginTop: '24px',
+            borderRadius: '8px'
+          }}
+        >
           <div className="flex gap-3">
             <AlertCircle className="text-blue-400 flex-shrink-0" size={20} />
             <div className="text-sm text-slate-300">
               <p className="font-medium text-white mb-1">Admin Account Guidelines</p>
-              <ul className="space-y-1 text-slate-400">
-                <li>• Admins have full access to all tickets and user management</li>
-                <li>• Admin accounts should use strong passwords and enable 2FA when available</li>
-                <li>• You cannot delete your own admin account for security reasons</li>
-                <li>• Revoking admin access converts the account to a regular user</li>
+              <ul className="space-y-1 text-slate-400 list-disc list-inside">
+                <li>Admins have full access to all tickets and user management</li>
+                <li>Admin accounts should use strong passwords and enable 2FA when available</li>
+                <li>You cannot delete your own admin account for security reasons</li>
+                <li>Revoking admin access converts the account to a regular user</li>
               </ul>
             </div>
           </div>
-        </div>
-      </main>
-    </div>
+        </Card>
+      </Content>
+    </Layout>
   )
 }
