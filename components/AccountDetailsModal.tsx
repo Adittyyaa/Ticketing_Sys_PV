@@ -255,6 +255,12 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
               description="✓ Profile saved. Details are locked and cannot be changed."
               type="info"
               showIcon
+              style={{
+                backgroundColor: '#1e293b',
+                border: '1px solid #334155',
+                color: '#f1f5f9'
+              }}
+              className="dark-alert"
             />
           )}
 
