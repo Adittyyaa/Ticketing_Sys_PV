@@ -208,6 +208,11 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
           </Space>
         )
       }
+      styles={{
+        body: { backgroundColor: '#0f172a' },
+        header: { backgroundColor: '#0f172a', borderBottom: '1px solid #334155' },
+        footer: { backgroundColor: '#0f172a', borderTop: '1px solid #334155' },
+      }}
     >
       {/* ============================================ */}
       {/* LOADING STATE */}
@@ -271,6 +276,12 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                 prefix={<UserOutlined />}
                 placeholder="Enter your full name" 
                 size="large"
+                style={{ 
+                  backgroundColor: '#1e293b', 
+                  borderColor: '#334155', 
+                  color: '#fff' 
+                }}
+                className="dark-input"
               />
             </Form.Item>
 
@@ -284,6 +295,12 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                 prefix={<PhoneOutlined />}
                 placeholder="+1 (555) 000-0000" 
                 size="large"
+                style={{ 
+                  backgroundColor: '#1e293b', 
+                  borderColor: '#334155', 
+                  color: '#fff' 
+                }}
+                className="dark-input"
               />
             </Form.Item>
 
@@ -297,6 +314,12 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                 prefix={<IdcardOutlined />}
                 placeholder="e.g., Software Engineer" 
                 size="large"
+                style={{ 
+                  backgroundColor: '#1e293b', 
+                  borderColor: '#334155', 
+                  color: '#fff' 
+                }}
+                className="dark-input"
               />
             </Form.Item>
 
@@ -307,6 +330,11 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
                 value="PV Advisory"
                 disabled
                 size="large"
+                style={{ 
+                  backgroundColor: '#0f172a', 
+                  borderColor: '#334155', 
+                  color: '#94a3b8' 
+                }}
               />
             </Form.Item>
           </Form>

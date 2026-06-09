@@ -170,3 +170,75 @@ body {
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
 }
+
+
+/* Dark Theme Input Styles */
+.dark-input input {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #fff !important;
+}
+
+.dark-input input::placeholder {
+  color: #64748b !important;
+}
+
+.dark-input input:focus,
+.dark-input input:hover {
+  background-color: #1e293b !important;
+  border-color: #3b82f6 !important;
+}
+
+.dark-input input:disabled {
+  background-color: #0f172a !important;
+  color: #64748b !important;
+}
+
+/* Ant Design Modal Dark Theme */
+.ant-modal-content {
+  background-color: #0f172a !important;
+  color: #f1f5f9 !important;
+}
+
+.ant-modal-header {
+  background-color: #0f172a !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+.ant-modal-title {
+  color: #f1f5f9 !important;
+}
+
+.ant-modal-footer {
+  background-color: #0f172a !important;
+  border-top: 1px solid #334155 !important;
+}
+
+.ant-modal-close {
+  color: #94a3b8 !important;
+}
+
+.ant-modal-close:hover {
+  color: #f1f5f9 !important;
+}
+
+/* Ant Design Descriptions Dark Theme */
+.ant-descriptions-bordered .ant-descriptions-item-label,
+.ant-descriptions-bordered .ant-descriptions-item-content {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+  color: #f1f5f9 !important;
+}
+
+.ant-descriptions-item-label {
+  color: #94a3b8 !important;
+}
+
+/* Form Labels Dark Theme */
+.ant-form-item-label > label {
+  color: #d1d5db !important;
+}
+
+.ant-form-item-label > label.ant-form-item-required:not(.ant-form-item-required-mark-optional)::before {
+  color: #ef4444 !important;
+}
