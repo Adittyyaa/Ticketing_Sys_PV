@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { Attachment } from '@/lib/types'
+import { Attachment } from '@/types/types'
 import { useAuthStore } from '@/lib/store'
 import { Upload, Card, Button, Empty, List, Popconfirm, message, Skeleton } from 'antd'
 import { DeleteOutlined, DownloadOutlined, InboxOutlined } from '@ant-design/icons'

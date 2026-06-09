@@ -9,7 +9,7 @@ import { useAuthStore, useTicketStore } from '@/lib/store'
 import Header from '@/components/Header'
 import FilterBar from '@/components/FilterBar'
 import TicketTable from '@/components/TicketTable'
-import { Ticket } from '@/lib/types'
+import { Ticket } from '@/types/types'
 
 const { Content } = Layout
 const { Title, Paragraph } = Typography

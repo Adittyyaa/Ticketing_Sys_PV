@@ -6,7 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import Header from '@/components/Header'
 import Link from 'next/link'
-import { Category, Priority, Status } from '@/lib/types'
+import { Category, Priority, Status } from '@/types/types'
 import { Layout, Form, Input, Select, Button, message, Typography, Space } from 'antd'
 import { ArrowLeftOutlined } from '@ant-design/icons'
 

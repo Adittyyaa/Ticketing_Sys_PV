@@ -90,11 +90,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only admins can create admin accounts' }, { status: 403 })
     }
 
-    // Create auth user WITHOUT email confirmation
+    // Create auth user WITH email already confirmed (admin-created admins)
     const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: false, // Don't require email confirmation
+      email_confirm: true, // Auto-confirm email for admin-created accounts
       user_metadata: { full_name: fullName },
     })
 

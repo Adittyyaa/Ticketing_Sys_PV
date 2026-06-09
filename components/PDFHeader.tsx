@@ -1,6 +1,6 @@
 import Image from 'next/image'
 import { format } from 'date-fns'
-import { Ticket } from '@/lib/types'
+import { Ticket } from '@/types/types'
 import './PDFHeader.css'
 
 interface PDFHeaderProps {

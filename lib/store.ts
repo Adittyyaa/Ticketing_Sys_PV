@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { Ticket, UserRole } from './types'
+import { Ticket, UserRole } from '../types/types'
 
 interface AuthUser {
   id: string

@@ -1,6 +1,6 @@
 'use client'
 
-import { Ticket, Priority, Status } from '@/lib/types'
+import { Ticket, Priority, Status } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { useState } from 'react'

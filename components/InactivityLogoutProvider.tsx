@@ -1,6 +1,6 @@
 'use client'
 
-import { useInactivityLogout } from '@/lib/useInactivityLogout'
+import { useInactivityLogout } from '@/hooks/useInactivityLogout'
 
 export function InactivityLogoutProvider({
   children,

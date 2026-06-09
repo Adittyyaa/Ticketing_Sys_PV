@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { Row, Col, Card, Statistic, Progress } from 'antd'
 import { ArrowUpOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
-import { TicketAnalytics } from '@/lib/types'
+import { TicketAnalytics } from '@/types/types'
 
 // ============================================
 // MAIN COMPONENT

@@ -92,11 +92,11 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create auth user WITHOUT email confirmation
+    // Create auth user WITH email already confirmed (admin-created users)
     const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: false, // Don't require email confirmation
+      email_confirm: true, // Auto-confirm email for admin-created users
       user_metadata: { full_name: fullName },
     })
 

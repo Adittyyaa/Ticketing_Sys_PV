@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { Button, message } from 'antd'
 import { DownloadOutlined } from '@ant-design/icons'
-import { Ticket } from '@/lib/types'
+import { Ticket } from '@/types/types'
 
 // ============================================
 // TYPE DEFINITIONS

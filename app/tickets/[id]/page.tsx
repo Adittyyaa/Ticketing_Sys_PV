@@ -22,7 +22,7 @@ import {
   Trash2
 } from 'lucide-react'
 import Link from 'next/link'
-import { Ticket, Status, Priority } from '@/lib/types'
+import { Ticket, Status, Priority } from '@/types/types'
 import { formatDistanceToNow, format } from 'date-fns'
 import jsPDF from 'jspdf'
 

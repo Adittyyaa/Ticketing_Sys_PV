@@ -11,7 +11,7 @@ import FilterBar from '@/components/FilterBar'
 import TicketTable from '@/components/TicketTable'
 import AnalyticsDashboard from '@/components/AnalyticsDashboard'
 import ExportButton from '@/components/ExportButton'
-import { Ticket } from '@/lib/types'
+import { Ticket } from '@/types/types'
 import Link from 'next/link'
 
 const { Content } = Layout
