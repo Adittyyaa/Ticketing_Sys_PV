@@ -1,71 +1,44 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Modal, Form, Input, Button, Alert, Spin, Tag, Descriptions, Space, message } from 'antd'
-import { UserOutlined, PhoneOutlined, IdcardOutlined, BankOutlined } from '@ant-design/icons'
+import { Modal, Form, Input, Button, Alert, Spin, Tag, Descriptions, message } from 'antd'
+import { UserOutlined, PhoneOutlined, IdcardOutlined, BankOutlined, CheckCircleOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import { format } from 'date-fns'
-
-// ============================================
-// TYPE DEFINITIONS
-// ============================================
 
 interface AccountDetailsModalProps {
   isOpen: boolean
   onClose: () => void
 }
 
-// ============================================
-// MAIN COMPONENT
-// ============================================
+const COLORS = {
+  modal: '#0f172a',
+  input: '#1a2847',
+  border: '#2d3e5f',
+  text: '#e2e8f0',
+  textMuted: '#94a3b8',
+  accent: '#3b82f6',
+  success: '#10b981',
+}
 
-/**
- * AccountDetailsModal Component
- * Displays and manages user account information
- * Features:
- * - View email, role, and join date (read-only)
- * - Edit full name, phone, job title (one-time only)
- * - Company field locked to "PV Advisory"
- * - Profile becomes read-only after first save
- */
 export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsModalProps) {
-  // ============================================
-  // STATE & HOOKS
-  // ============================================
-  
   const { user } = useAuthStore()
   const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [joiningDate, setJoiningDate] = useState('')
   const [role, setRole] = useState('')
-  const [isEditable, setIsEditable] = useState(true) // Profile becomes non-editable after first save
+  const [isEditable, setIsEditable] = useState(true)
 
-  // ============================================
-  // EFFECTS
-  // ============================================
-
-  /**
-   * Load user data when modal opens
-   */
   useEffect(() => {
     if (isOpen && user?.id) {
       loadUserData()
     }
   }, [isOpen, user?.id])
 
-  // ============================================
-  // API FUNCTIONS
-  // ============================================
-
-  /**
-   * Load user profile data from database
-   * Auto-creates user record if not exists
-   */
   const loadUserData = async () => {
     if (!user?.id) return
-
     setIsLoading(true)
     try {
       const { data, error } = await supabase
@@ -76,7 +49,6 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
 
       if (error) {
         if (error.code === 'PGRST116') {
-          // User record doesn't exist - create it
           const { data: newUser, error: createError } = await supabase
             .from('tbl_users')
             .insert([{
@@ -90,7 +62,6 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
             .single()
 
           if (createError) throw createError
-
           if (newUser) {
             form.setFieldsValue({
               full_name: newUser.full_name || '',
@@ -104,7 +75,6 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
           throw error
         }
       } else if (data) {
-        // Set form values
         form.setFieldsValue({
           full_name: data.full_name || '',
           phone: data.phone || '',
@@ -112,8 +82,6 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
         })
         setJoiningDate(data.created_at)
         setRole(data.role)
-        
-        // Disable editing if user already has saved details
         if (data.full_name || data.phone || data.job_title) {
           setIsEditable(false)
         }
@@ -126,18 +94,12 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
     }
   }
 
-  /**
-   * Save user profile data to database
-   * Disables further editing after successful save
-   */
   const handleSave = async () => {
     if (!user?.id) return
-
     try {
       const values = await form.validateFields()
       setIsSaving(true)
 
-      // Try to update first
       const { error: updateError } = await supabase
         .from('tbl_users')
         .update({
@@ -149,7 +111,6 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
         .eq('id', user.id)
 
       if (updateError) {
-        // If update fails, try to insert
         const { error: insertError } = await supabase
           .from('tbl_users')
           .insert([{
@@ -161,15 +122,13 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
             company: 'PV Advisory',
             role: 'user',
           }])
-
         if (insertError) throw insertError
       }
 
       message.success('Account details saved successfully!')
-      setIsEditable(false) // Lock the form after save
+      setIsEditable(false)
     } catch (error: any) {
       if (error.errorFields) {
-        // Form validation error
         message.error('Please fill in all required fields')
       } else {
         console.error('Error saving account details:', error)
@@ -180,171 +139,75 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
     }
   }
 
-  // ============================================
-  // RENDER
-  // ============================================
+  const inputStyle = {
+    backgroundColor: COLORS.input,
+    borderColor: COLORS.border,
+    color: COLORS.text,
+  }
 
   return (
     <Modal
-      title="Account Details"
+      title={<span style={{ fontSize: '18px', fontWeight: '600', color: COLORS.text }}>Account Details</span>}
       open={isOpen}
       onCancel={onClose}
-      width={600}
+      width={650}
       footer={
         !isLoading && (
-          <Space>
-            <Button onClick={onClose}>
-              Close
-            </Button>
-            {isEditable && (
-              <Button 
-                type="primary" 
-                onClick={handleSave} 
-                loading={isSaving}
-              >
-                Save Changes
-              </Button>
-            )}
-          </Space>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+            <Button onClick={onClose} style={{ backgroundColor: COLORS.border, color: COLORS.text }}>Close</Button>
+            {isEditable && <Button type="primary" onClick={handleSave} loading={isSaving} style={{ backgroundColor: COLORS.accent }}>Save Changes</Button>}
+          </div>
         )
       }
       styles={{
-        body: { backgroundColor: '#0f172a' },
-        header: { backgroundColor: '#0f172a', borderBottom: '1px solid #334155' },
-        footer: { backgroundColor: '#0f172a', borderTop: '1px solid #334155' },
+        body: { backgroundColor: COLORS.modal, padding: '0' },
+        header: { backgroundColor: COLORS.modal, borderBottom: `1px solid ${COLORS.border}` },
+        footer: { backgroundColor: COLORS.modal, borderTop: `1px solid ${COLORS.border}` },
       }}
     >
-      {/* ============================================ */}
-      {/* LOADING STATE */}
-      {/* ============================================ */}
       {isLoading ? (
         <div style={{ textAlign: 'center', padding: '40px 0' }}>
           <Spin size="large" />
         </div>
       ) : (
-        <Space direction="vertical" size="large" style={{ width: '100%' }}>
-          {/* ============================================ */}
-          {/* READ-ONLY INFORMATION */}
-          {/* ============================================ */}
-          <Descriptions 
-            bordered 
-            column={1}
-            size="middle"
-          >
-            <Descriptions.Item label="Email">
-              {user?.email}
-            </Descriptions.Item>
-            <Descriptions.Item label="Role">
-              {role === 'admin' ? (
-                <Tag color="purple">Administrator</Tag>
-              ) : (
-                <Tag color="blue">User</Tag>
-              )}
-            </Descriptions.Item>
-            <Descriptions.Item label="Member Since">
-              {joiningDate && format(new Date(joiningDate), 'MMM d, yyyy')}
-            </Descriptions.Item>
-          </Descriptions>
+        <div style={{ padding: '24px' }}>
+          <div style={{ marginBottom: '24px' }}>
+            <h3 style={{ color: COLORS.textMuted, fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '12px' }}>Account Information</h3>
+            <Descriptions bordered={false} column={1} size="small" style={{ backgroundColor: COLORS.input, borderRadius: '8px', overflow: 'hidden' }}>
+              <Descriptions.Item label={<span style={{ color: COLORS.textMuted }}>Email</span>} labelStyle={{ backgroundColor: COLORS.input, borderColor: COLORS.border }} contentStyle={{ backgroundColor: COLORS.input, borderColor: COLORS.border }}>
+                <span style={{ color: COLORS.text }}>{user?.email}</span>
+              </Descriptions.Item>
+              <Descriptions.Item label={<span style={{ color: COLORS.textMuted }}>Role</span>} labelStyle={{ backgroundColor: COLORS.input, borderColor: COLORS.border }} contentStyle={{ backgroundColor: COLORS.input, borderColor: COLORS.border }}>
+                <Tag color={role === 'admin' ? 'purple' : 'cyan'} style={{ color: COLORS.text }}>{role === 'admin' ? 'Administrator' : 'User'}</Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label={<span style={{ color: COLORS.textMuted }}>Member Since</span>} labelStyle={{ backgroundColor: COLORS.input, borderColor: COLORS.border }} contentStyle={{ backgroundColor: COLORS.input, borderColor: COLORS.border }}>
+                <span style={{ color: COLORS.text }}>{joiningDate && format(new Date(joiningDate), 'MMM d, yyyy')}</span>
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
 
-          {/* ============================================ */}
-          {/* PROFILE LOCKED MESSAGE */}
-          {/* ============================================ */}
           {!isEditable && (
-            <Alert
-              message="Profile Locked"
-              description="✓ Profile saved. Details are locked and cannot be changed."
-              type="info"
-              showIcon
-              style={{
-                backgroundColor: '#1e293b',
-                border: '1px solid #334155',
-                color: '#f1f5f9'
-              }}
-              className="dark-alert"
-            />
+            <Alert message={<span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}><CheckCircleOutlined /> Profile Locked</span>} description="Profile saved. Details are locked and cannot be changed." type="success" showIcon={false} style={{ backgroundColor: `${COLORS.success}15`, border: `1px solid ${COLORS.success}40`, color: COLORS.success, marginBottom: '24px', borderRadius: '6px' }} />
           )}
 
-          {/* ============================================ */}
-          {/* EDITABLE FORM */}
-          {/* ============================================ */}
-          <Form
-            form={form}
-            layout="vertical"
-            disabled={!isEditable}
-          >
-            {/* Full Name */}
-            <Form.Item
-              label="Full Name"
-              name="full_name"
-              rules={[{ required: isEditable, message: 'Please enter your full name' }]}
-            >
-              <Input 
-                prefix={<UserOutlined />}
-                placeholder="Enter your full name" 
-                size="large"
-                style={{ 
-                  backgroundColor: '#1e293b', 
-                  borderColor: '#334155', 
-                  color: '#fff' 
-                }}
-                className="dark-input"
-              />
-            </Form.Item>
-
-            {/* Phone Number */}
-            <Form.Item
-              label="Phone Number"
-              name="phone"
-              rules={[{ required: isEditable, message: 'Please enter your phone number' }]}
-            >
-              <Input 
-                prefix={<PhoneOutlined />}
-                placeholder="+1 (555) 000-0000" 
-                size="large"
-                style={{ 
-                  backgroundColor: '#1e293b', 
-                  borderColor: '#334155', 
-                  color: '#fff' 
-                }}
-                className="dark-input"
-              />
-            </Form.Item>
-
-            {/* Job Title */}
-            <Form.Item
-              label="Job Title"
-              name="job_title"
-              rules={[{ required: isEditable, message: 'Please enter your job title' }]}
-            >
-              <Input 
-                prefix={<IdcardOutlined />}
-                placeholder="e.g., Software Engineer" 
-                size="large"
-                style={{ 
-                  backgroundColor: '#1e293b', 
-                  borderColor: '#334155', 
-                  color: '#fff' 
-                }}
-                className="dark-input"
-              />
-            </Form.Item>
-
-            {/* Company (Read-only) */}
-            <Form.Item label="Company">
-              <Input 
-                prefix={<BankOutlined />}
-                value="PV Advisory"
-                disabled
-                size="large"
-                style={{ 
-                  backgroundColor: '#0f172a', 
-                  borderColor: '#334155', 
-                  color: '#94a3b8' 
-                }}
-              />
-            </Form.Item>
-          </Form>
-        </Space>
+          <div>
+            <h3 style={{ color: COLORS.textMuted, fontSize: '12px', fontWeight: '600', textTransform: 'uppercase', marginBottom: '12px' }}>Personal Information</h3>
+            <Form form={form} layout="vertical" disabled={!isEditable}>
+              <Form.Item label={<span style={{ color: COLORS.text }}>Full Name</span>} name="full_name" rules={[{ required: isEditable, message: 'Please enter your full name' }]}>
+                <Input prefix={<UserOutlined style={{ color: COLORS.textMuted }} />} placeholder="Enter your full name" size="large" style={inputStyle} className="professional-input" />
+              </Form.Item>
+              <Form.Item label={<span style={{ color: COLORS.text }}>Phone Number</span>} name="phone" rules={[{ required: isEditable, message: 'Please enter your phone number' }]}>
+                <Input prefix={<PhoneOutlined style={{ color: COLORS.textMuted }} />} placeholder="+1 (555) 000-0000" size="large" style={inputStyle} className="professional-input" />
+              </Form.Item>
+              <Form.Item label={<span style={{ color: COLORS.text }}>Job Title</span>} name="job_title" rules={[{ required: isEditable, message: 'Please enter your job title' }]}>
+                <Input prefix={<IdcardOutlined style={{ color: COLORS.textMuted }} />} placeholder="e.g., Senior Manager" size="large" style={inputStyle} className="professional-input" />
+              </Form.Item>
+              <Form.Item label={<span style={{ color: COLORS.text }}>Company</span>}>
+                <Input prefix={<BankOutlined style={{ color: COLORS.textMuted }} />} value="PV Advisory" disabled size="large" style={{ ...inputStyle, color: COLORS.textMuted }} />
+              </Form.Item>
+            </Form>
+          </div>
+        </div>
       )}
     </Modal>
   )
