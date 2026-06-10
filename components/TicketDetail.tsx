@@ -1,7 +1,7 @@
 'use client'
 
-import React, { useState } from 'react'
-import { Button, Card, Input, Space, Badge, Upload } from 'antd'
+import { useState } from 'react'
+import { Button, Card, Space, Badge, Upload } from 'antd'
 import { ArrowLeftOutlined, FilePdfOutlined, EditOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons'
 
 export default function TicketDetail({ onBack }: { onBack: () => void }) {

@@ -1,5 +1,3 @@
-import React from 'react'
-
 export function Layout({ children }: { children: React.ReactNode }) {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#F9FAFB' }}>
@@ -8,7 +6,7 @@ export function Layout({ children }: { children: React.ReactNode }) {
   )
 }
 
-export function Navbar({ onViewChange, currentView }: { onViewChange: (view: any) => void; currentView: string }) {
+export function Navbar() {
   return (
     <nav
       style={{
@@ -73,7 +71,7 @@ export function Navbar({ onViewChange, currentView }: { onViewChange: (view: any
   )
 }
 
-export function Sidebar({ onViewChange, currentView }: { onViewChange: (view: any) => void; currentView: string }) {
+export function Sidebar({ onViewChange }: { onViewChange: (view: any) => void }) {
   const sections = [
     { title: 'OVERVIEW', items: [{ id: 'dashboard', label: 'Dashboard' }] },
     { title: 'TICKETS', items: [{ id: 'tickets', label: 'Manage Tickets' }] },
@@ -98,15 +96,15 @@ export function Sidebar({ onViewChange, currentView }: { onViewChange: (view: an
           {section.items.map((item) => (
             <button
               key={item.id}
-              onClick={() => onViewChange(item.id === 'dashboard' ? 'dashboard' : 'dashboard')}
+              onClick={() => onViewChange('dashboard')}
               style={{
                 width: '100%',
                 padding: '10px 12px',
                 border: 'none',
-                backgroundColor: currentView === 'dashboard' ? '#f3f4f6' : 'transparent',
+                backgroundColor: '#f3f4f6',
                 borderRadius: '6px',
                 fontSize: '14px',
-                color: currentView === 'dashboard' ? '#1f2937' : '#6b7280',
+                color: '#1f2937',
                 textAlign: 'left',
                 cursor: 'pointer',
                 transition: 'all 0.2s',

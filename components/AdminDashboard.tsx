@@ -1,11 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
 import { Button, Select, Input, Table, Card, Statistic, Progress, Row, Col, Tabs } from 'antd'
-import { PlusOutlined, DownloadOutlined, SearchOutlined } from '@ant-design/icons'
+import { SearchOutlined } from '@ant-design/icons'
 
 export default function AdminDashboard({ onSelectTicket }: { onSelectTicket: () => void }) {
-  const [searchText, setSearchText] = useState('')
 
   const columns = [
     { title: 'ID', dataIndex: 'id', key: 'id', width: 60 },

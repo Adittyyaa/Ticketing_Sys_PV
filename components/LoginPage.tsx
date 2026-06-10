@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Button, Input, Card, Switch, message } from 'antd'
 import { LockOutlined, UserOutlined } from '@ant-design/icons'
 

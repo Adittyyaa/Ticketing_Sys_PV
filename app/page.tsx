@@ -1,6 +1,6 @@
 'use client'
 
-import React, { useState } from 'react'
+import { useState } from 'react'
 import { Layout, Sidebar, Navbar } from '@/components/LayoutComponents'
 import AdminDashboard from '@/components/AdminDashboard'
 import TicketDetail from '@/components/TicketDetail'
@@ -18,9 +18,9 @@ export default function Home() {
 
   return (
     <Layout>
-      <Navbar onViewChange={setCurrentView} currentView={currentView} />
+      <Navbar />
       <div style={{ display: 'flex' }}>
-        <Sidebar onViewChange={setCurrentView} currentView={currentView} />
+        <Sidebar onViewChange={setCurrentView} />
         <main style={{ flex: 1, overflow: 'auto' }}>
           {currentView === 'dashboard' && <AdminDashboard onSelectTicket={() => setCurrentView('ticket-detail')} />}
           {currentView === 'ticket-detail' && <TicketDetail onBack={() => setCurrentView('dashboard')} />}
