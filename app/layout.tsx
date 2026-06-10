@@ -1,11 +1,16 @@
 import type { Metadata } from 'next'
-import { ConfigProvider } from 'antd'
-import { InactivityLogoutProvider } from '@/components/InactivityLogoutProvider'
+import { Inter } from 'next/font/google'
 import './globals.css'
 
+const inter = Inter({
+  subsets: ['latin'],
+  variable: '--font-inter',
+  display: 'swap',
+})
+
 export const metadata: Metadata = {
-  title: 'Ticket System',
-  description: 'Support & Issue Tracking Platform',
+  title: 'Ticketing App — Support & Issue Tracking',
+  description: 'Enterprise-grade ticket management platform for PV Advisory.',
 }
 
 export default function RootLayout({
@@ -14,30 +19,8 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en">
-      <body style={{ margin: 0, padding: 0, backgroundColor: '#0a0e1a' }}>
-        <ConfigProvider
-          theme={{
-            token: {
-              colorPrimary: '#3b82f6',
-              colorBgBase: '#0a0e1a',
-              colorTextBase: '#f1f5f9',
-              borderRadius: 8,
-              colorBorder: '#334155',
-              colorBgContainer: '#1e293b',
-              colorBgElevated: '#1e293b',
-              colorTextSecondary: '#94a3b8',
-              fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
-            },
-          }}
-        >
-          <InactivityLogoutProvider>
-            <div style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
-              {children}
-            </div>
-          </InactivityLogoutProvider>
-        </ConfigProvider>
-      </body>
+    <html lang="en" className={`${inter.variable} bg-canvas`}>
+      <body className="bg-canvas text-ink font-sans antialiased">{children}</body>
     </html>
   )
 }
