@@ -22,3 +22,21 @@ This project is a Ticketing System designed to help manage, track, and resolve s
 - Authentication: (e.g., JWT / NextAuth / Supabase Auth)
 
 ## Project Structure
+
+
+/components     - UI components
+/pages          - Application routes
+/services       - API and business logic
+/lib            - Utility functions and configurations
+/database       - Database schemas and migrations
+
+
+
+
+API Endpoints
+
+* POST /api/tickets - Create a new ticket
+* GET /api/tickets - Get all tickets
+* GET /api/tickets/:id - Get ticket by ID
+* PUT /api/tickets/:id - Update ticket
+* DELETE /api/tickets/:id - Delete ticket
