@@ -10,6 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.2.5",
     "@supabase/supabase-js": "^2.38.0",
     "antd": "^6.4.3",
     "autoprefixer": "^10.4.16",

@@ -4,8 +4,8 @@ import { InactivityLogoutProvider } from '@/components/InactivityLogoutProvider'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'Ticket System',
-  description: 'Support & Issue Tracking Platform',
+  title: 'Stellar CRM',
+  description: 'Enterprise CRM & Deal Management System',
 }
 
 export default function RootLayout({
@@ -15,24 +15,24 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <body style={{ margin: 0, padding: 0, backgroundColor: '#0a0e1a' }}>
+      <body style={{ margin: 0, padding: 0, backgroundColor: '#F9FAFB' }}>
         <ConfigProvider
           theme={{
             token: {
-              colorPrimary: '#3b82f6',
-              colorBgBase: '#0a0e1a',
-              colorTextBase: '#f1f5f9',
-              borderRadius: 8,
-              colorBorder: '#334155',
-              colorBgContainer: '#1e293b',
-              colorBgElevated: '#1e293b',
-              colorTextSecondary: '#94a3b8',
+              colorPrimary: '#1f2937',
+              colorBgBase: '#F9FAFB',
+              colorTextBase: '#111827',
+              borderRadius: 6,
+              colorBorder: '#e5e7eb',
+              colorBgContainer: '#FFFFFF',
+              colorBgElevated: '#FFFFFF',
+              colorTextSecondary: '#6b7280',
               fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif',
             },
           }}
         >
           <InactivityLogoutProvider>
-            <div style={{ minHeight: '100vh', backgroundColor: '#0a0e1a' }}>
+            <div style={{ minHeight: '100vh', backgroundColor: '#F9FAFB' }}>
               {children}
             </div>
           </InactivityLogoutProvider>
