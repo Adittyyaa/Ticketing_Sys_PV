@@ -28,6 +28,7 @@ import jsPDF from 'jspdf'
 
 import TicketComments from '@/components/CommentsSection'
 import AttachmentsSection from '@/components/AttachmentsSection'
+import { getAdminAuthHeader } from '@/lib/admin-api'
 
 const { Text } = Typography
 const { Content } = Layout
@@ -52,7 +53,7 @@ const statusColors: Record<Status, string> = {
 export default function TicketDetailPage() {
   const params = useParams()
   const router = useRouter()
-  const { user, setUser, setLoading } = useAuthStore()
+  const { user, setUser, setLoading, isAdmin, setIsAdmin } = useAuthStore()
   const [form] = Form.useForm()
   const ticketId = params.id as string
   
@@ -72,9 +73,18 @@ export default function TicketDetailPage() {
           return
         }
 
+        const { data: userData } = await supabase
+          .from('tbl_users')
+          .select('role')
+          .eq('id', session.user.id)
+          .single()
+
+        const admin = userData?.role === 'admin'
+        setIsAdmin(admin)
         setUser({
           id: session.user.id,
           email: session.user.email || '',
+          role: userData?.role || 'user',
         })
         setLoading(false)
       } catch (error) {
@@ -84,41 +94,36 @@ export default function TicketDetailPage() {
     }
 
     checkAuth()
-  }, [setUser, setLoading, router])
-
-  // Helper function to check if user is admin
-  const checkIsAdmin = async () => {
-    if (!user) return false
-    const { data } = await supabase
-      .from('tbl_users')
-      .select('role')
-      .eq('id', user.id)
-      .single()
-    return data?.role === 'admin'
-  }
-
-  // Helper function to build query with admin check
-  const buildTicketQuery = async (baseQuery: any) => {
-    const isAdmin = await checkIsAdmin()
-    return isAdmin ? baseQuery : baseQuery.eq('user_id', user?.id)
-  }
+  }, [setUser, setLoading, setIsAdmin, router])
 
   useEffect(() => {
     if (!user) return
 
     const fetchTicket = async () => {
       try {
-        let query = supabase
-          .from('tbl_tickets')
-          .select('*')
-          .eq('id', ticketId)
+        let data: Ticket | null = null
 
-        query = await buildTicketQuery(query)
-        const { data, error } = await query.single()
+        if (isAdmin) {
+          const authHeader = await getAdminAuthHeader()
+          const response = await fetch(`/api/admin/tickets/${ticketId}`, {
+            headers: { Authorization: authHeader },
+          })
+          const result = await response.json()
+          if (!response.ok) throw new Error(result.error || 'Failed to load ticket')
+          data = result.ticket as Ticket
+        } else {
+          const { data: ticketData, error } = await supabase
+            .from('tbl_tickets')
+            .select('*')
+            .eq('id', ticketId)
+            .eq('user_id', user.id)
+            .single()
 
-        if (error) throw error
+          if (error) throw error
+          data = ticketData as Ticket
+        }
 
-        setTicket(data as Ticket)
+        setTicket(data)
         form.setFieldsValue({
           priority: data.priority,
           status: data.status
@@ -126,29 +131,34 @@ export default function TicketDetailPage() {
       } catch (error) {
         console.error('Failed to fetch ticket:', error)
         message.error('Failed to load ticket')
-        router.push('/tickets')
+        router.push(isAdmin ? '/admin' : '/tickets')
       } finally {
         setLocalLoading(false)
       }
     }
 
     fetchTicket()
-  }, [user, ticketId, router, form])
+  }, [user, isAdmin, ticketId, router, form])
+
+  const applyOwnershipFilter = <T extends { eq: (col: string, val: string) => T }>(query: T): T => {
+    if (isAdmin || !user) return query
+    return query.eq('user_id', user.id)
+  }
 
   const handleSave = async (values: { priority: Priority; status: Status }) => {
     if (!ticket) return
 
     try {
-      let query = supabase
-        .from('tbl_tickets')
-        .update({
-          priority: values.priority,
-          status: values.status,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', ticket.id)
-
-      query = await buildTicketQuery(query)
+      const query = applyOwnershipFilter(
+        supabase
+          .from('tbl_tickets')
+          .update({
+            priority: values.priority,
+            status: values.status,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', ticket.id)
+      )
       const { error } = await query
 
       if (error) throw error
@@ -175,18 +185,18 @@ export default function TicketDetailPage() {
       cancelText: 'Cancel',
       onOk: async () => {
         try {
-          let query = supabase
-            .from('tbl_tickets')
-            .delete()
-            .eq('id', ticket?.id)
-
-          query = await buildTicketQuery(query)
+          const query = applyOwnershipFilter(
+            supabase
+              .from('tbl_tickets')
+              .delete()
+              .eq('id', ticket?.id)
+          )
           const { error } = await query
 
           if (error) throw error
 
           message.success('Ticket deleted successfully')
-          router.push('/tickets')
+          router.push(isAdmin ? '/admin' : '/tickets')
         } catch (error) {
           console.error('Failed to delete ticket:', error)
           message.error('Failed to delete ticket')
@@ -199,15 +209,15 @@ export default function TicketDetailPage() {
     if (!ticket) return
 
     try {
-      let query = supabase
-        .from('tbl_tickets')
-        .update({
-          status: newStatus,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', ticket.id)
-
-      query = await buildTicketQuery(query)
+      const query = applyOwnershipFilter(
+        supabase
+          .from('tbl_tickets')
+          .update({
+            status: newStatus,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', ticket.id)
+      )
       const { error } = await query
 
       if (error) throw error
@@ -428,9 +438,9 @@ export default function TicketDetailPage() {
     <div className="min-h-screen bg-slate-950">
       <NavigationHeader />
       <main className="max-w-4xl mx-auto p-6">
-        <Link href="/tickets" className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-6">
+        <Link href={isAdmin ? '/admin' : '/tickets'} className="flex items-center gap-2 text-blue-400 hover:text-blue-300 mb-6">
           <ArrowLeft size={18} />
-          Back to tickets
+          Back to {isAdmin ? 'admin dashboard' : 'tickets'}
         </Link>
 
         <div className="bg-slate-900 border border-slate-700 rounded-lg p-6" id="ticket-content">

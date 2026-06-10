@@ -12,6 +12,7 @@ import TicketTable from '@/components/TicketTable'
 import AnalyticsDashboard from '@/components/AnalyticsDashboard'
 import ExportButton from '@/components/ExportButton'
 import { Ticket } from '@/types/types'
+import { getAdminAuthHeader } from '@/lib/admin-api'
 import Link from 'next/link'
 
 const { Content } = Layout
@@ -147,20 +148,6 @@ export default function AdminDashboard() {
   // API FUNCTIONS
   // ============================================
 
-  // Helper: Build ticket query with search filter
-  const buildTicketQuery = () => {
-    let query = supabase
-      .from('tbl_tickets')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (filters.search) {
-      query = query.ilike('title', `%${filters.search}%`)
-    }
-
-    return query
-  }
-
   // Helper: Separate tickets by ownership
   const separateTicketsByOwnership = (allTickets: Ticket[], userId: string) => {
     const myTickets = allTickets.filter(ticket => ticket.user_id === userId)
@@ -179,16 +166,19 @@ export default function AdminDashboard() {
     setTicketError(null)
 
     try {
-      const query = buildTicketQuery()
-      const { data, error } = await query
+      const authHeader = await getAdminAuthHeader()
+      const searchParam = filters.search ? `?search=${encodeURIComponent(filters.search)}` : ''
+      const response = await fetch(`/api/admin/tickets${searchParam}`, {
+        headers: { Authorization: authHeader },
+      })
 
-      if (error) {
-        console.error('RLS or query error:', error)
-        setTicketError(error.message)
-        throw error
+      const result = await response.json()
+      if (!response.ok) {
+        setTicketError(result.error || 'Failed to fetch tickets')
+        throw new Error(result.error || 'Failed to fetch tickets')
       }
 
-      const allTickets = (data || []) as Ticket[]
+      const allTickets = (result.tickets || []) as Ticket[]
       
       const { myTickets: my, otherTickets: others } = separateTicketsByOwnership(allTickets, user.id)
       

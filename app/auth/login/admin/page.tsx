@@ -8,10 +8,13 @@ import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
 import Image from 'next/image'
 import Link from 'next/link'
 
+import { useAuthStore } from '@/lib/store'
+
 const { Title, Text } = Typography
 
 export default function AdminLoginPage() {
   const router = useRouter()
+  const { setUser, setIsAdmin } = useAuthStore()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -38,6 +41,13 @@ export default function AdminLoginPage() {
         await supabase.auth.signOut()
         throw new Error('Invalid credentials for admin login.')
       }
+
+      setUser({
+        id: data.user.id,
+        email: data.user.email || '',
+        role: 'admin',
+      })
+      setIsAdmin(true)
 
       message.success('Admin login successful!')
       router.push('/admin')
