@@ -13,43 +13,16 @@ import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
 interface TicketTableProps {
   tickets: Ticket[]
   onTicketsDeleted?: () => void
+  selectedRowKeys?: string[]
+  onSelectionChange?: (keys: string[]) => void
 }
 
 const categoryConfig: Record<string, string> = {
   'Bug Report': 'red', 'Technical Issue': 'purple', 'Account Inquiry': 'cyan', 'New Feature Request': 'blue', 'Other': 'default',
 }
 
-export default function TicketTable({ tickets, onTicketsDeleted }: TicketTableProps) {
+export default function TicketTable({ tickets, onTicketsDeleted, selectedRowKeys = [], onSelectionChange }: TicketTableProps) {
   const { isAdmin } = useAuthStore()
-  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([])
-  const [isDeleting, setIsDeleting] = useState(false)
-
-  const handleBulkDelete = async () => {
-    if (selectedRowKeys.length === 0) return
-    Modal.confirm({
-      title: 'Delete Tickets',
-      content: `Delete ${selectedRowKeys.length} ticket(s)? This cannot be undone.`,
-      okText: 'Delete', okType: 'danger', cancelText: 'Cancel',
-      onOk: async () => {
-        setIsDeleting(true)
-        try {
-          const { data: { session } } = await supabase.auth.getSession()
-          if (!session) throw new Error('No active session')
-          const response = await fetch('/api/admin/bulk-delete-tickets', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-            body: JSON.stringify({ ticketIds: selectedRowKeys })
-          })
-          const result = await response.json()
-          if (!response.ok) throw new Error(result.error || 'Failed to delete')
-          message.success(`Deleted ${selectedRowKeys.length} ticket(s)`)
-          setSelectedRowKeys([])
-          if (onTicketsDeleted) onTicketsDeleted()
-        } catch (error) { message.error(error instanceof Error ? error.message : 'Failed to delete') }
-        finally { setIsDeleting(false) }
-      }
-    })
-  }
 
   const columns = [
     {
@@ -86,19 +59,17 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
 
   return (
     <div>
-      {isAdmin && selectedRowKeys.length > 0 && (
-        <div style={{ marginBottom: 8, padding: '8px 12px', backgroundColor: 'var(--bg-elevated)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{selectedRowKeys.length} selected</span>
-          <Button danger loading={isDeleting} icon={<DeleteOutlined />} onClick={handleBulkDelete} size="small">Delete</Button>
-        </div>
-      )}
       <Table
         columns={columns}
         dataSource={tickets.map((t) => ({ ...t, key: t.id }))}
         pagination={{ pageSize: 20 }}
-        rowSelection={isAdmin ? { selectedRowKeys, onChange: (keys) => setSelectedRowKeys(keys as string[]) } : undefined}
+        rowSelection={isAdmin ? { 
+          selectedRowKeys, 
+          onChange: (keys) => onSelectionChange?.(keys as string[]) 
+        } : undefined}
         size="small"
       />
     </div>
   )
 }
+

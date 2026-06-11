@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Alert, Button, Spin, Select, Input, Space, Tooltip } from 'antd'
-import { Plus, Search, Filter, Download, List, LayoutGrid, ArrowUpDown } from 'lucide-react'
+import { Plus, Search, Filter, Download, List, LayoutGrid, ArrowUpDown, Trash2 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
@@ -24,10 +24,47 @@ export default function AdminDashboard() {
   const [viewMode, setViewMode] = useState<'card' | 'table'>('card')
   const [sortBy, setSortBy] = useState<'last_modified' | 'created' | 'priority'>('last_modified')
   const [searchQuery, setSearchQuery] = useState('')
-  const [, setSelectedTicketIds] = useState<string[]>([])
+  const [selectedTicketIds, setSelectedTicketIds] = useState<string[]>([])
+
+  useEffect(() => {
+    setSelectedTicketIds([])
+  }, [viewMode])
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  const handleBulkDelete = async () => {
+    if (selectedTicketIds.length === 0) return
+    const { Modal, message } = await import('antd')
+    Modal.confirm({
+      title: 'Delete Tickets',
+      content: `Are you sure you want to delete ${selectedTicketIds.length} ticket(s)? This action cannot be undone.`,
+      okText: 'Delete',
+      okType: 'danger',
+      cancelText: 'Cancel',
+      onOk: async () => {
+        setIsDeleting(true)
+        try {
+          const authHeader = await getAdminAuthHeader()
+          const response = await fetch('/api/admin/bulk-delete-tickets', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
+            body: JSON.stringify({ ticketIds: selectedTicketIds })
+          })
+          const result = await response.json()
+          if (!response.ok) throw new Error(result.error || 'Failed to delete tickets')
+          message.success(`Successfully deleted ${selectedTicketIds.length} ticket(s)`)
+          setSelectedTicketIds([])
+          fetchAllTickets()
+        } catch (error) {
+          message.error(error instanceof Error ? error.message : 'Failed to delete tickets')
+        } finally {
+          setIsDeleting(false)
+        }
+      }
+    })
+  }
 
   const createUserProfile = async (session: any) => {
     const { data: newUser, error } = await supabase.from('tbl_users').insert([{ id: session.user.id, email: session.user.email || '', full_name: session.user.user_metadata?.full_name || '', role: 'user', created_at: new Date().toISOString() }]).select().single()
@@ -164,6 +201,24 @@ export default function AdminDashboard() {
 
           <div style={{ flex: 1 }} />
 
+          {/* Bulk Actions */}
+          {selectedTicketIds.length > 0 && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginRight: 12, paddingRight: 12, borderRight: '1px solid var(--border-subtle)' }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{selectedTicketIds.length} selected</span>
+              <Button 
+                danger 
+                type="primary" 
+                size="small" 
+                icon={<Trash2 size={14} />} 
+                onClick={handleBulkDelete}
+                loading={isDeleting}
+                style={{ borderRadius: 4 }}
+              >
+                Delete
+              </Button>
+            </div>
+          )}
+
           {/* View Toggle */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 4, backgroundColor: 'var(--bg-elevated)', borderRadius: 6, padding: 2 }}>
             <button
@@ -241,9 +296,19 @@ export default function AdminDashboard() {
             <p style={{ color: 'var(--text-tertiary)', marginTop: 16, fontSize: 13 }}>Loading tickets...</p>
           </div>
         ) : viewMode === 'card' ? (
-          <TicketCardView tickets={filteredTickets} onSelectionChange={setSelectedTicketIds} showSelection={true} />
+          <TicketCardView 
+            tickets={filteredTickets} 
+            selectedIds={selectedTicketIds}
+            onSelectionChange={setSelectedTicketIds} 
+            showSelection={true} 
+          />
         ) : (
-          <TicketTable tickets={filteredTickets} />
+          <TicketTable 
+            tickets={filteredTickets} 
+            selectedRowKeys={selectedTicketIds}
+            onSelectionChange={setSelectedTicketIds}
+            onTicketsDeleted={fetchAllTickets}
+          />
         )}
       </div>
     </AppShell>

@@ -11,6 +11,7 @@ interface TicketCardViewProps {
   tickets: Ticket[]
   onSelectionChange?: (selectedIds: string[]) => void
   showSelection?: boolean
+  selectedIds?: string[]
 }
 
 const getAvatarColor = (userId: string): string => {
@@ -19,12 +20,15 @@ const getAvatarColor = (userId: string): string => {
   return colors[index]
 }
 
-export default function TicketCardView({ tickets, onSelectionChange, showSelection = false }: TicketCardViewProps) {
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+export default function TicketCardView({ 
+  tickets, 
+  onSelectionChange, 
+  showSelection = false,
+  selectedIds = [] 
+}: TicketCardViewProps) {
 
   const handleSelect = (ticketId: string, checked: boolean) => {
     const newSelection = checked ? [...selectedIds, ticketId] : selectedIds.filter(id => id !== ticketId)
-    setSelectedIds(newSelection)
     onSelectionChange?.(newSelection)
   }
 
