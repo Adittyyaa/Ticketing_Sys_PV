@@ -1,6 +1,5 @@
 'use client'
 
-import { ConfigProvider } from 'antd'
 import { InactivityLogoutProvider } from '@/components/InactivityLogoutProvider'
 import { ThemeProvider } from '@/contexts/ThemeContext'
 import { AntdThemeProvider } from '@/components/AntdThemeProvider'
