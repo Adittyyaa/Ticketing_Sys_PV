@@ -65,7 +65,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
 
   return (
     <Modal
-      title={<span style={{ fontSize: 16, fontWeight: 600, color: '#f0f4f8' }}>Account Details</span>}
+      title={<span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Account Details</span>}
       open={isOpen}
       onCancel={onClose}
       width={560}
@@ -78,9 +78,9 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
         )
       }
       styles={{
-        body: { backgroundColor: '#111827', padding: 0 },
-        header: { backgroundColor: '#111827', borderBottom: '1px solid #1e2d45' },
-        footer: { backgroundColor: '#111827', borderTop: '1px solid #1e2d45' },
+        body: { backgroundColor: 'var(--bg-surface)', padding: 0 },
+        header: { backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)' },
+        footer: { backgroundColor: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)' },
       }}
     >
       {isLoading ? (
@@ -89,14 +89,14 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
         <div style={{ padding: 24 }}>
           {/* Account Info */}
           <div style={{ marginBottom: 24 }}>
-            <h4 style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Account Information</h4>
+            <h4 style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Account Information</h4>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={{ padding: '10px 12px', backgroundColor: '#1a2236', borderRadius: 6 }}>
-                <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</div>
-                <div style={{ color: '#f0f4f8', fontSize: 13, fontWeight: 500, marginTop: 2 }}>{user?.email}</div>
+              <div style={{ padding: '10px 12px', backgroundColor: 'var(--bg-elevated)', borderRadius: 6 }}>
+                <div style={{ color: 'var(--text-tertiary)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</div>
+                <div style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, marginTop: 2 }}>{user?.email}</div>
               </div>
-              <div style={{ padding: '10px 12px', backgroundColor: '#1a2236', borderRadius: 6 }}>
-                <div style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Role</div>
+              <div style={{ padding: '10px 12px', backgroundColor: 'var(--bg-elevated)', borderRadius: 6 }}>
+                <div style={{ color: 'var(--text-tertiary)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Role</div>
                 <div style={{ marginTop: 2 }}><Tag color={role === 'admin' ? 'purple' : 'blue'}>{role === 'admin' ? 'Administrator' : 'User'}</Tag></div>
               </div>
             </div>
@@ -108,19 +108,19 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
 
           {/* Personal Info */}
           <div>
-            <h4 style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Personal Information</h4>
+            <h4 style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Personal Information</h4>
             <Form form={form} layout="vertical" disabled={!isEditable}>
-              <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Full Name</span>} name="full_name" rules={[{ required: isEditable, message: 'Required' }]}>
-                <Input prefix={<UserOutlined style={{ color: '#475569' }} />} placeholder="Enter your full name" style={inputStyle} />
+              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Full Name</span>} name="full_name" rules={[{ required: isEditable, message: 'Required' }]}>
+                <Input prefix={<UserOutlined style={{ color: 'var(--text-placeholder)' }} />} placeholder="Enter your full name" style={inputStyle} />
               </Form.Item>
-              <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Phone Number</span>} name="phone" rules={[{ required: isEditable, message: 'Required' }]}>
-                <Input prefix={<PhoneOutlined style={{ color: '#475569' }} />} placeholder="+1 (555) 000-0000" style={inputStyle} />
+              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Phone Number</span>} name="phone" rules={[{ required: isEditable, message: 'Required' }]}>
+                <Input prefix={<PhoneOutlined style={{ color: 'var(--text-placeholder)' }} />} placeholder="+1 (555) 000-0000" style={inputStyle} />
               </Form.Item>
-              <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Job Title</span>} name="job_title" rules={[{ required: isEditable, message: 'Required' }]}>
-                <Input prefix={<IdcardOutlined style={{ color: '#475569' }} />} placeholder="e.g., Senior Manager" style={inputStyle} />
+              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Job Title</span>} name="job_title" rules={[{ required: isEditable, message: 'Required' }]}>
+                <Input prefix={<IdcardOutlined style={{ color: 'var(--text-placeholder)' }} />} placeholder="e.g., Senior Manager" style={inputStyle} />
               </Form.Item>
-              <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Company</span>}>
-                <Input prefix={<BankOutlined style={{ color: '#475569' }} />} value="PV Advisory" disabled style={{ ...inputStyle, color: '#64748b' }} />
+              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Company</span>}>
+                <Input prefix={<BankOutlined style={{ color: 'var(--text-placeholder)' }} />} value="PV Advisory" disabled style={{ ...inputStyle, color: 'var(--text-tertiary)' }} />
               </Form.Item>
             </Form>
           </div>

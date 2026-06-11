@@ -75,10 +75,10 @@ export default function UserManagementPage() {
   }
 
   const columns = [
-    { title: 'Name', dataIndex: 'full_name', key: 'full_name', render: (t: string) => <span style={{ color: '#f0f4f8', fontWeight: 500 }}>{t || 'N/A'}</span> },
-    { title: 'Email', dataIndex: 'email', key: 'email', render: (t: string) => <span style={{ color: '#94a3b8' }}>{t}</span> },
+    { title: 'Name', dataIndex: 'full_name', key: 'full_name', render: (t: string) => <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{t || 'N/A'}</span> },
+    { title: 'Email', dataIndex: 'email', key: 'email', render: (t: string) => <span style={{ color: 'var(--text-secondary)' }}>{t}</span> },
     { title: 'Role', dataIndex: 'role', key: 'role', width: 120, render: (r: string) => <Tag color={r === 'admin' ? 'purple' : 'blue'}>{r === 'admin' ? 'Admin' : 'User'}</Tag> },
-    { title: 'Joined', dataIndex: 'created_at', key: 'created_at', width: 130, render: (d: string) => <span style={{ color: '#64748b', fontSize: 12 }}>{new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span> },
+    { title: 'Joined', dataIndex: 'created_at', key: 'created_at', width: 130, render: (d: string) => <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span> },
     { title: '', key: 'action', width: 60, render: (_: any, r: User) => <Button type="text" danger icon={<Trash2 size={14} />} onClick={() => handleDeleteUser(r.id, r.email)} /> },
   ]
 
@@ -89,8 +89,8 @@ export default function UserManagementPage() {
       <div style={{ padding: '24px 32px' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div>
-            <h1 style={{ color: '#f0f4f8', fontSize: 20, fontWeight: 600, margin: 0 }}>User Management</h1>
-            <p style={{ color: '#64748b', fontSize: 12, margin: '4px 0 0 0' }}>Manage user accounts</p>
+            <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>User Management</h1>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>Manage user accounts</p>
           </div>
           <Button type="primary" icon={<Plus size={14} />} onClick={() => setShowForm(!showForm)} style={{ height: 32, fontSize: 13, borderRadius: 6 }}>
             {showForm ? 'Cancel' : 'Add User'}
@@ -98,17 +98,17 @@ export default function UserManagementPage() {
         </div>
 
         {showForm && (
-          <div style={{ backgroundColor: '#111827', border: '1px solid #1e2d45', borderRadius: 8, padding: 20, marginBottom: 20 }}>
-            <h3 style={{ color: '#f0f4f8', fontSize: 15, fontWeight: 600, margin: '0 0 16px 0' }}>Create New User</h3>
+          <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 20, marginBottom: 20 }}>
+            <h3 style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, margin: '0 0 16px 0' }}>Create New User</h3>
             <Form form={form} layout="vertical" onFinish={handleCreateUser}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
-                <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Full Name</span>} name="fullName" rules={[{ required: true }]}>
+                <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Full Name</span>} name="fullName" rules={[{ required: true }]}>
                   <Input placeholder="John Doe" style={{ height: 40 }} />
                 </Form.Item>
-                <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Email</span>} name="email" rules={[{ required: true }, { type: 'email' }]}>
+                <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Email</span>} name="email" rules={[{ required: true }, { type: 'email' }]}>
                   <Input placeholder="user@example.com" style={{ height: 40 }} />
                 </Form.Item>
-                <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Password</span>} name="password" rules={[{ required: true }, { min: 6 }]}>
+                <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Password</span>} name="password" rules={[{ required: true }, { min: 6 }]}>
                   <Input.Password placeholder="Min 6 characters" style={{ height: 40 }} />
                 </Form.Item>
               </div>
@@ -122,7 +122,7 @@ export default function UserManagementPage() {
           </div>
         )}
 
-        <div style={{ backgroundColor: '#111827', border: '1px solid #1e2d45', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, overflow: 'hidden' }}>
           <Table columns={columns} dataSource={users.map(u => ({ ...u, key: u.id }))} pagination={{ pageSize: 10 }} />
         </div>
       </div>

@@ -23,12 +23,12 @@ export default function TicketFilterBar() {
   const { filters, setFilters } = useTicketStore()
 
   return (
-    <div style={{ background: '#111827', borderBottom: '1px solid #374151', padding: '24px' }}>
+    <div style={{ background: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)', padding: '24px' }}>
       {/* ============================================ */}
       {/* HEADER ROW */}
       {/* ============================================ */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '16px' }}>
-        <h2 style={{ fontSize: '24px', fontWeight: '600', color: 'white', margin: 0 }}>
+        <h2 style={{ fontSize: '24px', fontWeight: '600', color: 'var(--text-primary)', margin: 0 }}>
           Ticket Management
         </h2>
         {/* Create ticket button */}

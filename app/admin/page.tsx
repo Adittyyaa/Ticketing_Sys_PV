@@ -108,8 +108,8 @@ export default function AdminDashboard() {
         {/* Page Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h1 style={{ color: '#f0f4f8', fontSize: 20, fontWeight: 600, margin: 0 }}>Tickets</h1>
-            <p style={{ color: '#64748b', fontSize: 12, margin: '4px 0 0 0' }}>
+            <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>Tickets</h1>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>
               {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''}
               {searchQuery && ` matching "${searchQuery}"`}
             </p>
@@ -124,11 +124,11 @@ export default function AdminDashboard() {
         </div>
 
         {/* Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '8px 0', borderBottom: '1px solid #1e2d45' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
           {/* Search */}
           <Input
             placeholder="Search tickets..."
-            prefix={<Search size={14} style={{ color: '#475569' }} />}
+            prefix={<Search size={14} style={{ color: 'var(--text-placeholder)' }} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 260, height: 32 }}
@@ -148,7 +148,7 @@ export default function AdminDashboard() {
 
           {/* Sort */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <ArrowUpDown size={14} style={{ color: '#64748b' }} />
+            <ArrowUpDown size={14} style={{ color: 'var(--text-tertiary)' }} />
             <Select
               value={sortBy}
               onChange={setSortBy}
@@ -165,14 +165,14 @@ export default function AdminDashboard() {
           <div style={{ flex: 1 }} />
 
           {/* View Toggle */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 4, backgroundColor: '#1a2236', borderRadius: 6, padding: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, backgroundColor: 'var(--bg-elevated)', borderRadius: 6, padding: 2 }}>
             <button
               onClick={() => setViewMode('card')}
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 28, height: 28, borderRadius: 4, border: 'none',
-                backgroundColor: viewMode === 'card' ? '#3b82f6' : 'transparent',
-                color: viewMode === 'card' ? '#fff' : '#94a3b8', cursor: 'pointer',
+                backgroundColor: viewMode === 'card' ? 'var(--accent-primary)' : 'transparent',
+                color: viewMode === 'card' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer',
               }}
             >
               <List size={14} />
@@ -182,8 +182,8 @@ export default function AdminDashboard() {
               style={{
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 width: 28, height: 28, borderRadius: 4, border: 'none',
-                backgroundColor: viewMode === 'table' ? '#3b82f6' : 'transparent',
-                color: viewMode === 'table' ? '#fff' : '#94a3b8', cursor: 'pointer',
+                backgroundColor: viewMode === 'table' ? 'var(--accent-primary)' : 'transparent',
+                color: viewMode === 'table' ? '#fff' : 'var(--text-secondary)', cursor: 'pointer',
               }}
             >
               <LayoutGrid size={14} />
@@ -198,7 +198,7 @@ export default function AdminDashboard() {
 
         {/* Collapsible Filter Panel */}
         {showFilters && (
-          <div style={{ display: 'flex', gap: 12, padding: '12px 0', marginBottom: 8, borderBottom: '1px solid #1e2d45', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ display: 'flex', gap: 12, padding: '12px 0', marginBottom: 8, borderBottom: '1px solid var(--border-subtle)', alignItems: 'center', flexWrap: 'wrap' }}>
             <Select
               value={statusFilter}
               onChange={setStatusFilter}
@@ -238,7 +238,7 @@ export default function AdminDashboard() {
         {isLoadingTickets ? (
           <div style={{ textAlign: 'center', padding: '64px 0' }}>
             <Spin size="large" />
-            <p style={{ color: '#64748b', marginTop: 16, fontSize: 13 }}>Loading tickets...</p>
+            <p style={{ color: 'var(--text-tertiary)', marginTop: 16, fontSize: 13 }}>Loading tickets...</p>
           </div>
         ) : viewMode === 'card' ? (
           <TicketCardView tickets={filteredTickets} onSelectionChange={setSelectedTicketIds} showSelection={true} />

@@ -12,9 +12,9 @@ interface AttachmentsSectionProps {
 }
 
 const getFileIcon = (type: string) => {
-  if (type.startsWith('image/')) return <PictureOutlined style={{ color: '#3b82f6' }} />
-  if (type === 'application/pdf') return <FileTextOutlined style={{ color: '#ef4444' }} />
-  return <FileOutlined style={{ color: '#94a3b8' }} />
+  if (type.startsWith('image/')) return <PictureOutlined style={{ color: 'var(--accent-primary)' }} />
+  if (type === 'application/pdf') return <FileTextOutlined style={{ color: 'var(--accent-error)' }} />
+  return <FileOutlined style={{ color: 'var(--text-secondary)' }} />
 }
 
 export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps) {
@@ -83,12 +83,12 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
   }
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>Loading attachments...</div>
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Loading attachments...</div>
 
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <h3 style={{ color: '#f0f4f8', fontSize: 13, fontWeight: 600, margin: 0 }}>
+        <h3 style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, margin: 0 }}>
           Attachments ({attachments.length})
         </h3>
         <Upload customRequest={(options) => handleFileUpload(options)} showUploadList={false} accept=".jpg,.jpeg,.png,.pdf,.txt" disabled={uploading}>
@@ -99,15 +99,15 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
       </div>
 
       {attachments.length === 0 ? (
-        <Empty description={<span style={{ color: '#64748b' }}>No files attached</span>} />
+        <Empty description={<span style={{ color: 'var(--text-tertiary)' }}>No files attached</span>} />
       ) : (
         <List
           dataSource={attachments}
           renderItem={(a) => (
             <List.Item
-              style={{ padding: '8px 0', borderBottom: '1px solid #1e2d45' }}
+              style={{ padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}
               actions={[
-                <Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(a)} style={{ color: '#60a5fa', fontSize: 11 }}>Download</Button>,
+                <Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(a)} style={{ color: 'var(--text-link)', fontSize: 11 }}>Download</Button>,
                 (user?.id === a.user_id || isAdmin) && (
                   <Popconfirm title="Delete file?" onConfirm={() => handleDelete(a)} okText="Yes" cancelText="No">
                     <Button type="text" danger size="small" icon={<DeleteOutlined />} style={{ fontSize: 11 }}>Delete</Button>
@@ -117,8 +117,8 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
             >
               <List.Item.Meta
                 avatar={getFileIcon(a.file_type)}
-                title={<span style={{ color: '#f0f4f8', fontSize: 13 }}>{a.file_name}</span>}
-                description={<span style={{ color: '#64748b', fontSize: 11 }}>{formatFileSize(a.file_size)}</span>}
+                title={<span style={{ color: 'var(--text-primary)', fontSize: 13 }}>{a.file_name}</span>}
+                description={<span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>{formatFileSize(a.file_size)}</span>}
               />
             </List.Item>
           )}

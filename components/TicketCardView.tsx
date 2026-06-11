@@ -29,7 +29,7 @@ export default function TicketCardView({ tickets, onSelectionChange, showSelecti
   }
 
   if (tickets.length === 0) {
-    return <Empty description={<span style={{ color: '#64748b' }}>No tickets found</span>} style={{ padding: '48px 0' }} />
+    return <Empty description={<span style={{ color: 'var(--text-tertiary)' }}>No tickets found</span>} style={{ padding: '48px 0' }} />
   }
 
   return (
@@ -50,14 +50,14 @@ export default function TicketCardView({ tickets, onSelectionChange, showSelecti
                 display: 'flex',
                 alignItems: 'center',
                 padding: '10px 16px',
-                backgroundColor: isSelected ? '#1a2236' : 'transparent',
-                borderLeft: isSelected ? '2px solid #3b82f6' : '2px solid transparent',
-                borderBottom: '1px solid #1e2d45',
+                backgroundColor: isSelected ? 'var(--bg-elevated)' : 'transparent',
+                borderLeft: isSelected ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                borderBottom: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
                 transition: 'background-color 100ms',
                 gap: 12,
               }}
-              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = '#141b2d' }}
+              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
               onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent' }}
               onClick={(e) => {
                 if (showSelection && (e.target as HTMLElement).closest('.ticket-checkbox')) {
@@ -75,13 +75,13 @@ export default function TicketCardView({ tickets, onSelectionChange, showSelecti
                 <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: p.color, flexShrink: 0 }} />
               </Tooltip>
 
-              <span style={{ color: '#64748b', fontSize: 12, fontWeight: 500, flexShrink: 0, minWidth: 40 }}>#{ticket.number}</span>
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 500, flexShrink: 0, minWidth: 40 }}>#{ticket.number}</span>
 
-              <span style={{ color: '#f0f4f8', fontSize: 13, fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {ticket.title}
               </span>
 
-              <span style={{ color: '#94a3b8', fontSize: 11, fontWeight: 500, padding: '2px 8px', backgroundColor: '#1a2236', borderRadius: 4, flexShrink: 0 }}>
+              <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 500, padding: '2px 8px', backgroundColor: 'var(--bg-elevated)', borderRadius: 4, flexShrink: 0 }}>
                 {ticket.category}
               </span>
 
@@ -93,7 +93,7 @@ export default function TicketCardView({ tickets, onSelectionChange, showSelecti
                 {p.label}
               </span>
 
-              <span style={{ color: '#64748b', fontSize: 11, flexShrink: 0, minWidth: 60, textAlign: 'right' }}>
+              <span style={{ color: 'var(--text-tertiary)', fontSize: 11, flexShrink: 0, minWidth: 60, textAlign: 'right' }}>
                 {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: false })}
               </span>
 

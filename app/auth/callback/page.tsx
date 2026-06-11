@@ -33,14 +33,14 @@ export default function CallbackPage() {
   }, [router])
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#0b0f1a' }}>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-base)' }}>
       <div style={{ textAlign: 'center' }}>
         <div style={{
           width: 40, height: 40, borderRadius: '50%',
-          border: '3px solid #1e2d45', borderTopColor: '#3b82f6',
+          border: '3px solid var(--border-subtle)', borderTopColor: 'var(--accent-primary)',
           margin: '0 auto 16px', animation: 'spin 0.8s linear infinite',
         }} />
-        <p style={{ color: '#94a3b8', fontSize: 13 }}>Completing sign in...</p>
+        <p style={{ color: 'var(--text-secondary)', fontSize: 13 }}>Completing sign in...</p>
       </div>
     </div>
   )

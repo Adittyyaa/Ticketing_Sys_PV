@@ -78,12 +78,12 @@ export default function ManageAdminsPage() {
 
   const columns = [
     { title: 'Name', dataIndex: 'full_name', key: 'full_name', render: (t: string, r: User) => (
-      <Space><Crown size={14} style={{ color: '#a78bfa' }} /><span style={{ color: '#f0f4f8', fontWeight: 500 }}>{t}</span>{r.id === user?.id && <Tag color="blue">You</Tag>}</Space>
+      <Space><Crown size={14} style={{ color: '#a78bfa' }} /><span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{t}</span>{r.id === user?.id && <Tag color="blue">You</Tag>}</Space>
     )},
-    { title: 'Email', dataIndex: 'email', key: 'email', render: (t: string) => <span style={{ color: '#94a3b8' }}>{t}</span> },
+    { title: 'Email', dataIndex: 'email', key: 'email', render: (t: string) => <span style={{ color: 'var(--text-secondary)' }}>{t}</span> },
     { title: 'Role', dataIndex: 'role', key: 'role', width: 120, render: () => <Tag color="purple">Admin</Tag> },
-    { title: 'Created', dataIndex: 'created_at', key: 'created_at', width: 130, render: (d: string) => <span style={{ color: '#64748b', fontSize: 12 }}>{new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span> },
-    { title: '', key: 'actions', width: 60, render: (_: any, r: User) => r.id !== user?.id ? <Button type="text" danger icon={<Trash2 size={14} />} onClick={() => handleDeleteAdmin(r.id, r.full_name)} /> : <span style={{ color: '#475569', fontSize: 11 }}>Current</span> },
+    { title: 'Created', dataIndex: 'created_at', key: 'created_at', width: 130, render: (d: string) => <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span> },
+    { title: '', key: 'actions', width: 60, render: (_: any, r: User) => r.id !== user?.id ? <Button type="text" danger icon={<Trash2 size={14} />} onClick={() => handleDeleteAdmin(r.id, r.full_name)} /> : <span style={{ color: 'var(--text-placeholder)', fontSize: 11 }}>Current</span> },
   ]
 
   if (loading) return null
@@ -99,8 +99,8 @@ export default function ManageAdminsPage() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
           <div>
-            <h1 style={{ color: '#f0f4f8', fontSize: 20, fontWeight: 600, margin: 0 }}>Admin Management</h1>
-            <p style={{ color: '#64748b', fontSize: 12, margin: '4px 0 0 0' }}>Create and manage administrator accounts</p>
+            <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>Admin Management</h1>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>Create and manage administrator accounts</p>
           </div>
           <Space>
             <Button style={{ height: 32, borderRadius: 6 }} onClick={() => router.push('/admin')}>Dashboard</Button>
@@ -112,17 +112,17 @@ export default function ManageAdminsPage() {
         </div>
 
         {showForm && (
-          <div style={{ backgroundColor: '#111827', border: '1px solid #1e2d45', borderRadius: 8, padding: 20, marginBottom: 20 }}>
-            <h3 style={{ color: '#f0f4f8', fontSize: 15, fontWeight: 600, margin: '0 0 16px 0' }}>Create New Admin Account</h3>
+          <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 20, marginBottom: 20 }}>
+            <h3 style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, margin: '0 0 16px 0' }}>Create New Admin Account</h3>
             <Form form={form} layout="vertical" onFinish={handleCreateAdmin}>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
-                <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Full Name</span>} name="fullName" rules={[{ required: true }]}>
+                <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Full Name</span>} name="fullName" rules={[{ required: true }]}>
                   <Input placeholder="John Doe" style={{ height: 40 }} />
                 </Form.Item>
-                <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Email</span>} name="email" rules={[{ required: true }, { type: 'email' }]}>
+                <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Email</span>} name="email" rules={[{ required: true }, { type: 'email' }]}>
                   <Input placeholder="admin@company.com" style={{ height: 40 }} />
                 </Form.Item>
-                <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Password</span>} name="password" rules={[{ required: true }, { min: 6 }]}>
+                <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Password</span>} name="password" rules={[{ required: true }, { min: 6 }]}>
                   <Input.Password placeholder="Min 6 characters" style={{ height: 40 }} />
                 </Form.Item>
               </div>
@@ -143,12 +143,12 @@ export default function ManageAdminsPage() {
             { icon: <UserIcon size={20} style={{ color: '#60a5fa' }} />, value: allUsers.length - admins.length, label: 'Regular Users', bg: '#1e3a5f' },
             { icon: <UserIcon size={20} style={{ color: '#34d399' }} />, value: allUsers.length, label: 'Total Users', bg: '#064e3b' },
           ].map((card) => (
-            <div key={card.label} style={{ backgroundColor: '#111827', border: '1px solid #1e2d45', borderRadius: 8, padding: 20 }}>
+            <div key={card.label} style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 20 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                 <div style={{ width: 36, height: 36, borderRadius: 8, backgroundColor: card.bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{card.icon}</div>
                 <div>
-                  <div style={{ color: '#f0f4f8', fontSize: 22, fontWeight: 700 }}>{card.value}</div>
-                  <div style={{ color: '#64748b', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{card.label}</div>
+                  <div style={{ color: 'var(--text-primary)', fontSize: 22, fontWeight: 700 }}>{card.value}</div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{card.label}</div>
                 </div>
               </div>
             </div>
@@ -156,16 +156,16 @@ export default function ManageAdminsPage() {
         </div>
 
         {/* Table */}
-        <div style={{ backgroundColor: '#111827', border: '1px solid #1e2d45', borderRadius: 8, overflow: 'hidden' }}>
+        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, overflow: 'hidden' }}>
           <Table columns={columns} dataSource={admins.map(u => ({ ...u, key: u.id }))} pagination={{ pageSize: 10 }} />
         </div>
 
         {/* Info */}
-        <div style={{ marginTop: 20, padding: 16, backgroundColor: '#111827', border: '1px solid #1e2d45', borderRadius: 8, display: 'flex', gap: 12 }}>
+        <div style={{ marginTop: 20, padding: 16, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, display: 'flex', gap: 12 }}>
           <AlertCircle size={18} style={{ color: '#60a5fa', flexShrink: 0, marginTop: 2 }} />
           <div>
-            <p style={{ color: '#f0f4f8', fontSize: 13, fontWeight: 500, margin: '0 0 4px 0' }}>Admin Account Guidelines</p>
-            <ul style={{ color: '#94a3b8', fontSize: 12, listStyle: 'disc', listStylePosition: 'inside', margin: 0, padding: 0, lineHeight: 1.8 }}>
+            <p style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, margin: '0 0 4px 0' }}>Admin Account Guidelines</p>
+            <ul style={{ color: 'var(--text-secondary)', fontSize: 12, listStyle: 'disc', listStylePosition: 'inside', margin: 0, padding: 0, lineHeight: 1.8 }}>
               <li>Admins have full access to all tickets and user management</li>
               <li>You cannot delete your own admin account</li>
               <li>Revoking admin access converts the account to a regular user</li>

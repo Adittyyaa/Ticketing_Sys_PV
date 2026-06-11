@@ -165,14 +165,15 @@ export default function Sidebar() {
                 width: 28,
                 height: 28,
                 borderRadius: 6,
-                backgroundColor: isAdmin ? '#2e1065' : '#1e3a5f',
+                backgroundColor: 'var(--bg-elevated)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexShrink: 0,
+                border: '1px solid var(--border-subtle)',
               }}
             >
-              <span style={{ color: isAdmin ? '#a78bfa' : '#60a5fa', fontSize: 12, fontWeight: 600 }}>
+              <span style={{ color: 'var(--accent-primary)', fontSize: 12, fontWeight: 600 }}>
                 {(user.email?.[0] || 'U').toUpperCase()}
               </span>
             </div>
@@ -180,7 +181,7 @@ export default function Sidebar() {
               <div style={{ color: 'var(--text-primary)', fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user.email}
               </div>
-              <div style={{ color: isAdmin ? '#a78bfa' : '#60a5fa', fontSize: 10, fontWeight: 500, textTransform: 'uppercase' }}>
+              <div style={{ color: 'var(--accent-primary)', fontSize: 10, fontWeight: 500, textTransform: 'uppercase' }}>
                 {isAdmin ? 'Admin' : 'User'}
               </div>
             </div>

@@ -7,6 +7,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import AccountDetailsModal from './AccountDetailsModal'
+import ThemeToggle from './ThemeToggle'
 
 export default function TopBar() {
   const { user, isAdmin } = useAuthStore()
@@ -65,6 +66,9 @@ export default function TopBar() {
           zIndex: 30,
         }}
       >
+        {/* Theme Toggle */}
+        <ThemeToggle size="middle" />
+
         {/* Notifications */}
         <Tooltip title="Notifications">
           <button
@@ -147,13 +151,14 @@ export default function TopBar() {
                 width: 28,
                 height: 28,
                 borderRadius: 6,
-                backgroundColor: isAdmin ? '#2e1065' : '#1e3a5f',
+                backgroundColor: isAdmin ? 'var(--accent-primary)' : 'var(--bg-hover)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                border: '1px solid var(--border-subtle)',
               }}
             >
-              <span style={{ color: isAdmin ? '#a78bfa' : '#60a5fa', fontSize: 12, fontWeight: 600 }}>
+              <span style={{ color: isAdmin ? '#fff' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}>
                 {(user?.email?.[0] || 'U').toUpperCase()}
               </span>
             </div>
@@ -165,3 +170,4 @@ export default function TopBar() {
     </>
   )
 }
+

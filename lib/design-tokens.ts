@@ -6,46 +6,46 @@
 export const colors = {
   // Backgrounds
   bg: {
-    base: '#0b0f1a',
-    surface: '#111827',
-    elevated: '#1a2236',
-    hover: '#1e293b',
-    input: '#0f172a',
-    sidebar: '#0b0f1a',
-    sidebarHover: '#141b2d',
-    sidebarActive: '#1a2236',
+    base: 'var(--bg-base)',
+    surface: 'var(--bg-surface)',
+    elevated: 'var(--bg-elevated)',
+    hover: 'var(--bg-hover)',
+    input: 'var(--bg-input)',
+    sidebar: 'var(--bg-sidebar)',
+    sidebarHover: 'var(--bg-sidebar-hover)',
+    sidebarActive: 'var(--bg-sidebar-active)',
   },
 
   // Text
   text: {
-    primary: '#f0f4f8',
-    secondary: '#94a3b8',
-    tertiary: '#64748b',
+    primary: 'var(--text-primary)',
+    secondary: 'var(--text-secondary)',
+    tertiary: 'var(--text-tertiary)',
     inverse: '#0b0f1a',
-    link: '#60a5fa',
-    placeholder: '#475569',
+    link: 'var(--text-link)',
+    placeholder: 'var(--text-placeholder)',
   },
 
   // Borders
   border: {
-    subtle: '#1e2d45',
-    default: '#253347',
-    strong: '#334155',
-    focus: '#3b82f6',
+    subtle: 'var(--border-subtle)',
+    default: 'var(--border-default)',
+    strong: 'var(--border-strong)',
+    focus: 'var(--border-focus)',
   },
 
   // Brand / Accent
   accent: {
-    primary: '#3b82f6',
-    primaryHover: '#2563eb',
+    primary: 'var(--accent-primary)',
+    primaryHover: 'var(--accent-primary-hover)',
     primaryLight: '#1d4ed8',
-    success: '#10b981',
+    success: 'var(--accent-success)',
     successHover: '#059669',
-    warning: '#f59e0b',
+    warning: 'var(--accent-warning)',
     warningHover: '#d97706',
-    error: '#ef4444',
+    error: 'var(--accent-error)',
     errorHover: '#dc2626',
-    info: '#06b6d4',
+    info: 'var(--accent-info)',
   },
 
   // Priority
@@ -145,11 +145,11 @@ export const radius = {
 // ── Shadows ────────────────────────────────────────────────────────────────
 
 export const shadows = {
-  xs: '0 1px 2px rgba(0, 0, 0, 0.3)',
-  sm: '0 2px 4px rgba(0, 0, 0, 0.3)',
-  md: '0 4px 8px rgba(0, 0, 0, 0.4)',
-  lg: '0 8px 16px rgba(0, 0, 0, 0.4)',
-  xl: '0 16px 32px rgba(0, 0, 0, 0.5)',
+  xs: 'var(--shadow-xs)',
+  sm: 'var(--shadow-sm)',
+  md: 'var(--shadow-md)',
+  lg: 'var(--shadow-lg)',
+  xl: 'var(--shadow-xl)',
   focus: '0 0 0 2px rgba(59, 130, 246, 0.3)',
 } as const
 

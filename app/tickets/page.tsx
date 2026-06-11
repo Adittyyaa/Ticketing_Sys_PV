@@ -72,8 +72,8 @@ export default function TicketsPage() {
         {/* Page Header */}
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
           <div>
-            <h1 style={{ color: '#f0f4f8', fontSize: 20, fontWeight: 600, margin: 0 }}>My Tickets</h1>
-            <p style={{ color: '#64748b', fontSize: 12, margin: '4px 0 0 0' }}>
+            <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>My Tickets</h1>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>
               {myTickets.length} ticket{myTickets.length !== 1 ? 's' : ''}
             </p>
           </div>
@@ -85,10 +85,10 @@ export default function TicketsPage() {
         </div>
 
         {/* Toolbar */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '8px 0', borderBottom: '1px solid #1e2d45' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16, padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}>
           <Input
             placeholder="Search my tickets..."
-            prefix={<Search size={14} style={{ color: '#475569' }} />}
+            prefix={<Search size={14} style={{ color: 'var(--text-placeholder)' }} />}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 260, height: 32 }}
@@ -121,13 +121,13 @@ export default function TicketsPage() {
         {isLoading ? (
           <div style={{ textAlign: 'center', padding: '64px 0' }}>
             <Spin size="large" />
-            <p style={{ color: '#64748b', marginTop: 16, fontSize: 13 }}>Loading tickets...</p>
+            <p style={{ color: 'var(--text-tertiary)', marginTop: 16, fontSize: 13 }}>Loading tickets...</p>
           </div>
         ) : myTickets.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '64px 0' }}>
-            <FileText size={48} style={{ color: '#334155', margin: '0 auto 16px' }} />
-            <p style={{ color: '#94a3b8', fontSize: 15, fontWeight: 500 }}>No tickets found</p>
-            <p style={{ color: '#64748b', fontSize: 13 }}>Create your first ticket to get started!</p>
+            <FileText size={48} style={{ color: 'var(--border-strong)', margin: '0 auto 16px' }} />
+            <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontWeight: 500 }}>No tickets found</p>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: 13 }}>Create your first ticket to get started!</p>
           </div>
         ) : viewMode === 'card' ? (
           <TicketCardView tickets={myTickets} />

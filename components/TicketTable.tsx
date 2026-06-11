@@ -54,11 +54,11 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
   const columns = [
     {
       title: 'ID', dataIndex: 'number', key: 'number', width: 60,
-      render: (n: number, r: Ticket) => <Link href={`/tickets/${r.id}`} style={{ color: '#64748b', fontSize: 12, fontWeight: 500 }}>#{n}</Link>,
+      render: (n: number, r: Ticket) => <Link href={`/tickets/${r.id}`} style={{ color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 500 }}>#{n}</Link>,
     },
     {
       title: 'Title', dataIndex: 'title', key: 'title', ellipsis: { showTitle: false },
-      render: (t: string, r: Ticket) => <Link href={`/tickets/${r.id}`} style={{ color: '#f0f4f8', fontSize: 13, fontWeight: 500 }}>{t}</Link>,
+      render: (t: string, r: Ticket) => <Link href={`/tickets/${r.id}`} style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500 }}>{t}</Link>,
     },
     {
       title: 'Category', dataIndex: 'category', key: 'category', width: 130,
@@ -80,15 +80,15 @@ export default function TicketTable({ tickets, onTicketsDeleted }: TicketTablePr
     },
     {
       title: 'Updated', dataIndex: 'updated_at', key: 'updated_at', width: 100,
-      render: (d: string) => <span style={{ color: '#64748b', fontSize: 11 }}>{formatDistanceToNow(new Date(d), { addSuffix: false })}</span>,
+      render: (d: string) => <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>{formatDistanceToNow(new Date(d), { addSuffix: false })}</span>,
     },
   ]
 
   return (
     <div>
       {isAdmin && selectedRowKeys.length > 0 && (
-        <div style={{ marginBottom: 8, padding: '8px 12px', backgroundColor: '#1a2236', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
-          <span style={{ color: '#94a3b8', fontSize: 12 }}>{selectedRowKeys.length} selected</span>
+        <div style={{ marginBottom: 8, padding: '8px 12px', backgroundColor: 'var(--bg-elevated)', borderRadius: 6, display: 'flex', alignItems: 'center', gap: 12 }}>
+          <span style={{ color: 'var(--text-secondary)', fontSize: 12 }}>{selectedRowKeys.length} selected</span>
           <Button danger loading={isDeleting} icon={<DeleteOutlined />} onClick={handleBulkDelete} size="small">Delete</Button>
         </div>
       )}

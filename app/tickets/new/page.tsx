@@ -49,38 +49,38 @@ export default function NewTicketPage() {
   return (
     <AppShell>
       <div style={{ padding: '24px 32px', maxWidth: 700, margin: '0 auto' }}>
-        <Link href="/tickets" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#60a5fa', fontSize: 12, marginBottom: 20 }}>
+        <Link href="/tickets" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-link)', fontSize: 12, marginBottom: 20 }}>
           <ArrowLeft size={14} /> Back to tickets
         </Link>
 
-        <h1 style={{ color: '#f0f4f8', fontSize: 20, fontWeight: 600, margin: '0 0 4px 0' }}>Create New Ticket</h1>
-        <p style={{ color: '#64748b', fontSize: 13, margin: '0 0 24px 0' }}>Submit a new support request</p>
+        <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: '0 0 4px 0' }}>Create New Ticket</h1>
+        <p style={{ color: 'var(--text-tertiary)', fontSize: 13, margin: '0 0 24px 0' }}>Submit a new support request</p>
 
-        <div style={{ backgroundColor: '#111827', border: '1px solid #1e2d45', borderRadius: 8, padding: 24 }}>
+        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 24 }}>
           <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ category: 'Bug Report', priority: 'MEDIUM', tags: '' }}>
-            <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Title</span>} name="title"
+            <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Title</span>} name="title"
               rules={[{ required: true, message: 'Please enter a title' }, { max: 255, message: 'Max 255 characters' }]}>
               <Input placeholder="Brief title of the issue" style={{ height: 40 }} />
             </Form.Item>
 
-            <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Description</span>} name="description"
+            <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Description</span>} name="description"
               rules={[{ required: true, message: 'Please enter a description' }, { max: 5000, message: 'Max 5000 characters' }]}>
               <Input.TextArea placeholder="Detailed description of the issue" rows={5} style={{ resize: 'none' }} />
             </Form.Item>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-              <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Category</span>} name="category" rules={[{ required: true }]}>
+              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Category</span>} name="category" rules={[{ required: true }]}>
                 <Select style={{ height: 40 }} popupMatchSelectWidth={false} options={categories.map((cat) => ({ label: cat, value: cat }))} />
               </Form.Item>
-              <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Priority</span>} name="priority" rules={[{ required: true }]}>
+              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Priority</span>} name="priority" rules={[{ required: true }]}>
                 <Select style={{ height: 40 }} popupMatchSelectWidth={false} options={priorities.map((p) => ({ label: p, value: p }))} />
               </Form.Item>
             </div>
 
-            <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Tags</span>} name="tags">
+            <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Tags</span>} name="tags">
               <Input placeholder="Separate with commas (e.g. bug, website)" style={{ height: 40 }} />
             </Form.Item>
-            <span style={{ color: '#475569', fontSize: 11 }}>Separate multiple tags with commas</span>
+            <span style={{ color: 'var(--text-placeholder)', fontSize: 11 }}>Separate multiple tags with commas</span>
 
             <Form.Item style={{ marginBottom: 0, marginTop: 20 }}>
               <div style={{ display: 'flex', gap: 12 }}>

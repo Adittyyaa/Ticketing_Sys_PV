@@ -96,8 +96,8 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
     <div
       style={{
         width: '280px',
-        backgroundColor: '#0f172a',
-        borderLeft: '1px solid #334155',
+        backgroundColor: 'var(--bg-sidebar)',
+        borderLeft: '1px solid var(--border-strong)',
         padding: '20px 16px',
         overflowY: 'auto',
         height: '100%',
@@ -116,7 +116,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
             display: 'flex', 
             alignItems: 'center', 
             gap: '8px',
-            color: '#f1f5f9',
+            color: 'var(--text-primary)',
             fontSize: '15px',
             fontWeight: '600'
           }}>
@@ -127,7 +127,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
             type="text"
             size="small"
             icon={<SearchOutlined />}
-            style={{ color: '#94a3b8' }}
+            style={{ color: 'var(--text-secondary)' }}
           />
         </div>
       </div>
@@ -136,7 +136,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
       <div style={{ marginBottom: '20px' }}>
         <label style={{ 
           display: 'block', 
-          color: '#94a3b8', 
+          color: 'var(--text-secondary)', 
           fontSize: '12px',
           fontWeight: '500',
           marginBottom: '8px',
@@ -167,7 +167,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
       <div style={{ marginBottom: '20px' }}>
         <label style={{ 
           display: 'block', 
-          color: '#94a3b8', 
+          color: 'var(--text-secondary)', 
           fontSize: '12px',
           fontWeight: '500',
           marginBottom: '8px',
@@ -195,7 +195,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
       <div style={{ marginBottom: '20px' }}>
         <label style={{ 
           display: 'block', 
-          color: '#94a3b8', 
+          color: 'var(--text-secondary)', 
           fontSize: '12px',
           fontWeight: '500',
           marginBottom: '8px',
@@ -224,7 +224,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
       <div style={{ marginBottom: '20px' }}>
         <label style={{ 
           display: 'block', 
-          color: '#94a3b8', 
+          color: 'var(--text-secondary)', 
           fontSize: '12px',
           fontWeight: '500',
           marginBottom: '8px',
@@ -253,7 +253,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
       <div style={{ marginBottom: '20px' }}>
         <label style={{ 
           display: 'block', 
-          color: '#94a3b8', 
+          color: 'var(--text-secondary)', 
           fontSize: '12px',
           fontWeight: '500',
           marginBottom: '8px',
@@ -277,13 +277,13 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
         />
       </div>
 
-      <Divider style={{ borderColor: '#334155', margin: '16px 0' }} />
+      <Divider style={{ borderColor: 'var(--border-strong)', margin: '16px 0' }} />
 
       {/* Status Filter */}
       <div style={{ marginBottom: '20px' }}>
         <label style={{ 
           display: 'block', 
-          color: '#94a3b8', 
+          color: 'var(--text-secondary)', 
           fontSize: '12px',
           fontWeight: '500',
           marginBottom: '8px',
@@ -312,7 +312,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
       <div style={{ marginBottom: '20px' }}>
         <label style={{ 
           display: 'block', 
-          color: '#94a3b8', 
+          color: 'var(--text-secondary)', 
           fontSize: '12px',
           fontWeight: '500',
           marginBottom: '8px',
@@ -340,7 +340,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
       <div style={{ marginBottom: '20px' }}>
         <label style={{ 
           display: 'block', 
-          color: '#94a3b8', 
+          color: 'var(--text-secondary)', 
           fontSize: '12px',
           fontWeight: '500',
           marginBottom: '8px',
@@ -369,7 +369,7 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
       <div style={{ marginBottom: '20px' }}>
         <label style={{ 
           display: 'block', 
-          color: '#94a3b8', 
+          color: 'var(--text-secondary)', 
           fontSize: '12px',
           fontWeight: '500',
           marginBottom: '8px',
@@ -402,8 +402,8 @@ export default function FilterSidebar({ onFilterChange, onReset }: FilterSidebar
         style={{ 
           width: '100%',
           marginTop: '8px',
-          borderColor: '#334155',
-          color: '#94a3b8'
+          borderColor: 'var(--border-strong)',
+          color: 'var(--text-secondary)'
         }}
       >
         Reset Filters

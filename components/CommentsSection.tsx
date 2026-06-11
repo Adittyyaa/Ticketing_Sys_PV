@@ -67,29 +67,29 @@ export default function TicketComments({ ticketId }: CommentsSectionProps) {
     return colors[(name?.charCodeAt(0) || 0) % colors.length]
   }
 
-  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: '#64748b', fontSize: 13 }}>Loading comments...</div>
+  if (loading) return <div style={{ padding: 24, textAlign: 'center', color: 'var(--text-tertiary)', fontSize: 13 }}>Loading comments...</div>
 
   return (
     <div>
-      <h3 style={{ color: '#f0f4f8', fontSize: 13, fontWeight: 600, margin: '0 0 16px 0' }}>
+      <h3 style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, margin: '0 0 16px 0' }}>
         Comments ({comments.length})
       </h3>
 
       {comments.length === 0 ? (
-        <Empty description={<span style={{ color: '#64748b' }}>No comments yet</span>} style={{ padding: '24px 0' }} />
+        <Empty description={<span style={{ color: 'var(--text-tertiary)' }}>No comments yet</span>} style={{ padding: '24px 0' }} />
       ) : (
         <div style={{ marginBottom: 20 }}>
           {comments.map((comment, i) => (
-            <div key={comment.id} style={{ display: 'flex', gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: i < comments.length - 1 ? '1px solid #1e2d45' : 'none' }}>
+            <div key={comment.id} style={{ display: 'flex', gap: 12, marginBottom: 16, paddingBottom: 16, borderBottom: i < comments.length - 1 ? '1px solid var(--border-subtle)' : 'none' }}>
               <div style={{ width: 32, height: 32, borderRadius: 6, backgroundColor: avatarColor(comment.commenter_name || ''), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span style={{ color: '#fff', fontSize: 12, fontWeight: 600 }}>{(comment.commenter_name || 'A').charAt(0).toUpperCase()}</span>
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                  <span style={{ color: '#f0f4f8', fontSize: 13, fontWeight: 500 }}>{comment.commenter_name || 'Anonymous'}</span>
-                  <span style={{ color: '#475569', fontSize: 11 }}>{formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}</span>
+                  <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500 }}>{comment.commenter_name || 'Anonymous'}</span>
+                  <span style={{ color: 'var(--text-placeholder)', fontSize: 11 }}>{formatDistanceToNow(new Date(comment.created_at), { addSuffix: true })}</span>
                 </div>
-                <p style={{ color: '#94a3b8', fontSize: 13, margin: 0, lineHeight: 1.5, wordBreak: 'break-word' }}>{comment.content}</p>
+                <p style={{ color: 'var(--text-secondary)', fontSize: 13, margin: 0, lineHeight: 1.5, wordBreak: 'break-word' }}>{comment.content}</p>
                 {(user?.id === comment.user_id || isAdmin) && (
                   <Popconfirm title="Delete comment?" onConfirm={() => handleDelete(comment.id)} okText="Yes" cancelText="No">
                     <Button type="text" danger size="small" icon={<DeleteOutlined />} style={{ marginTop: 8, fontSize: 11, padding: 0, height: 'auto' }}>Delete</Button>

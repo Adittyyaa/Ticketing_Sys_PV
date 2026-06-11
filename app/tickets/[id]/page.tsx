@@ -148,7 +148,7 @@ export default function TicketDetailPage() {
   }
 
   if (!user || loading) return <AppShell><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 96px)' }}><Spin size="large" /></div></AppShell>
-  if (!ticket) return <AppShell><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 96px)' }}><span style={{ color: '#64748b' }}>Ticket not found</span></div></AppShell>
+  if (!ticket) return <AppShell><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 96px)' }}><span style={{ color: 'var(--text-tertiary)' }}>Ticket not found</span></div></AppShell>
 
   const p = priorityDisplay[ticket.priority]
   const s = statusDisplay[ticket.status]
@@ -157,7 +157,7 @@ export default function TicketDetailPage() {
     <AppShell>
       <div style={{ padding: '24px 32px' }}>
         {/* Breadcrumb */}
-        <Link href={isAdmin ? '/admin' : '/tickets'} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: '#60a5fa', fontSize: 12, marginBottom: 20 }}>
+        <Link href={isAdmin ? '/admin' : '/tickets'} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-link)', fontSize: 12, marginBottom: 20 }}>
           <ArrowLeft size={14} /> Back to tickets
         </Link>
 
@@ -167,14 +167,14 @@ export default function TicketDetailPage() {
             {/* Title & Actions */}
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 20 }}>
               <div>
-                <span style={{ color: '#64748b', fontSize: 12, fontWeight: 500 }}>#{ticket.number}</span>
-                <h1 style={{ color: '#f0f4f8', fontSize: 20, fontWeight: 600, margin: '4px 0 0 0' }}>{ticket.title}</h1>
+                <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 500 }}>#{ticket.number}</span>
+                <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: '4px 0 0 0' }}>{ticket.title}</h1>
               </div>
               <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
                 {ticket.status === 'SOLVED' ? (
                   <Button onClick={() => updateStatus('OPENED', 'Reopened')} style={{ height: 32, fontSize: 12, borderRadius: 6 }}>Reopen</Button>
                 ) : (
-                  <Button onClick={() => updateStatus('SOLVED', 'Resolved')} type="primary" style={{ height: 32, fontSize: 12, borderRadius: 6, backgroundColor: '#10b981', borderColor: '#10b981' }}>
+                  <Button onClick={() => updateStatus('SOLVED', 'Resolved')} type="primary" style={{ height: 32, fontSize: 12, borderRadius: 6, backgroundColor: 'var(--accent-success)', borderColor: 'var(--accent-success)' }}>
                     <CheckCircle size={14} style={{ marginRight: 4 }} /> Resolve
                   </Button>
                 )}
@@ -188,13 +188,13 @@ export default function TicketDetailPage() {
 
             {/* Edit Form */}
             {isEditing && (
-              <div style={{ padding: 16, backgroundColor: '#1a2236', border: '1px solid #253347', borderRadius: 8, marginBottom: 20 }}>
+              <div style={{ padding: 16, backgroundColor: 'var(--bg-elevated)', border: '1px solid var(--border-default)', borderRadius: 8, marginBottom: 20 }}>
                 <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ priority: ticket.priority, status: ticket.status }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-                    <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Priority</span>} name="priority" rules={[{ required: true }]}>
+                    <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Priority</span>} name="priority" rules={[{ required: true }]}>
                       <Select style={{ height: 32 }}>{priorityOptions.map((p) => <Select.Option key={p} value={p}>{p}</Select.Option>)}</Select>
                     </Form.Item>
-                    <Form.Item label={<span style={{ color: '#94a3b8', fontSize: 12, fontWeight: 500 }}>Status</span>} name="status" rules={[{ required: true }]}>
+                    <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Status</span>} name="status" rules={[{ required: true }]}>
                       <Select style={{ height: 32 }}>{statusOptions.map((s) => <Select.Option key={s} value={s}>{s}</Select.Option>)}</Select>
                     </Form.Item>
                   </div>
@@ -207,17 +207,17 @@ export default function TicketDetailPage() {
 
             {/* Description */}
             <div style={{ marginBottom: 20 }}>
-              <h3 style={{ color: '#f0f4f8', fontSize: 13, fontWeight: 600, margin: '0 0 8px 0' }}>Description</h3>
-              <p style={{ color: '#94a3b8', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
+              <h3 style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, margin: '0 0 8px 0' }}>Description</h3>
+              <p style={{ color: 'var(--text-secondary)', fontSize: 13, lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>{ticket.description}</p>
             </div>
 
             {/* Tags */}
             {ticket.tags.length > 0 && (
               <div style={{ marginBottom: 20 }}>
-                <h3 style={{ color: '#f0f4f8', fontSize: 13, fontWeight: 600, margin: '0 0 8px 0' }}>Tags</h3>
+                <h3 style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, margin: '0 0 8px 0' }}>Tags</h3>
                 <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                   {ticket.tags.map((tag) => (
-                    <span key={tag} style={{ padding: '2px 10px', backgroundColor: '#1a2236', borderRadius: 4, fontSize: 11, color: '#94a3b8', fontWeight: 500 }}>{tag}</span>
+                    <span key={tag} style={{ padding: '2px 10px', backgroundColor: 'var(--bg-elevated)', borderRadius: 4, fontSize: 11, color: 'var(--text-secondary)', fontWeight: 500 }}>{tag}</span>
                   ))}
                 </div>
               </div>
@@ -234,13 +234,13 @@ export default function TicketDetailPage() {
 
           {/* Properties Panel - Right */}
           <div style={{ width: 280, flexShrink: 0 }}>
-            <div style={{ backgroundColor: '#111827', border: '1px solid #1e2d45', borderRadius: 8, padding: 16 }}>
-              <h3 style={{ color: '#94a3b8', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px 0' }}>Properties</h3>
+            <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 16 }}>
+              <h3 style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px 0' }}>Properties</h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {/* Status */}
                 <div>
-                  <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Status</div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Status</div>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 9999, fontSize: 12, fontWeight: 500, color: s.color, backgroundColor: s.bg }}>
                     {s.label}
                   </span>
@@ -248,7 +248,7 @@ export default function TicketDetailPage() {
 
                 {/* Priority */}
                 <div>
-                  <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Priority</div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Priority</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: p.color }} />
                     <span style={{ fontSize: 12, fontWeight: 500, color: p.color }}>{p.label}</span>
@@ -257,22 +257,22 @@ export default function TicketDetailPage() {
 
                 {/* Category */}
                 <div>
-                  <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Category</div>
-                  <span style={{ fontSize: 12, color: '#f0f4f8', fontWeight: 500 }}>{ticket.category}</span>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Category</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{ticket.category}</span>
                 </div>
 
                 {/* Divider */}
-                <div style={{ borderTop: '1px solid #1e2d45' }} />
+                <div style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
                 {/* Dates */}
                 <div>
-                  <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Created</div>
-                  <span style={{ fontSize: 12, color: '#f0f4f8' }}>{formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}</span>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Created</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}</span>
                 </div>
 
                 <div>
-                  <div style={{ color: '#64748b', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Updated</div>
-                  <span style={{ fontSize: 12, color: '#f0f4f8' }}>{formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}</span>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Updated</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}</span>
                 </div>
               </div>
             </div>
