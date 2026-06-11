@@ -9,6 +9,7 @@ import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import Link from 'next/link'
 import AccountDetailsModal from './AccountDetailsModal'
+import ThemeToggle from './ThemeToggle'
 
 const { Header } = Layout
 
@@ -151,6 +152,9 @@ export default function NavigationHeader() {
               </Tooltip>
             </Link>
           )}
+
+          {/* Theme Toggle Button */}
+          <ThemeToggle size="large" />
 
           {/* Notifications Button */}
           <Tooltip title="Notifications">
