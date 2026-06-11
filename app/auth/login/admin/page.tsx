@@ -56,7 +56,7 @@ export default function AdminLoginPage() {
         background: theme === 'dark' 
           ? 'linear-gradient(135deg, #0b0f1a 0%, #1a2236 50%, #0b0f1a 100%)' 
           : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f8fafc 100%)',
-        borderRight: theme === 'dark' ? '1px solid #1e2d45' : '1px solid #cbd5e1'
+        borderRight: '1px solid var(--border-subtle)'
       }}>
         <div style={{
           width: 56, height: 56, borderRadius: 12,
@@ -67,13 +67,13 @@ export default function AdminLoginPage() {
           <span style={{ color: '#fff', fontSize: 24, fontWeight: 700 }}>A</span>
         </div>
         <h1 style={{ 
-          color: theme === 'dark' ? '#f0f4f8' : '#0f172a', 
+          color: 'var(--text-primary)', 
           fontSize: 24, 
           fontWeight: 600, 
           marginBottom: 8 
         }}>Admin Console</h1>
         <p style={{ 
-          color: theme === 'dark' ? '#94a3b8' : '#475569', 
+          color: 'var(--text-secondary)', 
           fontSize: 14 
         }}>Manage tickets, users, and system settings.</p>
       </div>
@@ -84,32 +84,32 @@ export default function AdminLoginPage() {
         flexDirection: 'column', 
         justifyContent: 'center', 
         padding: '48px', 
-        backgroundColor: theme === 'dark' ? '#0b0f1a' : '#ffffff'
+        backgroundColor: 'var(--bg-base)'
       }}>
         <h2 style={{ color: '#a78bfa', fontSize: 20, fontWeight: 600, margin: '0 0 4px 0' }}>Admin Sign In</h2>
         <p style={{ 
-          color: theme === 'dark' ? '#64748b' : '#64748b', 
+          color: 'var(--text-tertiary)', 
           fontSize: 13, 
           margin: '0 0 24px 0' 
         }}>Manage support tickets and users</p>
         {error && <Alert description={error} type="error" showIcon closable afterClose={() => setError('')} style={{ marginBottom: 16, borderRadius: 6 }} />}
         <Form form={form} layout="vertical" onFinish={handleLogin} autoComplete="off">
-          <Form.Item label={<span style={{ color: theme === 'dark' ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 500 }}>Email</span>} name="email"
+          <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Email</span>} name="email"
             rules={[{ required: true, message: 'Email required' }, { type: 'email', message: 'Invalid email' }]}>
-            <Input prefix={<UserOutlined style={{ color: theme === 'dark' ? '#475569' : '#94a3b8' }} />} placeholder="admin@company.com" style={{ height: 40 }} />
+            <Input prefix={<UserOutlined style={{ color: 'var(--text-tertiary)' }} />} placeholder="admin@company.com" style={{ height: 40 }} />
           </Form.Item>
-          <Form.Item label={<span style={{ color: theme === 'dark' ? '#94a3b8' : '#475569', fontSize: 12, fontWeight: 500 }}>Password</span>} name="password"
+          <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Password</span>} name="password"
             rules={[{ required: true, message: 'Password required' }]}>
-            <Input.Password prefix={<LockOutlined style={{ color: theme === 'dark' ? '#475569' : '#94a3b8' }} />} placeholder="Enter your password" style={{ height: 40 }} />
+            <Input.Password prefix={<LockOutlined style={{ color: 'var(--text-tertiary)' }} />} placeholder="Enter your password" style={{ height: 40 }} />
           </Form.Item>
           <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
             <Button type="primary" htmlType="submit" block icon={<LoginOutlined />} loading={loading}
               style={{ height: 40, fontSize: 14, fontWeight: 600, borderRadius: 6, backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}>Admin Sign In</Button>
           </Form.Item>
         </Form>
-        <div style={{ textAlign: 'center', marginTop: 24, paddingTop: 24, borderTop: theme === 'dark' ? '1px solid #1e2d45' : '1px solid #e2e8f0' }}>
-          <span style={{ color: theme === 'dark' ? '#64748b' : '#64748b', fontSize: 12 }}>Regular user? </span>
-          <Link href="/auth/login/user" style={{ color: '#60a5fa', fontSize: 12, fontWeight: 600 }}>User Sign In</Link>
+        <div style={{ textAlign: 'center', marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--border-subtle)' }}>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>Regular user? </span>
+          <Link href="/auth/login/user" style={{ color: 'var(--text-link)', fontSize: 12, fontWeight: 600 }}>User Sign In</Link>
         </div>
       </div>
     </div>

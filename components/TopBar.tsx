@@ -24,13 +24,14 @@ export default function TopBar() {
       disabled: true,
       label: (
         <div style={{ padding: '4px 0' }}>
-          <div style={{ fontSize: 10, color: '#64748b' }}>Signed in as</div>
-          <div style={{ fontSize: 13, color: '#f0f4f8', fontWeight: 500, marginTop: 2 }}>
+          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Signed in as</div>
+          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, marginTop: 2 }}>
             {user?.email}
           </div>
         </div>
       ),
     },
+
     { type: 'divider' as const },
     {
       key: 'account',
@@ -57,8 +58,8 @@ export default function TopBar() {
           alignItems: 'center',
           justifyContent: 'flex-end',
           padding: '0 24px',
-          backgroundColor: '#111827',
-          borderBottom: '1px solid #1e2d45',
+          backgroundColor: 'var(--bg-surface)',
+          borderBottom: '1px solid var(--border-subtle)',
           gap: 8,
           flexShrink: 0,
           zIndex: 30,
@@ -76,17 +77,17 @@ export default function TopBar() {
               borderRadius: 6,
               border: 'none',
               backgroundColor: 'transparent',
-              color: '#94a3b8',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
               position: 'relative',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#1a2236'
-              e.currentTarget.style.color = '#f0f4f8'
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
+              e.currentTarget.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = '#94a3b8'
+              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             <Bell size={16} />
@@ -105,16 +106,16 @@ export default function TopBar() {
               borderRadius: 6,
               border: 'none',
               backgroundColor: 'transparent',
-              color: '#94a3b8',
+              color: 'var(--text-secondary)',
               cursor: 'pointer',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#1a2236'
-              e.currentTarget.style.color = '#f0f4f8'
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
+              e.currentTarget.style.color = 'var(--text-primary)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = '#94a3b8'
+              e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
             <Settings size={16} />
@@ -135,7 +136,7 @@ export default function TopBar() {
               cursor: 'pointer',
             }}
             onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = '#1a2236'
+              e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
             }}
             onMouseLeave={(e) => {
               e.currentTarget.style.backgroundColor = 'transparent'

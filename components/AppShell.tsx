@@ -5,7 +5,7 @@ import TopBar from './TopBar'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#0b0f1a' }}>
+    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: 'var(--bg-base)' }}>
       <Sidebar />
       <div
         style={{
@@ -22,7 +22,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
           style={{
             flex: 1,
             overflowY: 'auto',
-            backgroundColor: '#0b0f1a',
+            backgroundColor: 'var(--bg-base)',
           }}
         >
           {children}
@@ -31,3 +31,4 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+

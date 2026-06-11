@@ -46,8 +46,8 @@ export default function Sidebar() {
         left: 0,
         top: 0,
         zIndex: 40,
-        backgroundColor: '#0b0f1a',
-        borderRight: '1px solid #1e2d45',
+        backgroundColor: 'var(--bg-sidebar)',
+        borderRight: '1px solid var(--border-subtle)',
         display: 'flex',
         flexDirection: 'column',
         transition: 'width 200ms cubic-bezier(0.4, 0, 0.2, 1), min-width 200ms cubic-bezier(0.4, 0, 0.2, 1)',
@@ -61,7 +61,7 @@ export default function Sidebar() {
           display: 'flex',
           alignItems: 'center',
           padding: collapsed ? '0 16px' : '0 20px',
-          borderBottom: '1px solid #1e2d45',
+          borderBottom: '1px solid var(--border-subtle)',
           gap: 12,
           flexShrink: 0,
         }}
@@ -76,7 +76,7 @@ export default function Sidebar() {
         {!collapsed && (
           <span
             style={{
-              color: '#f0f4f8',
+              color: 'var(--text-primary)',
               fontSize: 15,
               fontWeight: 600,
               whiteSpace: 'nowrap',
@@ -111,8 +111,8 @@ export default function Sidebar() {
                 padding: collapsed ? '8px 16px' : '8px 20px',
                 margin: '0 8px',
                 borderRadius: 6,
-                backgroundColor: active ? '#1a2236' : 'transparent',
-                color: active ? '#f0f4f8' : '#94a3b8',
+                backgroundColor: active ? 'var(--bg-sidebar-active)' : 'transparent',
+                color: active ? 'var(--text-primary)' : 'var(--text-secondary)',
                 textDecoration: 'none',
                 fontSize: 13,
                 fontWeight: active ? 500 : 400,
@@ -120,18 +120,18 @@ export default function Sidebar() {
                 transition: 'background-color 100ms, color 100ms',
                 whiteSpace: 'nowrap',
                 overflow: 'hidden',
-                borderLeft: active ? '2px solid #3b82f6' : '2px solid transparent',
+                borderLeft: active ? '2px solid var(--accent-primary)' : '2px solid transparent',
               }}
               onMouseEnter={(e) => {
                 if (!active) {
-                  e.currentTarget.style.backgroundColor = '#141b2d'
-                  e.currentTarget.style.color = '#f0f4f8'
+                  e.currentTarget.style.backgroundColor = 'var(--bg-sidebar-hover)'
+                  e.currentTarget.style.color = 'var(--text-primary)'
                 }
               }}
               onMouseLeave={(e) => {
                 if (!active) {
                   e.currentTarget.style.backgroundColor = 'transparent'
-                  e.currentTarget.style.color = '#94a3b8'
+                  e.currentTarget.style.color = 'var(--text-secondary)'
                 }
               }}
             >
@@ -145,7 +145,7 @@ export default function Sidebar() {
       {/* Bottom Section */}
       <div
         style={{
-          borderTop: '1px solid #1e2d45',
+          borderTop: '1px solid var(--border-subtle)',
           padding: '8px 0',
           flexShrink: 0,
         }}
@@ -177,7 +177,7 @@ export default function Sidebar() {
               </span>
             </div>
             <div style={{ overflow: 'hidden' }}>
-              <div style={{ color: '#f0f4f8', fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              <div style={{ color: 'var(--text-primary)', fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
                 {user.email}
               </div>
               <div style={{ color: isAdmin ? '#a78bfa' : '#60a5fa', fontSize: 10, fontWeight: 500, textTransform: 'uppercase' }}>
@@ -199,23 +199,24 @@ export default function Sidebar() {
             borderRadius: 6,
             border: 'none',
             backgroundColor: 'transparent',
-            color: '#64748b',
+            color: 'var(--text-tertiary)',
             cursor: 'pointer',
             width: collapsed ? 'calc(100% - 16px)' : 'calc(100% - 16px)',
             transition: 'background-color 100ms, color 100ms',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.backgroundColor = '#141b2d'
-            e.currentTarget.style.color = '#94a3b8'
+            e.currentTarget.style.backgroundColor = 'var(--bg-sidebar-hover)'
+            e.currentTarget.style.color = 'var(--text-secondary)'
           }}
           onMouseLeave={(e) => {
             e.currentTarget.style.backgroundColor = 'transparent'
-            e.currentTarget.style.color = '#64748b'
+            e.currentTarget.style.color = 'var(--text-tertiary)'
           }}
         >
           {collapsed ? <ChevronRight size={16} /> : <ChevronLeft size={16} />}
         </button>
       </div>
+
     </aside>
   )
 }
