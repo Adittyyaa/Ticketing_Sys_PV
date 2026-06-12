@@ -109,17 +109,6 @@ export default function LoginPage() {
             <span style={{ color: '#fff', fontSize: 24, fontWeight: 700 }}>H</span>
           </div>
           <h1 style={{ color: 'var(--text-primary)', fontSize: 28, fontWeight: 600, marginBottom: 12 }}>Helpdesk</h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: 15, lineHeight: 1.6, marginBottom: 32 }}>
-            Streamline your support workflow. Track, resolve, and deliver exceptional service.
-          </p>
-          <div style={{ display: 'flex', gap: 24, justifyContent: 'center' }}>
-            {[{ v: '99%', l: 'Resolution Rate' }, { v: '<2m', l: 'Avg Response' }, { v: '24/7', l: 'Availability' }].map((s) => (
-              <div key={s.l} style={{ textAlign: 'center' }}>
-                <div style={{ color: 'var(--accent-primary)', fontSize: 20, fontWeight: 700 }}>{s.v}</div>
-                <div style={{ color: 'var(--text-tertiary)', fontSize: 11, marginTop: 4, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{s.l}</div>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
 
