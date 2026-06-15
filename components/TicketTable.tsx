@@ -3,13 +3,7 @@
 import { Ticket, Priority, Status } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
-<<<<<<< HEAD
-import { useState } from 'react'
-=======
->>>>>>> 544fa58 (Remove colorful badges and status pills from ticket list UI)
-import { Table, Button, Tag, Modal, message } from 'antd'
-import { DeleteOutlined } from '@ant-design/icons'
-import { supabase } from '@/lib/supabase'
+import { Table, Tag } from 'antd'
 import { useAuthStore } from '@/lib/store'
 import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
 
@@ -24,7 +18,7 @@ const categoryConfig: Record<string, string> = {
   'Bug Report': 'red', 'Technical Issue': 'purple', 'Account Inquiry': 'cyan', 'New Feature Request': 'blue', 'Other': 'default',
 }
 
-export default function TicketTable({ tickets, onTicketsDeleted, selectedRowKeys = [], onSelectionChange }: TicketTableProps) {
+export default function TicketTable({ tickets, selectedRowKeys = [], onSelectionChange }: TicketTableProps) {
   const { isAdmin } = useAuthStore()
 
   const columns = [

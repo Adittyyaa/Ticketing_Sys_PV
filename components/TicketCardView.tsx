@@ -4,7 +4,7 @@ import { Ticket } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { Empty, Checkbox, Tooltip } from 'antd'
-import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
+import { priorityDisplay } from '@/lib/design-tokens'
 
 interface TicketCardViewProps {
   tickets: Ticket[]
@@ -33,7 +33,6 @@ export default function TicketCardView({
     <div>
       {tickets.map((ticket) => {
         const p = priorityDisplay[ticket.priority]
-        const s = statusDisplay[ticket.status]
         const isSelected = selectedIds.includes(ticket.id)
 
         return (
