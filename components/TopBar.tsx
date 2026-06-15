@@ -1,6 +1,6 @@
 'use client'
 
-import { Tooltip, Popover, Empty } from 'antd'
+import { Popover, Empty } from 'antd'
 import { Bell, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
