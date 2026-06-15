@@ -9,6 +9,7 @@ import {
   Ticket,
   Users,
   Shield,
+  Settings,
   ChevronLeft,
   ChevronRight,
 } from 'lucide-react'
@@ -19,11 +20,12 @@ const NAV_ITEMS = [
   { href: '/tickets', label: 'Tickets', icon: Ticket, adminOnly: false },
   { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
   { href: '/admin/manage-admins', label: 'Admins', icon: Shield, adminOnly: true },
+  { href: '/admin/settings', label: 'Settings', icon: Settings, adminOnly: true },
 ]
 
 export default function Sidebar() {
   const pathname = usePathname()
-  const { isAdmin, user } = useAuthStore()
+  const { isAdmin } = useAuthStore()
   const [collapsed, setCollapsed] = useState(false)
 
   const filteredItems = NAV_ITEMS.filter(

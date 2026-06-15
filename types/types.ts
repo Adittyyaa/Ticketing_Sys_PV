@@ -1,7 +1,27 @@
 export type Priority = 'LOW' | 'MEDIUM' | 'HIGH' | 'URGENT'
 export type Status = 'UNTOUCHED' | 'PENDING' | 'OPENED' | 'SOLVED'
-export type Category = 'Bug Report' | 'Technical Issue' | 'Account Inquiry' | 'New Feature Request' | 'Other'
+export type Category = 'Bug Report' | 'Technical Issue' | 'Account Inquiry' | 'New Feature Request' | 'Other' | string
 export type UserRole = 'user' | 'admin'
+
+export interface CategoryData {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface Tag {
+  id: string
+  name: string
+  created_at: string
+}
+
+export interface SavedReply {
+  id: string
+  title: string
+  content: string
+  created_at: string
+  updated_at: string
+}
 
 export interface Ticket {
   id: string

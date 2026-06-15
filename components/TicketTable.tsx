@@ -35,6 +35,16 @@ export default function TicketTable({ tickets, selectedRowKeys = [], onSelection
       render: (c: string) => <Tag color={categoryConfig[c] || 'default'} style={{ fontSize: 11 }}>{c}</Tag>,
     },
     {
+      title: 'Tags', dataIndex: 'tags', key: 'tags', width: 150,
+      render: (tags: string[]) => (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
+          {tags?.map(tag => (
+            <Tag key={tag} style={{ fontSize: 10, margin: 0, padding: '0 4px', lineHeight: '16px' }}>{tag}</Tag>
+          ))}
+        </div>
+      ),
+    },
+    {
       title: 'Priority', dataIndex: 'priority', key: 'priority', width: 90,
       render: (p: Priority) => {
         const d = priorityDisplay[p]

@@ -3,9 +3,10 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
-import { Button, Input, Form, Empty, Popconfirm, message } from 'antd'
-import { DeleteOutlined, SendOutlined } from '@ant-design/icons'
+import { Button, Input, Form, Empty, Popconfirm, message, Select, Space, Divider } from 'antd'
+import { DeleteOutlined, SendOutlined, MessageOutlined } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
+import { SavedReply } from '@/types/types'
 
 interface CommentData {
   id: string
@@ -28,8 +29,17 @@ export default function TicketComments({ ticketId }: CommentsSectionProps) {
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
+  
+  const [savedReplies, setSavedReplies] = useState<SavedReply[]>([])
+  const [fetchingReplies, setFetchingReplies] = useState(false)
 
   useEffect(() => { fetchComments() }, [ticketId])
+  
+  useEffect(() => {
+    if (isAdmin) {
+      fetchSavedReplies()
+    }
+  }, [isAdmin])
 
   const fetchComments = async () => {
     try {
@@ -38,6 +48,27 @@ export default function TicketComments({ ticketId }: CommentsSectionProps) {
       setComments(data || [])
     } catch { message.error('Failed to load comments') }
     finally { setLoading(false) }
+  }
+
+  const fetchSavedReplies = async () => {
+    setFetchingReplies(true)
+    try {
+      const { data, error } = await supabase.from('tbl_saved_replies').select('*').order('title')
+      if (error) throw error
+      setSavedReplies(data || [])
+    } catch (err) {
+      console.error('Error fetching saved replies:', err)
+    } finally {
+      setFetchingReplies(false)
+    }
+  }
+
+  const handleUseReply = (replyId: string) => {
+    const reply = savedReplies.find(r => r.id === replyId)
+    if (reply) {
+      const currentContent = form.getFieldValue('content') || ''
+      form.setFieldsValue({ content: currentContent ? `${currentContent}\n\n${reply.content}` : reply.content })
+    }
   }
 
   const handleSubmit = async (values: any) => {
@@ -98,6 +129,26 @@ export default function TicketComments({ ticketId }: CommentsSectionProps) {
               </div>
             </div>
           ))}
+        </div>
+      )}
+
+      <Divider style={{ margin: '12px 0' }} />
+
+      {isAdmin && savedReplies.length > 0 && (
+        <div style={{ marginBottom: 12 }}>
+          <Space>
+            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}><MessageOutlined /> Saved Reply:</span>
+            <Select
+              placeholder="Select a macro..."
+              style={{ width: 200 }}
+              size="small"
+              onChange={handleUseReply}
+              loading={fetchingReplies}
+              value={undefined}
+              dropdownMatchSelectWidth={false}
+              options={savedReplies.map(r => ({ label: r.title, value: r.id }))}
+            />
+          </Space>
         </div>
       )}
 
