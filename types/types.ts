@@ -15,6 +15,13 @@ export interface Tag {
   created_at: string
 }
 
+export interface TicketType {
+  id: string
+  name: string
+  description?: string
+  created_at: string
+}
+
 export interface SavedReply {
   id: string
   title: string
@@ -29,6 +36,8 @@ export interface Ticket {
   title: string
   description: string
   category: Category
+  type?: string
+  product_reference_number?: string
   priority: Priority
   status: Status
   created_at: string
@@ -36,6 +45,14 @@ export interface Ticket {
   tags: string[]
   user_id: string
   assigned_to?: string
+  assigned_user?: {
+    email: string
+    full_name?: string
+  }
+  creator?: {
+    email: string
+    full_name?: string
+  }
 }
 
 export interface User {
