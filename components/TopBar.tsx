@@ -13,7 +13,6 @@ export default function TopBar() {
   const { user, isAdmin } = useAuthStore()
   const router = useRouter()
   const [showAccountModal, setShowAccountModal] = useState(false)
-  const [notifications] = useState([]) // Placeholder for notifications
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
