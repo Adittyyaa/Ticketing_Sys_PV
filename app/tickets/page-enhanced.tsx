@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Alert, Button, Input, Select, Spin, Tag, Space, Card, Row, Col, Segmented, Dropdown, MenuProps, Badge } from 'antd'
-import { FileText, Plus, Search, Filter, User, Clock, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Grid, Table as TableIcon, Mail, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
+import { Alert, Button, Spin, Tag, Space, Card, Row, Col, Segmented, Dropdown, MenuProps, Badge } from 'antd'
+import { FileText, Plus,  Filter, User, Clock, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Grid, Table as TableIcon, Mail, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
@@ -20,21 +20,7 @@ type PredefindFilter = 'all' | 'my_open' | 'assigned_to_me' | 'unassigned' | 'hi
 type SortField = 'created_at' | 'updated_at' | 'priority' | 'status' | 'title' | 'number'
 type SortOrder = 'asc' | 'desc'
 
-const statusOptions = [
-  { label: 'All Status', value: 'all' },
-  { label: 'Untouched', value: 'UNTOUCHED' },
-  { label: 'Pending', value: 'PENDING' },
-  { label: 'Opened', value: 'OPENED' },
-  { label: 'Solved', value: 'SOLVED' },
-]
 
-const priorityOptions = [
-  { label: 'All Priority', value: 'all' },
-  { label: 'Low', value: 'LOW' },
-  { label: 'Medium', value: 'MEDIUM' },
-  { label: 'High', value: 'HIGH' },
-  { label: 'Urgent', value: 'URGENT' },
-]
 
 const predefinedFilters: { label: string; value: PredefindFilter; icon: any; description: string }[] = [
   { label: 'All Tickets', value: 'all', icon: FileText, description: 'View all tickets' },
