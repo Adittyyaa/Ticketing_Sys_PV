@@ -51,11 +51,7 @@ export default function TicketTable({ tickets, onTicketsDeleted, selectedRowKeys
       title: 'Status', dataIndex: 'status', key: 'status', width: 100,
       render: (s: Status) => {
         const d = statusDisplay[s]
-<<<<<<< HEAD
-        return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 500, color: d.color, backgroundColor: d.bg }}>{d.label}</span>
-=======
         return <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)' }}>{d.label}</span>
->>>>>>> 544fa58 (Remove colorful badges and status pills from ticket list UI)
       },
     },
     {
