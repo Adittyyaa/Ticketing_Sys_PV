@@ -108,33 +108,13 @@ export default function NavigationHeader() {
         style={{
           display: 'flex',
           alignItems: 'center',
-          justifyContent: 'space-between',
+          justifyContent: 'flex-end',
           background: '#111827',
           borderBottom: '1px solid #374151',
           padding: '0 24px',
           height: '64px',
         }}
       >
-        {/* ============================================ */}
-        {/* LEFT SECTION: Logo */}
-        {/* ============================================ */}
-        <Link 
-          href={isAdmin ? '/admin' : '/tickets'} // Admin goes to admin dashboard, users to tickets
-          style={{ display: 'flex', alignItems: 'center', gap: '12px', textDecoration: 'none' }}
-        >
-          <Image 
-            src="/logo.jpeg" 
-            alt="Logo" 
-            width={40} 
-            height={40} 
-            style={{ borderRadius: '8px' }}
-          />
-          {/* Title hidden on mobile, shown on larger screens */}
-          <span style={{ color: '#fff', fontSize: '18px', fontWeight: '600', display: 'none', marginLeft: '12px' }}>
-            Ticket System
-          </span>
-        </Link>
-
         {/* ============================================ */}
         {/* RIGHT SECTION: Navigation Actions */}
         {/* ============================================ */}
