@@ -1,11 +1,10 @@
 'use client'
 
 import { Layout, Button, Dropdown, Tooltip, Badge } from 'antd'
-import { MenuOutlined, BellOutlined, UserOutlined, LogoutOutlined, HomeOutlined } from '@ant-design/icons'
+import { MenuOutlined, BellOutlined, UserOutlined, LogoutOutlined } from '@ant-design/icons'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import Link from 'next/link'
 import { useState } from 'react'
 import AccountDetailsModal from './AccountDetailsModal'
 
@@ -22,7 +21,6 @@ const { Header } = Layout
  * Top navigation bar with logo, actions, and user menu
  * Features:
  * - Company logo with clickable home link
- * - Admin dashboard quick access (for admins only)
  * - Notifications button with badge
  * - Account details modal trigger
  * - User menu with email, role, and logout
@@ -119,20 +117,6 @@ export default function NavigationHeader() {
         {/* RIGHT SECTION: Navigation Actions */}
         {/* ============================================ */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          {/* Admin Dashboard Link (only visible to admins) */}
-          {isAdmin && (
-            <Link href="/admin">
-              <Tooltip title="Admin Dashboard">
-                <Button 
-                  type="text" 
-                  icon={<HomeOutlined />}
-                  size="large"
-                  style={{ color: '#fff' }}
-                />
-              </Tooltip>
-            </Link>
-          )}
-
           {/* Theme Toggle Button */}
           <ThemeToggle size="large" />
 

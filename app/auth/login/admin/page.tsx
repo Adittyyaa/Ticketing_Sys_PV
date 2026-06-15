@@ -32,7 +32,7 @@ export default function AdminLoginPage() {
       }
       setUser({ id: data.user.id, email: data.user.email || '', role: 'admin' })
       setIsAdmin(true)
-      router.push('/admin')
+      router.push('/tickets')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to login')
     } finally {

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Form, Input, Button, Alert, Divider } from 'antd'
+import { Form, Input, Button, Alert } from 'antd'
 import { LockOutlined, LoginOutlined, MailOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'

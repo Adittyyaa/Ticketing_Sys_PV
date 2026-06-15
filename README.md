@@ -11,7 +11,7 @@ This project is a Ticketing System designed to help manage, track, and resolve s
 - Assign tickets to specific users or teams
 - Track ticket status (Open, In Progress, Resolved, Closed)
 - Commenting system for communication on tickets
-- Dashboard for ticket overview and analytics
+- Tickets page with My Tickets and Other Tickets sections
 - Admin controls for managing users and system data
 
 ## Tech Stack

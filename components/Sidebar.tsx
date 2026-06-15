@@ -5,7 +5,6 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { useAuthStore } from '@/lib/store'
 import {
-  LayoutDashboard,
   Ticket,
   Users,
   Shield,
@@ -18,7 +17,6 @@ import { useState } from 'react'
 
 const NAV_ITEMS = [
   { href: '/admin/overview', label: 'Overview', icon: BarChart3, adminOnly: true },
-  { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, adminOnly: true },
   { href: '/tickets', label: 'Tickets', icon: Ticket, adminOnly: false },
   { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
   { href: '/admin/manage-admins', label: 'Admins', icon: Shield, adminOnly: true },
@@ -35,8 +33,7 @@ export default function Sidebar() {
   )
 
   const isActive = (href: string) => {
-    if (href === '/admin' && pathname === '/admin') return true
-    if (href !== '/admin' && pathname.startsWith(href)) return true
+    if (pathname.startsWith(href)) return true
     return false
   }
 

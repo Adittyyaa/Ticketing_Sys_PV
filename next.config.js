@@ -5,6 +5,10 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: 'https',
+        hostname: 'kqnuxtumkvhvkedaobcr.supabase.co',
+      },
+      {
+        protocol: 'https',
         hostname: 'localhost',
       },
       // Add your Supabase storage hostname here if needed

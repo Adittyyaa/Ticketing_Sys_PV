@@ -93,7 +93,7 @@ export default function ManageAdminsPage() {
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>{admins.length} administrator accounts</p>
           </div>
           <Space>
-            <Button onClick={() => router.push('/admin')}>Dashboard</Button>
+            <Button onClick={() => router.push('/tickets')}>Tickets</Button>
             <Button type="primary" onClick={() => setShowForm(!showForm)} style={{ backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}>+ Create Admin</Button>
           </Space>
         </div>

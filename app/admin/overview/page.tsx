@@ -92,7 +92,7 @@ export default function AdminOverviewPage() {
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>Real-time ticket metrics and performance analytics</p>
           </div>
           <Space>
-            <Button onClick={() => router.push('/admin')}>View Tickets</Button>
+            <Button onClick={() => router.push('/tickets')}>View Tickets</Button>
             <Button type="primary" onClick={() => setShowFeedback(true)} style={{ backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}>+ Feedback</Button>
           </Space>
         </div>

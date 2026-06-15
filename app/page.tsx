@@ -27,8 +27,7 @@ export default function Home() {
           const isAdmin = userData?.role === 'admin'
           setIsAdmin(isAdmin)
           setUser({ id: session.user.id, email: session.user.email || '', role: userData?.role || 'user' })
-          if (isAdmin) router.push('/admin')
-          else router.push('/tickets')
+          router.push('/tickets')
         } else {
           if (isMounted) router.push('/auth')
         }

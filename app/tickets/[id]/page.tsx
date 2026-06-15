@@ -65,7 +65,7 @@ export default function TicketDetailPage() {
         form.setFieldsValue({ priority: data.priority, status: data.status })
       } catch {
         message.error('Failed to load ticket')
-        router.push(isAdmin ? '/admin' : '/tickets')
+        router.push('/tickets')
       } finally {
         setLocalLoading(false)
       }
@@ -99,7 +99,7 @@ export default function TicketDetailPage() {
           const { error } = await applyOwnershipFilter(supabase.from('tbl_tickets').delete().eq('id', ticket?.id))
           if (error) throw error
           message.success('Ticket deleted')
-          router.push(isAdmin ? '/admin' : '/tickets')
+          router.push('/tickets')
         } catch { message.error('Failed to delete ticket') }
       }
     })
@@ -157,7 +157,7 @@ export default function TicketDetailPage() {
     <AppShell>
       <div style={{ padding: '24px 32px' }}>
         {/* Breadcrumb */}
-        <Link href={isAdmin ? '/admin' : '/tickets'} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-link)', fontSize: 12, marginBottom: 20 }}>
+        <Link href="/tickets" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--text-link)', fontSize: 12, marginBottom: 20 }}>
           <ArrowLeft size={14} /> Back to tickets
         </Link>
 

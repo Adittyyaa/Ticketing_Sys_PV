@@ -19,7 +19,7 @@ export default function CallbackPage() {
             .eq('id', session.user.id)
             .single()
           if (userError) { router.push('/tickets'); return }
-          if (userData?.role === 'admin') router.push('/admin')
+          if (userData?.role === 'admin') router.push('/tickets')
           else router.push('/tickets')
         } else {
           router.push('/auth')

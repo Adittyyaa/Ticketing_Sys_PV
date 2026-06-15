@@ -37,7 +37,7 @@ export default function LoginPage() {
         .select('role')
         .eq('id', userId)
         .single()
-      if (userData?.role === 'admin') router.push('/admin')
+      if (userData?.role === 'admin') router.push('/tickets')
       else router.push('/tickets')
     } catch {
       router.push('/tickets')
@@ -63,7 +63,7 @@ export default function LoginPage() {
         setIsAdmin(userData?.role === 'admin')
         setLoading(false)
         message.success(`Welcome ${userData?.full_name || 'back'}!`)
-        if (userData?.role === 'admin') router.push('/admin')
+        if (userData?.role === 'admin') router.push('/tickets')
         else router.push('/tickets')
       }
     } catch (error) {

@@ -1,7 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
-import fs from 'fs'
-import path from 'path'
 
 export async function POST(request: NextRequest) {
   try {
@@ -27,36 +25,23 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Missing feedback fields' }, { status: 400 })
     }
 
-    const feedbackData = {
-      id: Math.random().toString(36).substring(2, 11),
-      userId: user.id,
-      category,
-      rating: Number(rating),
-      message,
-      createdAt: new Date().toISOString(),
-    }
+    const { data, error } = await supabaseAdmin
+      .from('tbl_feedback')
+      .insert([
+        {
+          user_id: user.id,
+          category,
+          rating: Number(rating),
+          message,
+          created_at: new Date().toISOString(),
+        },
+      ])
+      .select()
+      .single()
 
-    const dataDir = path.join(process.cwd(), 'data')
-    const filePath = path.join(dataDir, 'feedback.json')
+    if (error) throw new Error(error.message)
 
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true })
-    }
-
-    let feedbackList = []
-    if (fs.existsSync(filePath)) {
-      try {
-        const fileContent = fs.readFileSync(filePath, 'utf-8')
-        feedbackList = JSON.parse(fileContent)
-      } catch {
-        feedbackList = []
-      }
-    }
-
-    feedbackList.push(feedbackData)
-    fs.writeFileSync(filePath, JSON.stringify(feedbackList, null, 2))
-
-    return NextResponse.json({ success: true, feedback: feedbackData })
+    return NextResponse.json({ success: true, feedback: data })
   } catch (error) {
     console.error('Feedback API error:', error)
     return NextResponse.json(

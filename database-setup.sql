@@ -4,12 +4,72 @@
 -- ============================================
 
 -- ============================================
+-- STEP 0: Create tables if not exists
+-- ============================================
+
+CREATE TABLE IF NOT EXISTS public.tbl_users (
+  id UUID REFERENCES auth.users(id) ON DELETE CASCADE PRIMARY KEY,
+  email VARCHAR(255) NOT NULL,
+  full_name VARCHAR(255),
+  role VARCHAR(50) DEFAULT 'user' NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.tbl_tickets (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  title VARCHAR(255) NOT NULL,
+  description TEXT NOT NULL,
+  priority VARCHAR(50) DEFAULT 'MEDIUM' NOT NULL,
+  status VARCHAR(50) DEFAULT 'UNTOUCHED' NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  comment_count INTEGER DEFAULT 0 NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.tbl_comments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES public.tbl_tickets(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  commenter_name VARCHAR(255),
+  commenter_email VARCHAR(255)
+);
+
+CREATE TABLE IF NOT EXISTS public.tbl_attachments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  ticket_id UUID NOT NULL REFERENCES public.tbl_tickets(id) ON DELETE CASCADE,
+  file_name VARCHAR(255) NOT NULL,
+  file_path VARCHAR(500) NOT NULL,
+  file_size INTEGER,
+  uploaded_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.tbl_feedback (
+  id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  category TEXT NOT NULL,
+  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+  message TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+ALTER TABLE IF EXISTS public.tbl_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_tickets ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_feedback ENABLE ROW LEVEL SECURITY;
+
+-- ============================================
 -- STEP 1: Clean slate - disable RLS and drop all policies
 -- ============================================
 ALTER TABLE IF EXISTS public.tbl_users DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_tickets DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_comments DISABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_attachments DISABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_feedback DISABLE ROW LEVEL SECURITY;
 
 -- Drop all existing policies
 DO $$ 
@@ -42,6 +102,7 @@ ALTER TABLE public.tbl_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tbl_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_attachments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_feedback ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- STEP 4: Create tbl_users table policies
@@ -87,6 +148,39 @@ WITH CHECK (auth.uid() = user_id OR public.get_user_role() = 'admin');
 CREATE POLICY "tbl_tickets_delete_own_or_admin"
 ON public.tbl_tickets FOR DELETE
 USING (auth.uid() = user_id OR public.get_user_role() = 'admin');
+
+-- ============================================
+-- STEP 6: Create tbl_comments table policies
+-- ============================================
+
+-- All authenticated users can view comments
+CREATE POLICY "tbl_comments_select_all_authenticated"
+ON public.tbl_comments FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+-- Users can insert comments
+CREATE POLICY "tbl_comments_insert_authenticated"
+ON public.tbl_comments FOR INSERT
+WITH CHECK (auth.uid() IS NOT NULL);
+
+-- ============================================
+-- STEP 6b: Create tbl_feedback table policies
+-- ============================================
+
+-- Users can insert their own feedback
+CREATE POLICY "tbl_feedback_insert_own"
+ON public.tbl_feedback FOR INSERT
+WITH CHECK (auth.uid() = user_id);
+
+-- Users can view their own feedback
+CREATE POLICY "tbl_feedback_select_own"
+ON public.tbl_feedback FOR SELECT
+USING (auth.uid() = user_id);
+
+-- Admins can view all feedback
+CREATE POLICY "tbl_feedback_select_admin"
+ON public.tbl_feedback FOR SELECT
+USING (public.get_user_role() = 'admin');
 
 -- ============================================
 -- STEP 7: Create Analytics View
