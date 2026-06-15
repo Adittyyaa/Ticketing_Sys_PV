@@ -3,7 +3,10 @@
 import { Ticket, Priority, Status } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
+<<<<<<< HEAD
 import { useState } from 'react'
+=======
+>>>>>>> 544fa58 (Remove colorful badges and status pills from ticket list UI)
 import { Table, Button, Tag, Modal, message } from 'antd'
 import { DeleteOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
@@ -48,7 +51,11 @@ export default function TicketTable({ tickets, onTicketsDeleted, selectedRowKeys
       title: 'Status', dataIndex: 'status', key: 'status', width: 100,
       render: (s: Status) => {
         const d = statusDisplay[s]
+<<<<<<< HEAD
         return <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '2px 8px', borderRadius: 9999, fontSize: 11, fontWeight: 500, color: d.color, backgroundColor: d.bg }}>{d.label}</span>
+=======
+        return <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)' }}>{d.label}</span>
+>>>>>>> 544fa58 (Remove colorful badges and status pills from ticket list UI)
       },
     },
     {

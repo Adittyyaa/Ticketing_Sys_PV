@@ -4,7 +4,10 @@ import { Ticket } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { Empty, Checkbox, Tooltip } from 'antd'
+<<<<<<< HEAD
 import { useState } from 'react'
+=======
+>>>>>>> 544fa58 (Remove colorful badges and status pills from ticket list UI)
 import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
 
 interface TicketCardViewProps {
@@ -14,12 +17,15 @@ interface TicketCardViewProps {
   selectedIds?: string[]
 }
 
+<<<<<<< HEAD
 const getAvatarColor = (userId: string): string => {
   const colors = ['#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#a78bfa', '#06b6d4', '#ec4899']
   const index = userId.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) % colors.length
   return colors[index]
 }
 
+=======
+>>>>>>> 544fa58 (Remove colorful badges and status pills from ticket list UI)
 export default function TicketCardView({ 
   tickets, 
   onSelectionChange, 
@@ -85,6 +91,7 @@ export default function TicketCardView({
                 {ticket.title}
               </span>
 
+<<<<<<< HEAD
               <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 500, padding: '2px 8px', backgroundColor: 'var(--bg-elevated)', borderRadius: 4, flexShrink: 0 }}>
                 {ticket.category}
               </span>
@@ -93,6 +100,12 @@ export default function TicketCardView({
                 {s.label}
               </span>
 
+=======
+                      <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 500, padding: '2px 8px', backgroundColor: 'var(--bg-elevated)', borderRadius: 4, flexShrink: 0 }}>
+                {ticket.category}
+              </span>
+
+>>>>>>> 544fa58 (Remove colorful badges and status pills from ticket list UI)
               <span style={{ fontSize: 11, fontWeight: 500, color: p.color, flexShrink: 0, minWidth: 52, textAlign: 'right' }}>
                 {p.label}
               </span>
@@ -100,10 +113,13 @@ export default function TicketCardView({
               <span style={{ color: 'var(--text-tertiary)', fontSize: 11, flexShrink: 0, minWidth: 60, textAlign: 'right' }}>
                 {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: false })}
               </span>
+<<<<<<< HEAD
 
               <div style={{ width: 24, height: 24, borderRadius: 6, backgroundColor: getAvatarColor(ticket.user_id), display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                 <span style={{ color: '#fff', fontSize: 10, fontWeight: 600 }}>{ticket.user_id.substring(0, 1).toUpperCase()}</span>
               </div>
+=======
+>>>>>>> 544fa58 (Remove colorful badges and status pills from ticket list UI)
             </div>
           </Link>
         )
