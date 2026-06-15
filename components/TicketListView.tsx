@@ -1,12 +1,12 @@
 'use client'
 
-import { Ticket, Priority, Status } from '@/types/types'
+import { Ticket } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { Tag, Avatar, Card, Space, Row, Col } from 'antd'
 import { useAuthStore } from '@/lib/store'
 import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
-import { User, Package, Calendar, Clock, MessageSquare } from 'lucide-react'
+import { User, Package, Calendar, Clock } from 'lucide-react'
 
 interface TicketListViewProps {
   tickets: Ticket[]

@@ -220,7 +220,7 @@ export default function TicketTableEnhanced({ tickets, selectedRowKeys = [], onS
       dataIndex: 'user_id', 
       key: 'user_id', 
       width: 100,
-      render: (userId: string, record: Ticket) => {
+      render: (_: string, record: Ticket) => {
         const email = record.creator?.email || 'Unknown'
         const name = record.creator?.full_name || email.split('@')[0]
         return (
