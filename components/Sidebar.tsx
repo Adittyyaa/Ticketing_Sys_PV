@@ -12,10 +12,12 @@ import {
   Settings,
   ChevronLeft,
   ChevronRight,
+  BarChart3,
 } from 'lucide-react'
 import { useState } from 'react'
 
 const NAV_ITEMS = [
+  { href: '/admin/overview', label: 'Overview', icon: BarChart3, adminOnly: true },
   { href: '/admin', label: 'Dashboard', icon: LayoutDashboard, adminOnly: true },
   { href: '/tickets', label: 'Tickets', icon: Ticket, adminOnly: false },
   { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
