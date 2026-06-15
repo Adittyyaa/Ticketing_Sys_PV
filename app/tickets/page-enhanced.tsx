@@ -2,20 +2,20 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Alert, Button, Input, Select, Spin, Tag, Space, Card, Row, Col, Segmented, Dropdown, MenuProps } from 'antd'
-import { FileText, Plus, Search, Filter, User, Clock, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, List, Grid, Table as TableIcon, LayoutList } from 'lucide-react'
+import { Alert, Button, Input, Select, Spin, Tag, Space, Card, Row, Col, Segmented, Dropdown, MenuProps, Badge } from 'antd'
+import { FileText, Plus, Search, Filter, User, Clock, AlertCircle, ArrowUpDown, ArrowUp, ArrowDown, Grid, Table as TableIcon, Mail, SlidersHorizontal, ChevronLeft, ChevronRight } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import TicketTable from '@/components/TicketTable'
 import TicketCardView from '@/components/TicketCardView'
-import TicketListView from '@/components/TicketListView'
-import TicketCompactView from '@/components/TicketCompactView'
+import TicketInboxView from '@/components/TicketInboxView'
+import TicketFilterDrawer from '@/components/TicketFilterDrawer'
 import { Ticket } from '@/types/types'
 import { getAdminAuthHeader } from '@/lib/admin-api'
 import Link from 'next/link'
 
-type ViewMode = 'card' | 'table' | 'list' | 'compact'
+type ViewMode = 'card' | 'inbox' | 'table'
 type PredefindFilter = 'all' | 'my_open' | 'assigned_to_me' | 'unassigned' | 'high_priority' | 'urgent'
 type SortField = 'created_at' | 'updated_at' | 'priority' | 'status' | 'title' | 'number'
 type SortOrder = 'asc' | 'desc'
@@ -124,7 +124,7 @@ export default function TicketsPage() {
   const [allTickets, setAllTickets] = useState<Ticket[]>([])
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [viewMode, setViewMode] = useState<ViewMode>('table')
+  const [viewMode, setViewMode] = useState<ViewMode>('inbox')
   const [sortField, setSortField] = useState<SortField>('updated_at')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -137,6 +137,9 @@ export default function TicketsPage() {
   const [ticketError, setTicketError] = useState<string | null>(null)
   const [categories, setCategories] = useState<string[]>([])
   const [types, setTypes] = useState<string[]>([])
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
+  const [currentPage, setCurrentPage] = useState(1)
+  const ticketsPerPage = 50
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -247,7 +250,20 @@ export default function TicketsPage() {
     setPredefinedFilter('all')
     setSortField('updated_at')
     setSortOrder('desc')
+    setCurrentPage(1)
   }
+
+  const getAppliedFiltersCount = () => {
+    let count = 0
+    if (searchQuery) count++
+    if (statusFilter !== 'all') count++
+    if (priorityFilter !== 'all') count++
+    if (categoryFilter !== 'all') count++
+    if (typeFilter !== 'all') count++
+    return count
+  }
+
+  const appliedFiltersCount = getAppliedFiltersCount()
 
   const sortMenuItems: MenuProps['items'] = [
     {
@@ -320,6 +336,17 @@ export default function TicketsPage() {
 
   const stats = getFilterStats()
 
+  // Pagination
+  const totalPages = Math.ceil(filteredTickets.length / ticketsPerPage)
+  const startIndex = (currentPage - 1) * ticketsPerPage
+  const endIndex = startIndex + ticketsPerPage
+  const paginatedTickets = filteredTickets.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+  }
+
   if (!user) return null
 
   return (
@@ -384,111 +411,140 @@ export default function TicketsPage() {
           </Row>
         </Card>
 
-        {/* Advanced Filters */}
+        {/* Filter Bar */}
         <Card style={{ marginBottom: 24, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)' }}>
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <Filter size={16} style={{ color: 'var(--text-secondary)' }} />
-              <span style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-secondary)' }}>ADVANCED FILTERS</span>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 16 }}>
+            {/* Left Side - Pagination & Results */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                <Button
+                  icon={<ChevronLeft size={16} />}
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  size="large"
+                />
+                <span style={{ fontSize: 14, color: 'var(--text-secondary)', minWidth: 100, textAlign: 'center' }}>
+                  {startIndex + 1} - {Math.min(endIndex, filteredTickets.length)} of {filteredTickets.length}
+                </span>
+                <Button
+                  icon={<ChevronRight size={16} />}
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage >= totalPages}
+                  size="large"
+                />
+              </div>
             </div>
-            
-            <Row gutter={[16, 16]}>
-              <Col xs={24} md={8}>
-                <Input
-                  placeholder="Search by title, description, or ref number..."
-                  prefix={<Search size={16} style={{ color: 'var(--text-placeholder)' }} />}
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  size="large"
-                  allowClear
-                />
-              </Col>
-              <Col xs={12} sm={8} md={4}>
-                <Select 
-                  value={statusFilter} 
-                  onChange={setStatusFilter} 
-                  style={{ width: '100%' }}
-                  size="large"
-                  options={statusOptions}
-                />
-              </Col>
-              <Col xs={12} sm={8} md={4}>
-                <Select 
-                  value={priorityFilter} 
-                  onChange={setPriorityFilter} 
-                  style={{ width: '100%' }}
-                  size="large"
-                  options={priorityOptions}
-                />
-              </Col>
-              <Col xs={12} sm={8} md={4}>
-                <Select 
-                  value={categoryFilter} 
-                  onChange={setCategoryFilter} 
-                  style={{ width: '100%' }}
-                  size="large"
-                  placeholder="Category"
-                >
-                  <Select.Option value="all">All Categories</Select.Option>
-                  {categories.map(cat => (
-                    <Select.Option key={cat} value={cat}>{cat}</Select.Option>
-                  ))}
-                </Select>
-              </Col>
-              <Col xs={12} sm={8} md={4}>
-                <Select 
-                  value={typeFilter} 
-                  onChange={setTypeFilter} 
-                  style={{ width: '100%' }}
-                  size="large"
-                  placeholder="Type"
-                >
-                  <Select.Option value="all">All Types</Select.Option>
-                  {types.map(type => (
-                    <Select.Option key={type} value={type}>{type}</Select.Option>
-                  ))}
-                </Select>
-              </Col>
-            </Row>
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 12 }}>
-              <Space wrap>
-                <Button onClick={resetFilters}>Reset All</Button>
-                
-                {/* Sort Dropdown */}
-                <Dropdown
-                  menu={{
-                    items: sortMenuItems,
-                    onClick: ({ key }) => handleSortChange(key),
-                    selectable: true,
-                    selectedKeys: [sortField],
-                  }}
-                  trigger={['click']}
-                >
-                  <Button icon={<ArrowUpDown size={14} />}>
-                    Sort: {getSortLabel()} {sortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
-                  </Button>
-                </Dropdown>
+            {/* Right Side - View, Sort, Filter */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              {/* View Mode Toggle */}
+              <Segmented 
+                value={viewMode} 
+                onChange={(value) => setViewMode(value as ViewMode)}
+                size="large"
+                options={[
+                  { 
+                    label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Grid size={14} /> Card</span>, 
+                    value: 'card'
+                  },
+                  { 
+                    label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><Mail size={14} /> Inbox</span>, 
+                    value: 'inbox'
+                  },
+                  { 
+                    label: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><TableIcon size={14} /> Table</span>, 
+                    value: 'table'
+                  }
+                ]} 
+              />
 
-                {/* View Mode Toggle */}
-                <Segmented 
-                  value={viewMode} 
-                  onChange={(value) => setViewMode(value as ViewMode)}
-                  options={[
-                    { label: 'Table', value: 'table', icon: <TableIcon size={14} /> },
-                    { label: 'Cards', value: 'card', icon: <Grid size={14} /> },
-                    { label: 'List', value: 'list', icon: <List size={14} /> },
-                    { label: 'Compact', value: 'compact', icon: <LayoutList size={14} /> }
-                  ]} 
-                />
+              {/* Sort Dropdown */}
+              <Dropdown
+                menu={{
+                  items: sortMenuItems,
+                  onClick: ({ key }) => handleSortChange(key),
+                  selectable: true,
+                  selectedKeys: [sortField],
+                }}
+                trigger={['click']}
+              >
+                <Button icon={<ArrowUpDown size={14} />} size="large">
+                  Sort: {getSortLabel()} {sortOrder === 'asc' ? <ArrowUp size={12} /> : <ArrowDown size={12} />}
+                </Button>
+              </Dropdown>
+
+              {/* Filter Button with Badge */}
+              <Badge count={appliedFiltersCount} offset={[-5, 5]}>
+                <Button 
+                  icon={<SlidersHorizontal size={14} />} 
+                  size="large"
+                  onClick={() => setFilterDrawerOpen(true)}
+                  type={appliedFiltersCount > 0 ? 'primary' : 'default'}
+                >
+                  Filters {appliedFiltersCount > 0 && `(${appliedFiltersCount})`}
+                </Button>
+              </Badge>
+            </div>
+          </div>
+
+          {/* Applied Filters Tags */}
+          {appliedFiltersCount > 0 && (
+            <div style={{ marginTop: 16, paddingTop: 16, borderTop: '1px solid var(--border-subtle)' }}>
+              <Space wrap size={[8, 8]}>
+                <span style={{ fontSize: 12, color: 'var(--text-tertiary)', fontWeight: 500 }}>Active filters:</span>
+                {searchQuery && (
+                  <Tag closable onClose={() => { setSearchQuery(''); setCurrentPage(1); }} color="blue">
+                    Search: "{searchQuery.substring(0, 30)}{searchQuery.length > 30 ? '...' : ''}"
+                  </Tag>
+                )}
+                {statusFilter !== 'all' && (
+                  <Tag closable onClose={() => { setStatusFilter('all'); setCurrentPage(1); }} color="blue">
+                    Status: {statusFilter}
+                  </Tag>
+                )}
+                {priorityFilter !== 'all' && (
+                  <Tag closable onClose={() => { setPriorityFilter('all'); setCurrentPage(1); }} color="blue">
+                    Priority: {priorityFilter}
+                  </Tag>
+                )}
+                {categoryFilter !== 'all' && (
+                  <Tag closable onClose={() => { setCategoryFilter('all'); setCurrentPage(1); }} color="blue">
+                    Category: {categoryFilter}
+                  </Tag>
+                )}
+                {typeFilter !== 'all' && (
+                  <Tag closable onClose={() => { setTypeFilter('all'); setCurrentPage(1); }} color="blue">
+                    Type: {typeFilter}
+                  </Tag>
+                )}
+                <Button type="link" size="small" onClick={resetFilters} style={{ fontSize: 12, padding: 0 }}>
+                  Clear all
+                </Button>
               </Space>
-              
-              <Tag color="blue" style={{ fontSize: 13, padding: '6px 14px', fontWeight: 500 }}>
-                {filteredTickets.length} ticket{filteredTickets.length !== 1 ? 's' : ''} found
-              </Tag>
             </div>
-          </Space>
+          )}
         </Card>
+
+        {/* Filter Drawer */}
+        <TicketFilterDrawer
+          open={filterDrawerOpen}
+          onClose={() => setFilterDrawerOpen(false)}
+          searchQuery={searchQuery}
+          statusFilter={statusFilter}
+          priorityFilter={priorityFilter}
+          categoryFilter={categoryFilter}
+          typeFilter={typeFilter}
+          onSearchChange={setSearchQuery}
+          onStatusChange={setStatusFilter}
+          onPriorityChange={setPriorityFilter}
+          onCategoryChange={setCategoryFilter}
+          onTypeChange={setTypeFilter}
+          categories={categories}
+          types={types}
+          onApply={() => setCurrentPage(1)}
+          onReset={resetFilters}
+          appliedCount={appliedFiltersCount}
+        />
 
         {/* Error Alert */}
         {ticketError && (
@@ -522,13 +578,11 @@ export default function TicketsPage() {
             </Link>
           </Card>
         ) : viewMode === 'card' ? (
-          <TicketCardView tickets={filteredTickets} />
-        ) : viewMode === 'list' ? (
-          <TicketListView tickets={filteredTickets} />
-        ) : viewMode === 'compact' ? (
-          <TicketCompactView tickets={filteredTickets} />
+          <TicketCardView tickets={paginatedTickets} />
+        ) : viewMode === 'inbox' ? (
+          <TicketInboxView tickets={paginatedTickets} />
         ) : (
-          <TicketTable tickets={filteredTickets} />
+          <TicketTable tickets={paginatedTickets} />
         )}
       </div>
     </AppShell>
