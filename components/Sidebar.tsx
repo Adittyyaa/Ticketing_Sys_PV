@@ -150,44 +150,6 @@ export default function Sidebar() {
           flexShrink: 0,
         }}
       >
-        {/* User Info */}
-        {user && !collapsed && (
-          <div
-            style={{
-              padding: '8px 20px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: 10,
-            }}
-          >
-            <div
-              style={{
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                backgroundColor: 'var(--bg-elevated)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                flexShrink: 0,
-                border: '1px solid var(--border-subtle)',
-              }}
-            >
-              <span style={{ color: 'var(--accent-primary)', fontSize: 12, fontWeight: 600 }}>
-                {(user.email?.[0] || 'U').toUpperCase()}
-              </span>
-            </div>
-            <div style={{ overflow: 'hidden' }}>
-              <div style={{ color: 'var(--text-primary)', fontSize: 12, fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                {user.email}
-              </div>
-              <div style={{ color: 'var(--accent-primary)', fontSize: 10, fontWeight: 500, textTransform: 'uppercase' }}>
-                {isAdmin ? 'Admin' : 'User'}
-              </div>
-            </div>
-          </div>
-        )}
-
         {/* Collapse Toggle */}
         <button
           onClick={() => setCollapsed(!collapsed)}

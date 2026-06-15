@@ -1,7 +1,7 @@
 'use client'
 
-import { Dropdown, Tooltip } from 'antd'
-import { Bell, LogOut, User, Settings } from 'lucide-react'
+import { Tooltip } from 'antd'
+import { Bell, LogOut, Settings } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -19,49 +19,19 @@ export default function TopBar() {
     router.push('/auth')
   }
 
-  const menuItems = [
-    {
-      key: 'email',
-      disabled: true,
-      label: (
-        <div style={{ padding: '4px 0' }}>
-          <div style={{ fontSize: 10, color: 'var(--text-tertiary)' }}>Signed in as</div>
-          <div style={{ fontSize: 13, color: 'var(--text-primary)', fontWeight: 500, marginTop: 2 }}>
-            {user?.email}
-          </div>
-        </div>
-      ),
-    },
-
-    { type: 'divider' as const },
-    {
-      key: 'account',
-      icon: <User size={14} />,
-      label: 'Account',
-      onClick: () => setShowAccountModal(true),
-    },
-    {
-      key: 'logout',
-      icon: <LogOut size={14} />,
-      label: 'Sign out',
-      danger: true,
-      onClick: handleLogout,
-    },
-  ]
-
   return (
     <>
       <header
         style={{
-          height: 48,
-          minHeight: 48,
+          height: 56,
+          minHeight: 56,
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'flex-end',
           padding: '0 24px',
           backgroundColor: 'var(--bg-surface)',
           borderBottom: '1px solid var(--border-subtle)',
-          gap: 8,
+          gap: 12,
           flexShrink: 0,
           zIndex: 30,
         }}
@@ -94,7 +64,7 @@ export default function TopBar() {
               e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
-            <Bell size={16} />
+            <Bell size={18} />
           </button>
         </Tooltip>
 
@@ -122,22 +92,24 @@ export default function TopBar() {
               e.currentTarget.style.color = 'var(--text-secondary)'
             }}
           >
-            <Settings size={16} />
+            <Settings size={18} />
           </button>
         </Tooltip>
 
-        {/* User Menu */}
-        <Dropdown menu={{ items: menuItems }} placement="bottomRight" trigger={['click']}>
-          <button
+        <div style={{ width: 1, height: 24, backgroundColor: 'var(--border-subtle)', margin: '0 4px' }} />
+
+        {/* User Profile Info */}
+        {user && (
+          <div
+            onClick={() => setShowAccountModal(true)}
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: 8,
-              padding: '4px 8px',
-              borderRadius: 6,
-              border: 'none',
-              backgroundColor: 'transparent',
+              gap: 12,
+              padding: '6px 12px',
+              borderRadius: 8,
               cursor: 'pointer',
+              transition: 'all 150ms',
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
@@ -146,24 +118,68 @@ export default function TopBar() {
               e.currentTarget.style.backgroundColor = 'transparent'
             }}
           >
+            <div style={{ textAlign: 'right' }}>
+              <div style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, lineHeight: 1.2 }}>
+                {user.email}
+              </div>
+              <div style={{ color: 'var(--accent-primary)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', marginTop: 2 }}>
+                {isAdmin ? 'Admin' : 'User'}
+              </div>
+            </div>
             <div
               style={{
-                width: 28,
-                height: 28,
-                borderRadius: 6,
-                backgroundColor: isAdmin ? 'var(--accent-primary)' : 'var(--bg-hover)',
+                width: 32,
+                height: 32,
+                borderRadius: 8,
+                backgroundColor: isAdmin ? 'var(--accent-primary)' : 'var(--bg-elevated)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 border: '1px solid var(--border-subtle)',
+                flexShrink: 0,
               }}
             >
-              <span style={{ color: isAdmin ? '#fff' : 'var(--text-secondary)', fontSize: 12, fontWeight: 600 }}>
-                {(user?.email?.[0] || 'U').toUpperCase()}
+              <span style={{ color: isAdmin ? '#fff' : 'var(--accent-primary)', fontSize: 14, fontWeight: 700 }}>
+                {(user.email?.[0] || 'U').toUpperCase()}
               </span>
             </div>
-          </button>
-        </Dropdown>
+          </div>
+        )}
+
+        <div style={{ width: 1, height: 24, backgroundColor: 'var(--border-subtle)', margin: '0 4px' }} />
+
+        {/* Logout Button */}
+        <button
+          onClick={handleLogout}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 8,
+            padding: '6px 12px',
+            borderRadius: 6,
+            border: '1px solid var(--border-subtle)',
+            backgroundColor: 'transparent',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+            fontSize: 13,
+            fontWeight: 500,
+            transition: 'all 150ms',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'rgba(239, 68, 68, 0.08)'
+            e.currentTarget.style.color = '#ef4444'
+            e.currentTarget.style.borderColor = 'rgba(239, 68, 68, 0.2)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+            e.currentTarget.style.borderColor = 'var(--border-subtle)'
+          }}
+        >
+          <LogOut size={16} />
+          <span>Logout</span>
+        </button>
       </header>
 
       <AccountDetailsModal isOpen={showAccountModal} onClose={() => setShowAccountModal(false)} />
