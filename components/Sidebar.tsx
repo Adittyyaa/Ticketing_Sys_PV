@@ -2,6 +2,7 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { useAuthStore } from '@/lib/store'
 import {
   LayoutDashboard,
@@ -55,6 +56,40 @@ export default function Sidebar() {
         overflow: 'hidden',
       }}
     >
+      {/* Logo Area */}
+      <div
+        style={{
+          height: 48,
+          display: 'flex',
+          alignItems: 'center',
+          padding: collapsed ? '0 16px' : '0 20px',
+          borderBottom: '1px solid var(--border-subtle)',
+          gap: 12,
+          flexShrink: 0,
+        }}
+      >
+        <Image
+          src="/logo.jpeg"
+          alt="Logo"
+          width={28}
+          height={28}
+          style={{ borderRadius: 6, flexShrink: 0 }}
+        />
+        {!collapsed && (
+          <span
+            style={{
+              color: 'var(--text-primary)',
+              fontSize: 15,
+              fontWeight: 600,
+              whiteSpace: 'nowrap',
+              overflow: 'hidden',
+            }}
+          >
+            PV Advisory
+          </span>
+        )}
+      </div>
+
       {/* Navigation */}
       <nav
         style={{

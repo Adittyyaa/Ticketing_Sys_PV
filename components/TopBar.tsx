@@ -117,23 +117,6 @@ export default function TopBar() {
                 {isAdmin ? 'Admin' : 'User'}
               </div>
             </div>
-            <div
-              style={{
-                width: 32,
-                height: 32,
-                borderRadius: 8,
-                backgroundColor: isAdmin ? 'var(--accent-primary)' : 'var(--bg-elevated)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                border: '1px solid var(--border-subtle)',
-                flexShrink: 0,
-              }}
-            >
-              <span style={{ color: isAdmin ? '#fff' : 'var(--accent-primary)', fontSize: 14, fontWeight: 700 }}>
-                {(user.email?.[0] || 'U').toUpperCase()}
-              </span>
-            </div>
           </div>
         )}
 
