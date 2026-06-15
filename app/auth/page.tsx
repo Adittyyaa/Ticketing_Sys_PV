@@ -98,26 +98,20 @@ export default function LoginPage() {
         }}
       >
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <div
-            style={{
-              width: 48, height: 48, borderRadius: 12,
-              background: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              margin: '0 auto 24px',
-            }}
-          >
-            <span style={{ color: '#fff', fontSize: 24, fontWeight: 700 }}>H</span>
-          </div>
+          <Image 
+            src="/logo.jpeg" 
+            alt="Logo" 
+            width={64} 
+            height={64} 
+            style={{ borderRadius: 12, margin: '0 auto 24px', display: 'block' }} 
+          />
           <h1 style={{ color: 'var(--text-primary)', fontSize: 28, fontWeight: 600, marginBottom: 12 }}>Helpdesk</h1>
         </div>
       </div>
 
       {/* Right Panel - Form */}
       <div style={{ width: 480, minWidth: 480, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '48px', backgroundColor: 'var(--bg-base)' }}>
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <Image src="/logo.jpeg" alt="Logo" width={48} height={48} style={{ borderRadius: 8, display: 'inline-block' }} />
-        </div>
-
+        
         <div style={{ marginBottom: 24 }}>
           <h2 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>
             {showAdminLogin ? 'Admin Sign In' : 'Sign In'}

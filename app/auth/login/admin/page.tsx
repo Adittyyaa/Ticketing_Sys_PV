@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Form, Input, Button, Alert } from 'antd'
 import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useAuthStore } from '@/lib/store'
 import ThemeToggle from '@/components/ThemeToggle'
@@ -58,14 +59,13 @@ export default function AdminLoginPage() {
           : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f8fafc 100%)',
         borderRight: '1px solid var(--border-subtle)'
       }}>
-        <div style={{
-          width: 56, height: 56, borderRadius: 12,
-          background: 'linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          margin: '0 auto 24px',
-        }}>
-          <span style={{ color: '#fff', fontSize: 24, fontWeight: 700 }}>A</span>
-        </div>
+        <Image 
+          src="/logo.jpeg" 
+          alt="Logo" 
+          width={64} 
+          height={64} 
+          style={{ borderRadius: 12, margin: '0 auto 24px', display: 'block' }} 
+        />
         <h1 style={{ 
           color: 'var(--text-primary)', 
           fontSize: 24, 
