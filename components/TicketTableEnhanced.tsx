@@ -49,7 +49,7 @@ const typeConfig: Record<string, string> = {
 }
 
 export default function TicketTableEnhanced({ tickets, selectedRowKeys = [], onSelectionChange }: TicketTableProps) {
-  const { isAdmin, user } = useAuthStore()
+  const { isAdmin } = useAuthStore()
   const [users, setUsers] = useState<UserOption[]>([])
   const [assigningTicket, setAssigningTicket] = useState<string | null>(null)
 
