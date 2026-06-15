@@ -12,6 +12,7 @@ import TicketTable from '@/components/TicketTable'
 import { Ticket } from '@/types/types'
 import { getAdminAuthHeader } from '@/lib/admin-api'
 import Link from 'next/link'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function AdminDashboard() {
   const router = useRouter()
@@ -152,6 +153,7 @@ export default function AdminDashboard() {
             </p>
           </div>
           <Space size={8}>
+            <ThemeToggle />
             <Link href="/tickets/new">
               <Button type="primary" icon={<Plus size={14} />} style={{ height: 32, fontSize: 13, fontWeight: 500, borderRadius: 6 }}>
                 New Ticket

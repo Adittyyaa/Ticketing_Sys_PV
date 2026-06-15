@@ -1,13 +1,24 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifyAdminRequest } from '@/lib/admin-auth'
+import { createClient } from '@supabase/supabase-js'
 import fs from 'fs'
 import path from 'path'
 
 export async function POST(request: NextRequest) {
   try {
-    const auth = await verifyAdminRequest(request)
-    if (auth.error || !auth.userId) {
-      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status })
+    const authHeader = request.headers.get('authorization')
+    if (!authHeader) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
+    const token = authHeader.replace('Bearer ', '')
+    const supabaseAdmin = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    )
+
+    const { data: { user }, error: verifyError } = await supabaseAdmin.auth.getUser(token)
+    if (verifyError || !user) {
+      return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
     }
 
     const { category, rating, message } = await request.json()
@@ -18,7 +29,7 @@ export async function POST(request: NextRequest) {
 
     const feedbackData = {
       id: Math.random().toString(36).substring(2, 11),
-      userId: auth.userId,
+      userId: user.id,
       category,
       rating: Number(rating),
       message,

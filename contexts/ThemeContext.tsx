@@ -7,12 +7,15 @@ type Theme = 'light' | 'dark'
 interface ThemeContextType {
   theme: Theme
   toggleTheme: () => void
+  zoom: string
+  changeZoom: (zoom: string) => void
 }
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
   const [theme, setTheme] = useState<Theme>('dark')
+  const [zoom, setZoomState] = useState<string>('100%')
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
@@ -26,6 +29,11 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
       const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches
       setTheme(prefersDark ? 'dark' : 'light')
     }
+
+    // Load zoom from localStorage
+    const savedZoom = localStorage.getItem('zoom') || '100%'
+    setZoomState(savedZoom)
+    document.body.style.zoom = savedZoom
   }, [])
 
   useEffect(() => {
@@ -41,12 +49,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
     setTheme((prev) => (prev === 'light' ? 'dark' : 'light'))
   }
 
+  const changeZoom = (newZoom: string) => {
+    setZoomState(newZoom)
+    localStorage.setItem('zoom', newZoom)
+    document.body.style.zoom = newZoom
+  }
+
   if (!mounted) {
     return null
   }
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, zoom, changeZoom }}>
       {children}
     </ThemeContext.Provider>
   )

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Form, Input, Button, Alert, Divider } from 'antd'
-import { LockOutlined, GoogleOutlined, LoginOutlined, MailOutlined } from '@ant-design/icons'
+import { LockOutlined, LoginOutlined, MailOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -15,7 +15,6 @@ export default function UserLoginPage() {
   const router = useRouter()
   const [form] = Form.useForm()
   const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
 
   const handleLogin = async (values: { email: string; password: string }) => {
@@ -34,21 +33,6 @@ export default function UserLoginPage() {
       setError(err instanceof Error ? err.message : 'Failed to login')
     } finally {
       setLoading(false)
-    }
-  }
-
-  const handleGoogleLogin = async () => {
-    setError('')
-    setGoogleLoading(true)
-    try {
-      const { error: googleError } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: { redirectTo: `${window.location.origin}/auth/callback?role=user` },
-      })
-      if (googleError) throw googleError
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to login with Google')
-      setGoogleLoading(false)
     }
   }
 
@@ -85,20 +69,6 @@ export default function UserLoginPage() {
         <p style={{ color: 'var(--text-tertiary)', fontSize: 13, margin: '0 0 24px 0' }}>Access your support tickets</p>
 
         {error && <Alert description={error} type="error" showIcon closable afterClose={() => setError('')} style={{ marginBottom: 16, borderRadius: 6 }} />}
-
-        <Button block icon={<GoogleOutlined />} onClick={handleGoogleLogin} loading={googleLoading}
-          style={{ 
-            backgroundColor: theme === 'dark' ? 'var(--bg-elevated)' : '#fff', 
-            borderColor: 'var(--border-default)', 
-            color: 'var(--text-primary)', 
-            height: 40, 
-            fontWeight: 500, 
-            marginBottom: 16 
-          }}>
-          Continue with Google
-        </Button>
-
-        <Divider style={{ borderColor: 'var(--border-subtle)', color: 'var(--text-tertiary)', fontSize: 12, margin: '0 0 16px 0' }}>or sign in with email</Divider>
 
         <Form form={form} layout="vertical" onFinish={handleLogin} autoComplete="off">
           <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Email</span>} name="email"

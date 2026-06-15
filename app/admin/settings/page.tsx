@@ -2,17 +2,19 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Tabs, Table, Button, Input, Modal, Form, Space, message, Popconfirm, Card } from 'antd'
-import { PlusOutlined, EditOutlined, DeleteOutlined, TagOutlined, FolderOutlined, MessageOutlined } from '@ant-design/icons'
+import { Tabs, Table, Button, Input, Modal, Form, Space, message, Popconfirm, Card, Select } from 'antd'
+import { PlusOutlined, EditOutlined, DeleteOutlined, TagOutlined, FolderOutlined, MessageOutlined, SettingOutlined } from '@ant-design/icons'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { CategoryData, Tag, SavedReply } from '@/types/types'
+import { useTheme } from '@/contexts/ThemeContext'
 
 export default function SettingsPage() {
   const router = useRouter()
   const { user, isAdmin, setUser, setLoading, setIsAdmin } = useAuthStore()
   const [activeTab, setActiveTab] = useState('categories')
+  const { zoom, changeZoom } = useTheme()
   
   // States for data
   const [categories, setCategories] = useState<CategoryData[]>([])
@@ -253,6 +255,32 @@ export default function SettingsPage() {
                     loading={loading}
                     size="small"
                   />
+                </Card>
+              )
+            },
+            {
+              key: 'appearance',
+              label: (<span><SettingOutlined /> Appearance</span>),
+              children: (
+                <Card title="Display Settings">
+                  <div style={{ marginBottom: 16 }}>
+                    <div style={{ fontWeight: 500, fontSize: 13, color: 'var(--text-primary)', marginBottom: 8 }}>Interface Zoom</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: 12, marginBottom: 12 }}>
+                      Adjust the scale of the user interface elements. This setting will persist across page refreshes.
+                    </div>
+                    <Select
+                      value={zoom}
+                      onChange={changeZoom}
+                      style={{ width: 200 }}
+                      options={[
+                        { label: '90% (Compact)', value: '90%' },
+                        { label: '100% (Default)', value: '100%' },
+                        { label: '110% (Large)', value: '110%' },
+                        { label: '120% (Extra Large)', value: '120%' },
+                        { label: '130% (Huge)', value: '130%' },
+                      ]}
+                    />
+                  </div>
                 </Card>
               )
             }

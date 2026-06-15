@@ -6,7 +6,8 @@ import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { getAdminAuthHeader } from '@/lib/admin-api'
 import { Ticket } from '@/types/types'
-import { Form, Input, Button, message, Modal, Space, Select, Rate } from 'antd'
+import { Button, message, Space } from 'antd'
+import FeedbackModal from '@/components/FeedbackModal'
 
 export default function AdminOverviewPage() {
   const router = useRouter()
@@ -14,10 +15,8 @@ export default function AdminOverviewPage() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   
-  // Feedback states
+  // Feedback state
   const [showFeedback, setShowFeedback] = useState(false)
-  const [submittingFeedback, setSubmittingFeedback] = useState(false)
-  const [feedbackForm] = Form.useForm()
 
   useEffect(() => {
     if (!isAdmin) { router.push('/tickets'); return }
@@ -81,32 +80,6 @@ export default function AdminOverviewPage() {
   let cumulativeCircumference = 0
   const radius = 50
   const circumference = 2 * Math.PI * radius
-
-  const handleFeedbackSubmit = async (values: any) => {
-    setSubmittingFeedback(true)
-    try {
-      const authHeader = await getAdminAuthHeader()
-      const response = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': authHeader },
-        body: JSON.stringify({
-          category: values.category,
-          rating: values.rating,
-          message: values.message,
-        })
-      })
-      const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'Failed to submit feedback')
-      
-      message.success('Thank you for your feedback!')
-      feedbackForm.resetFields()
-      setShowFeedback(false)
-    } catch (err) {
-      message.error(err instanceof Error ? err.message : 'Error submitting feedback')
-    } finally {
-      setSubmittingFeedback(false)
-    }
-  }
 
   return (
     <AppShell>
@@ -262,39 +235,7 @@ export default function AdminOverviewPage() {
         </div>
 
         {/* Feedback Modal */}
-        <Modal
-          title="Send Admin Feedback"
-          open={showFeedback}
-          onCancel={() => setShowFeedback(false)}
-          footer={null}
-          destroyOnClose
-        >
-          <Form form={feedbackForm} layout="vertical" onFinish={handleFeedbackSubmit} style={{ marginTop: 16 }}>
-            <Form.Item name="category" label="Category" rules={[{ required: true, message: 'Please select a feedback category' }]}>
-              <Select placeholder="Select a category" options={[
-                { label: 'Bug Report', value: 'bug' },
-                { label: 'Feature Request', value: 'feature' },
-                { label: 'Usability / Design', value: 'usability' },
-                { label: 'General Comment', value: 'general' },
-              ]} />
-            </Form.Item>
-
-            <Form.Item name="rating" label="Rate your experience" rules={[{ required: true, message: 'Please select a rating' }]}>
-              <Rate style={{ color: '#f59e0b', fontSize: 24 }} />
-            </Form.Item>
-
-            <Form.Item name="message" label="Comments / Suggestions" rules={[{ required: true, message: 'Please write your comment' }]}>
-              <Input.TextArea placeholder="Tell us what you think..." rows={4} maxLength={1000} />
-            </Form.Item>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 20 }}>
-              <Button onClick={() => setShowFeedback(false)}>Cancel</Button>
-              <Button type="primary" htmlType="submit" loading={submittingFeedback} style={{ backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}>
-                Submit Feedback
-              </Button>
-            </div>
-          </Form>
-        </Modal>
+        <FeedbackModal isOpen={showFeedback} onClose={() => setShowFeedback(false)} />
 
       </div>
     </AppShell>

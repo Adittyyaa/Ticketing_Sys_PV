@@ -1,18 +1,20 @@
 'use client'
 
 import { Popover, Empty } from 'antd'
-import { Bell, LogOut } from 'lucide-react'
+import { Bell, LogOut, MessageSquare } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 import AccountDetailsModal from './AccountDetailsModal'
 import ThemeToggle from './ThemeToggle'
+import FeedbackModal from './FeedbackModal'
 
 export default function TopBar() {
   const { user, isAdmin } = useAuthStore()
   const router = useRouter()
   const [showAccountModal, setShowAccountModal] = useState(false)
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false)
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -52,6 +54,34 @@ export default function TopBar() {
       >
         {/* Theme Toggle */}
         <ThemeToggle size="middle" />
+
+        {/* Feedback Button */}
+        <button
+          onClick={() => setShowFeedbackModal(true)}
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 32,
+            height: 32,
+            borderRadius: 6,
+            border: 'none',
+            backgroundColor: 'transparent',
+            color: 'var(--text-secondary)',
+            cursor: 'pointer',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
+            e.currentTarget.style.color = 'var(--text-primary)'
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.backgroundColor = 'transparent'
+            e.currentTarget.style.color = 'var(--text-secondary)'
+          }}
+          title="Send Feedback"
+        >
+          <MessageSquare size={18} />
+        </button>
 
         {/* Notifications */}
         <Popover 
@@ -157,6 +187,7 @@ export default function TopBar() {
       </header>
 
       <AccountDetailsModal isOpen={showAccountModal} onClose={() => setShowAccountModal(false)} />
+      <FeedbackModal isOpen={showFeedbackModal} onClose={() => setShowFeedbackModal(false)} />
     </>
   )
 }
