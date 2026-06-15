@@ -1,7 +1,7 @@
 'use client'
 
-import { Tooltip } from 'antd'
-import { Bell, LogOut, Settings } from 'lucide-react'
+import { Tooltip, Popover, Empty } from 'antd'
+import { Bell, LogOut } from 'lucide-react'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
@@ -13,11 +13,26 @@ export default function TopBar() {
   const { user, isAdmin } = useAuthStore()
   const router = useRouter()
   const [showAccountModal, setShowAccountModal] = useState(false)
+  const [notifications] = useState([]) // Placeholder for notifications
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/auth')
   }
+
+  const notificationContent = (
+    <div style={{ width: 280 }}>
+      <div style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-subtle)', fontWeight: 600, fontSize: 13, color: 'var(--text-primary)' }}>
+        Notifications
+      </div>
+      <div style={{ padding: '24px 0' }}>
+        <Empty 
+          image={Empty.PRESENTED_IMAGE_SIMPLE} 
+          description={<span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>No new notifications</span>} 
+        />
+      </div>
+    </div>
+  )
 
   return (
     <>
@@ -40,7 +55,12 @@ export default function TopBar() {
         <ThemeToggle size="middle" />
 
         {/* Notifications */}
-        <Tooltip title="Notifications">
+        <Popover 
+          content={notificationContent} 
+          trigger="click" 
+          placement="bottomRight"
+          overlayInnerStyle={{ padding: 0 }}
+        >
           <button
             style={{
               display: 'flex',
@@ -66,35 +86,7 @@ export default function TopBar() {
           >
             <Bell size={18} />
           </button>
-        </Tooltip>
-
-        {/* Settings */}
-        <Tooltip title="Settings">
-          <button
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: 32,
-              height: 32,
-              borderRadius: 6,
-              border: 'none',
-              backgroundColor: 'transparent',
-              color: 'var(--text-secondary)',
-              cursor: 'pointer',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = 'var(--bg-hover)'
-              e.currentTarget.style.color = 'var(--text-primary)'
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = 'transparent'
-              e.currentTarget.style.color = 'var(--text-secondary)'
-            }}
-          >
-            <Settings size={18} />
-          </button>
-        </Tooltip>
+        </Popover>
 
         <div style={{ width: 1, height: 24, backgroundColor: 'var(--border-subtle)', margin: '0 4px' }} />
 

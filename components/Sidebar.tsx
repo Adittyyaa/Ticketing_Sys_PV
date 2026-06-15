@@ -2,7 +2,6 @@
 
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import Image from 'next/image'
 import { useAuthStore } from '@/lib/store'
 import {
   LayoutDashboard,

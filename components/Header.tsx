@@ -2,13 +2,13 @@
 
 import { Layout, Button, Dropdown, Tooltip, Badge } from 'antd'
 import { MenuOutlined, BellOutlined, UserOutlined, LogoutOutlined, HomeOutlined } from '@ant-design/icons'
-import Image from 'next/image'
 import { useAuthStore } from '@/lib/store'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import { useState } from 'react'
 import Link from 'next/link'
+import { useState } from 'react'
 import AccountDetailsModal from './AccountDetailsModal'
+
 import ThemeToggle from './ThemeToggle'
 
 const { Header } = Layout
