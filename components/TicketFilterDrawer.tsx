@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Drawer, Button, Input, Select, Space, Divider, Badge, Tag } from 'antd'
-import { Search } from 'lucide-react'
+import { Drawer, Button, Input, Select, Space, Badge, Tag } from 'antd'
+import { Search, X as XIcon } from 'lucide-react'
 
 interface FilterDrawerProps {
   open: boolean
@@ -70,6 +70,7 @@ export default function TicketFilterDrawer({
   const [tempPriority, setTempPriority] = useState(priorityFilter)
   const [tempCategory, setTempCategory] = useState(categoryFilter)
   const [tempType, setTempType] = useState(typeFilter)
+  const [showAppliedFilters, setShowAppliedFilters] = useState(false)
 
   // Update temp values when props change
   useEffect(() => {
@@ -87,7 +88,6 @@ export default function TicketFilterDrawer({
     onCategoryChange(tempCategory)
     onTypeChange(tempType)
     onApply()
-    onClose()
   }
 
   const handleReset = () => {
@@ -97,45 +97,65 @@ export default function TicketFilterDrawer({
     setTempCategory('all')
     setTempType('all')
     onReset()
+    setShowAppliedFilters(false)
   }
 
   const getAppliedFilters = () => {
-    const filters: string[] = []
-    if (tempSearch) filters.push(`Search: "${tempSearch}"`)
-    if (tempStatus !== 'all') filters.push(`Status: ${tempStatus}`)
-    if (tempPriority !== 'all') filters.push(`Priority: ${tempPriority}`)
-    if (tempCategory !== 'all') filters.push(`Category: ${tempCategory}`)
-    if (tempType !== 'all') filters.push(`Type: ${tempType}`)
+    const filters: Array<{ key: string; label: string }> = []
+    if (tempSearch) filters.push({ key: 'search', label: `Search: "${tempSearch}"` })
+    if (tempStatus !== 'all') filters.push({ key: 'status', label: `Status: ${tempStatus}` })
+    if (tempPriority !== 'all') filters.push({ key: 'priority', label: `Priority: ${tempPriority}` })
+    if (tempCategory !== 'all') filters.push({ key: 'category', label: `Category: ${tempCategory}` })
+    if (tempType !== 'all') filters.push({ key: 'type', label: `Type: ${tempType}` })
     return filters
   }
 
   const appliedFilters = getAppliedFilters()
 
+  const removeFilter = (key: string) => {
+    switch (key) {
+      case 'search':
+        setTempSearch('')
+        break
+      case 'status':
+        setTempStatus('all')
+        break
+      case 'priority':
+        setTempPriority('all')
+        break
+      case 'category':
+        setTempCategory('all')
+        break
+      case 'type':
+        setTempType('all')
+        break
+    }
+  }
+
   return (
     <Drawer
-      title={
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 18, fontWeight: 600 }}>FILTERS</span>
-          {appliedFilters.length > 0 && (
-            <Button 
-              type="link" 
-              onClick={() => {/* Show applied filters section */}}
-              style={{ fontSize: 13, color: 'var(--ant-primary-color)' }}
-            >
-              Show applied filters
-            </Button>
-          )}
-        </div>
-      }
+      title={null}
       placement="right"
       onClose={onClose}
       open={open}
-      width={400}
+      width={420}
+      closeIcon={null}
+      styles={{
+        body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' },
+        header: { display: 'none' },
+        footer: { borderTop: '1px solid var(--border-subtle)', padding: '16px 24px' }
+      }}
       footer={
         <div style={{ display: 'flex', gap: 12 }}>
           <Button 
+            block 
+            onClick={handleReset}
+            style={{ fontWeight: 500 }}
+          >
+            Clear
+          </Button>
+          <Button 
             type="primary" 
-            size="large" 
             block 
             onClick={handleApply}
             style={{ fontWeight: 600 }}
@@ -144,182 +164,208 @@ export default function TicketFilterDrawer({
             {appliedFilters.length > 0 && (
               <Badge 
                 count={appliedFilters.length} 
-                style={{ marginLeft: 8, backgroundColor: '#fff', color: 'var(--ant-primary-color)' }}
+                style={{ marginLeft: 8, backgroundColor: '#ff4d4f', color: '#fff' }}
               />
             )}
           </Button>
         </div>
       }
-      styles={{
-        body: { padding: '24px' },
-        header: { borderBottom: '1px solid var(--border-subtle)', padding: '16px 24px' },
-        footer: { borderTop: '1px solid var(--border-subtle)', padding: '16px 24px' }
-      }}
     >
-      <Space direction="vertical" size="large" style={{ width: '100%' }}>
-        {/* Search Fields */}
-        <div>
-          <Input
-            placeholder="Search fields"
-            prefix={<Search size={16} style={{ color: 'var(--text-tertiary)' }} />}
-            value={tempSearch}
-            onChange={(e) => setTempSearch(e.target.value)}
-            size="large"
-            allowClear
-            style={{ borderRadius: 8 }}
-          />
-          <p style={{ fontSize: 12, color: 'var(--text-tertiary)', margin: '8px 0 0 0' }}>
-            Search by title, description, or reference number
-          </p>
-        </div>
-
-        <Divider style={{ margin: 0 }} />
-
-        {/* Status Filter */}
-        <div>
-          <label style={{ 
-            display: 'block', 
-            fontSize: 13, 
-            fontWeight: 600, 
-            color: 'var(--text-secondary)', 
-            marginBottom: 8 
-          }}>
-            Status
-          </label>
-          <Select
-            value={tempStatus}
-            onChange={setTempStatus}
-            size="large"
-            style={{ width: '100%' }}
-            options={statusOptions}
-          />
-        </div>
-
-        {/* Priority Filter */}
-        <div>
-          <label style={{ 
-            display: 'block', 
-            fontSize: 13, 
-            fontWeight: 600, 
-            color: 'var(--text-secondary)', 
-            marginBottom: 8 
-          }}>
-            Priority
-          </label>
-          <Select
-            value={tempPriority}
-            onChange={setTempPriority}
-            size="large"
-            style={{ width: '100%' }}
-            options={priorityOptions}
-          />
-        </div>
-
-        {/* Category Filter */}
-        <div>
-          <label style={{ 
-            display: 'block', 
-            fontSize: 13, 
-            fontWeight: 600, 
-            color: 'var(--text-secondary)', 
-            marginBottom: 8 
-          }}>
-            Category
-          </label>
-          <Select
-            value={tempCategory}
-            onChange={setTempCategory}
-            size="large"
-            style={{ width: '100%' }}
-            placeholder="Any category"
+      {/* Header */}
+      <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <h3 style={{ color: 'var(--text-primary)', fontSize: 14, fontWeight: 700, margin: 0 }}>FILTERS</h3>
+          <button 
+            onClick={onClose}
+            style={{ 
+              background: 'none', 
+              border: 'none', 
+              cursor: 'pointer', 
+              color: 'var(--text-tertiary)',
+              padding: 0,
+              width: 24,
+              height: 24,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
           >
-            <Select.Option value="all">Any category</Select.Option>
-            {categories.map(cat => (
-              <Select.Option key={cat} value={cat}>{cat}</Select.Option>
-            ))}
-          </Select>
+            <XIcon size={20} />
+          </button>
         </div>
-
-        {/* Type Filter */}
-        <div>
-          <label style={{ 
-            display: 'block', 
-            fontSize: 13, 
-            fontWeight: 600, 
-            color: 'var(--text-secondary)', 
-            marginBottom: 8 
-          }}>
-            Type
-          </label>
-          <Select
-            value={tempType}
-            onChange={setTempType}
-            size="large"
-            style={{ width: '100%' }}
-            placeholder="Any type"
-          >
-            <Select.Option value="all">Any type</Select.Option>
-            {types.map(type => (
-              <Select.Option key={type} value={type}>{type}</Select.Option>
-            ))}
-          </Select>
-        </div>
-
-        {/* Applied Filters Preview */}
         {appliedFilters.length > 0 && (
-          <>
-            <Divider style={{ margin: 0 }} />
-            <div>
-              <div style={{ 
-                fontSize: 13, 
-                fontWeight: 600, 
-                color: 'var(--text-secondary)', 
-                marginBottom: 8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between'
-              }}>
-                <span>Applied Filters</span>
-                <Button 
-                  type="link" 
-                  size="small" 
-                  onClick={handleReset}
-                  style={{ fontSize: 12, padding: 0 }}
-                >
-                  Clear all
-                </Button>
-              </div>
-              <Space direction="vertical" size={8} style={{ width: '100%' }}>
-                {appliedFilters.map((filter, index) => (
-                  <Tag 
-                    key={index}
-                    closable
-                    onClose={() => {
-                      // Handle individual filter removal
-                      if (filter.startsWith('Search:')) setTempSearch('')
-                      if (filter.startsWith('Status:')) setTempStatus('all')
-                      if (filter.startsWith('Priority:')) setTempPriority('all')
-                      if (filter.startsWith('Category:')) setTempCategory('all')
-                      if (filter.startsWith('Type:')) setTempType('all')
-                    }}
-                    style={{ 
-                      fontSize: 12, 
-                      padding: '4px 8px',
-                      borderRadius: 4,
-                      width: '100%',
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center'
-                    }}
-                  >
-                    {filter}
-                  </Tag>
-                ))}
-              </Space>
-            </div>
-          </>
+          <div style={{ display: 'flex', gap: 12, fontSize: 12 }}>
+            <button 
+              onClick={() => setShowAppliedFilters(!showAppliedFilters)}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer',
+                color: 'var(--ant-primary-color)',
+                fontWeight: 500,
+                padding: 0
+              }}
+            >
+              Show applied filters
+            </button>
+            <span style={{ color: 'var(--text-tertiary)' }}>|</span>
+            <button 
+              onClick={handleReset}
+              style={{ 
+                background: 'none', 
+                border: 'none', 
+                cursor: 'pointer',
+                color: 'var(--ant-primary-color)',
+                fontWeight: 500,
+                padding: 0
+              }}
+            >
+              Clear all
+            </button>
+          </div>
         )}
-      </Space>
+      </div>
+
+      {/* Applied Filters Display */}
+      {showAppliedFilters && appliedFilters.length > 0 && (
+        <div style={{ padding: '16px 24px', borderBottom: '1px solid var(--border-subtle)' }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {appliedFilters.map((filter) => (
+              <Tag
+                key={filter.key}
+                closable
+                onClose={() => removeFilter(filter.key)}
+                style={{ 
+                  fontSize: 12, 
+                  borderRadius: 4,
+                  padding: '4px 8px'
+                }}
+              >
+                {filter.label}
+              </Tag>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Scrollable Content */}
+      <div style={{ flex: 1, overflowY: 'auto', padding: '24px' }}>
+        <Space direction="vertical" size={24} style={{ width: '100%' }}>
+          {/* Search Field */}
+          <div>
+            <Input
+              placeholder="Search fields"
+              prefix={<Search size={16} style={{ color: 'var(--text-tertiary)' }} />}
+              value={tempSearch}
+              onChange={(e) => setTempSearch(e.target.value)}
+              size="large"
+              allowClear
+              style={{ 
+                borderRadius: 8,
+                borderColor: 'var(--border-strong)'
+              }}
+            />
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label style={{ 
+              display: 'block', 
+              fontSize: 12, 
+              fontWeight: 600, 
+              color: 'var(--text-secondary)', 
+              marginBottom: 10,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Status
+            </label>
+            <Select
+              value={tempStatus}
+              onChange={setTempStatus}
+              size="large"
+              style={{ width: '100%' }}
+              options={statusOptions}
+            />
+          </div>
+
+          {/* Priority Filter */}
+          <div>
+            <label style={{ 
+              display: 'block', 
+              fontSize: 12, 
+              fontWeight: 600, 
+              color: 'var(--text-secondary)', 
+              marginBottom: 10,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Priority
+            </label>
+            <Select
+              value={tempPriority}
+              onChange={setTempPriority}
+              size="large"
+              style={{ width: '100%' }}
+              options={priorityOptions}
+            />
+          </div>
+
+          {/* Category Filter */}
+          <div>
+            <label style={{ 
+              display: 'block', 
+              fontSize: 12, 
+              fontWeight: 600, 
+              color: 'var(--text-secondary)', 
+              marginBottom: 10,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Category
+            </label>
+            <Select
+              value={tempCategory}
+              onChange={setTempCategory}
+              size="large"
+              style={{ width: '100%' }}
+              placeholder="Any category"
+            >
+              <Select.Option value="all">Any category</Select.Option>
+              {categories.map(cat => (
+                <Select.Option key={cat} value={cat}>{cat}</Select.Option>
+              ))}
+            </Select>
+          </div>
+
+          {/* Type Filter */}
+          <div>
+            <label style={{ 
+              display: 'block', 
+              fontSize: 12, 
+              fontWeight: 600, 
+              color: 'var(--text-secondary)', 
+              marginBottom: 10,
+              textTransform: 'uppercase',
+              letterSpacing: '0.5px'
+            }}>
+              Type
+            </label>
+            <Select
+              value={tempType}
+              onChange={setTempType}
+              size="large"
+              style={{ width: '100%' }}
+              placeholder="Any type"
+            >
+              <Select.Option value="all">Any type</Select.Option>
+              {types.map(type => (
+                <Select.Option key={type} value={type}>{type}</Select.Option>
+              ))}
+            </Select>
+          </div>
+        </Space>
+      </div>
     </Drawer>
   )
 }

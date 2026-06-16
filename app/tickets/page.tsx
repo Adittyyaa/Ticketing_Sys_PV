@@ -2,13 +2,14 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Alert, Button, Input, Select, Spin } from 'antd'
-import { FileText, Plus, Search } from 'lucide-react'
+import { Alert, Button, Input, Select, Spin, Badge } from 'antd'
+import { FileText, Plus, Search, SlidersHorizontal } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import TicketTable from '@/components/TicketTable'
 import TicketCardView from '@/components/TicketCardView'
+import TicketFilterDrawer from '@/components/TicketFilterDrawer'
 import { Ticket } from '@/types/types'
 import { getAdminAuthHeader } from '@/lib/admin-api'
 import Link from 'next/link'
@@ -56,9 +57,14 @@ export default function TicketsPage() {
   const [viewMode] = useState<ViewMode>('card')
   const [statusFilter, setStatusFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
+  const [categoryFilter, setCategoryFilter] = useState('all')
+  const [typeFilter, setTypeFilter] = useState('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [isAdminLocal, setIsAdminLocal] = useState(isAdmin)
   const [ticketError, setTicketError] = useState<string | null>(null)
+  const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
+  const [categories, setCategories] = useState<string[]>([])
+  const [types, setTypes] = useState<string[]>([])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -117,6 +123,12 @@ export default function TicketsPage() {
           tickets = (data || []) as Ticket[]
         }
 
+        // Extract unique categories and types
+        const uniqueCategories = [...new Set(tickets.map(t => t.category).filter(Boolean))] as string[]
+        const uniqueTypes = [...new Set(tickets.map(t => t.type).filter(Boolean))] as string[]
+        setCategories(uniqueCategories)
+        setTypes(uniqueTypes)
+
         const my = filterTickets(tickets.filter((ticket) => ticket.user_id === user.id), effectiveSearch, statusFilter, priorityFilter)
         const other = isAdminLocal ? filterTickets(tickets.filter((ticket) => ticket.user_id !== user.id), effectiveSearch, statusFilter, priorityFilter) : []
 
@@ -147,6 +159,8 @@ export default function TicketsPage() {
     setFilters({ search: '' })
     setStatusFilter('all')
     setPriorityFilter('all')
+    setCategoryFilter('all')
+    setTypeFilter('all')
     setSearchQuery('')
   }
 
@@ -209,6 +223,20 @@ export default function TicketsPage() {
             options={priorityOptions}
           />
           <div style={{ flex: 1 }} />
+          <Badge 
+            count={[searchQuery, statusFilter !== 'all', priorityFilter !== 'all', categoryFilter !== 'all', typeFilter !== 'all'].filter(Boolean).length} 
+            offset={[-5, 5]}
+          >
+            <Button 
+              icon={<SlidersHorizontal size={14} />} 
+              size="middle"
+              onClick={() => setFilterDrawerOpen(true)}
+              type={[searchQuery, statusFilter !== 'all', priorityFilter !== 'all', categoryFilter !== 'all', typeFilter !== 'all'].filter(Boolean).length > 0 ? 'primary' : 'default'}
+              style={{ height: 32 }}
+            >
+              Filters
+            </Button>
+          </Badge>
           <Button size="small" onClick={resetFilters} style={{ height: 32 }}>
             Reset
           </Button>
@@ -227,6 +255,26 @@ export default function TicketsPage() {
             {isAdminLocal && renderTicketSection('Other Tickets', otherTickets, 'No other tickets are available.')}
           </>
         )}
+
+        {/* Filter Drawer */}
+        <TicketFilterDrawer
+          open={filterDrawerOpen}
+          onClose={() => setFilterDrawerOpen(false)}
+          searchQuery={searchQuery}
+          statusFilter={statusFilter}
+          priorityFilter={priorityFilter}
+          categoryFilter={categoryFilter}
+          typeFilter={typeFilter}
+          onSearchChange={setSearchQuery}
+          onStatusChange={setStatusFilter}
+          onPriorityChange={setPriorityFilter}
+          onCategoryChange={setCategoryFilter}
+          onTypeChange={setTypeFilter}
+          categories={categories}
+          types={types}
+          onApply={() => {}}
+          onReset={resetFilters}
+        />
       </div>
     </AppShell>
   )

@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
-import { Table, Form, Input, Button, message, Modal, Tag, Space } from 'antd'
-import { Plus, Trash2 } from 'lucide-react'
+import { Table, Form, Input, Button, message, Modal, Tag, Space, Segmented } from 'antd'
+import { Plus, Trash2, Users, Shield } from 'lucide-react'
 
 interface User {
   id: string
@@ -16,13 +16,16 @@ interface User {
   created_at: string
 }
 
+type ViewType = 'users' | 'admins'
+
 export default function UserManagementPage() {
   const router = useRouter()
-  const { isAdmin } = useAuthStore()
-  const [users, setUsers] = useState<User[]>([])
+  const { user, isAdmin } = useAuthStore()
+  const [allUsers, setAllUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [viewType, setViewType] = useState<ViewType>('users')
   const [form] = Form.useForm()
 
   useEffect(() => {
@@ -33,7 +36,7 @@ export default function UserManagementPage() {
   const fetchUsers = async () => {
     try {
       const { data } = await supabase.from('tbl_users').select('*').order('created_at', { ascending: false })
-      setUsers(data || [])
+      setAllUsers(data || [])
     } catch { message.error('Failed to load users') }
     finally { setLoading(false) }
   }
@@ -43,43 +46,118 @@ export default function UserManagementPage() {
     try {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('No active session')
-      const response = await fetch('/api/admin/create-user', {
+      
+      const endpoint = viewType === 'admins' ? '/api/admin/create-admin' : '/api/admin/create-user'
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
         body: JSON.stringify({ email: values.email, password: values.password, fullName: values.fullName }),
       })
       const result = await response.json()
-      if (!response.ok) throw new Error(result.error || 'Failed to create user')
-      message.success('User created!')
+      if (!response.ok) throw new Error(result.error || `Failed to create ${viewType === 'admins' ? 'admin' : 'user'}`)
+      message.success(`${viewType === 'admins' ? 'Admin' : 'User'} created successfully!`)
       form.resetFields()
       setShowForm(false)
       fetchUsers()
-    } catch (err) { message.error(err instanceof Error ? err.message : 'Error creating user') }
+    } catch (err) { 
+      message.error(err instanceof Error ? err.message : `Error creating ${viewType === 'admins' ? 'admin' : 'user'}`) 
+    }
     finally { setSubmitting(false) }
   }
 
-  const handleDeleteUser = async (userId: string, email: string) => {
+  const handleDeleteUser = async (userId: string, email: string, userRole: string) => {
+    if (userId === user?.id) {
+      message.error('Cannot delete your own account')
+      return
+    }
+
     Modal.confirm({
-      title: 'Delete User',
-      content: `Delete ${email}? This cannot be undone.`,
-      okText: 'Delete', okType: 'danger', cancelText: 'Cancel',
+      title: userRole === 'admin' ? 'Revoke Admin Access' : 'Delete User',
+      content: userRole === 'admin' 
+        ? `Remove admin access from ${email}? They will be converted to a regular user.`
+        : `Delete ${email}? This cannot be undone.`,
+      okText: userRole === 'admin' ? 'Revoke' : 'Delete', 
+      okType: 'danger', 
+      cancelText: 'Cancel',
       onOk: async () => {
         try {
-          const { error } = await supabase.from('tbl_users').delete().eq('id', userId)
-          if (error) throw error
-          message.success('User deleted')
+          if (userRole === 'admin') {
+            // Convert admin to user instead of deleting
+            const { error } = await supabase.from('tbl_users').update({ role: 'user' }).eq('id', userId)
+            if (error) throw error
+            message.success('Admin access revoked')
+          } else {
+            const { error } = await supabase.from('tbl_users').delete().eq('id', userId)
+            if (error) throw error
+            message.success('User deleted')
+          }
           fetchUsers()
-        } catch { message.error('Error deleting user') }
+        } catch { 
+          message.error(`Error ${userRole === 'admin' ? 'revoking admin' : 'deleting user'}`) 
+        }
       }
     })
   }
 
+  const filteredUsers = allUsers.filter(u => viewType === 'admins' ? u.role === 'admin' : u.role === 'user')
+
   const columns = [
-    { title: 'Name', dataIndex: 'full_name', key: 'full_name', render: (t: string) => <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{t || 'N/A'}</span> },
-    { title: 'Email', dataIndex: 'email', key: 'email', render: (t: string) => <span style={{ color: 'var(--text-secondary)' }}>{t}</span> },
-    { title: 'Role', dataIndex: 'role', key: 'role', width: 120, render: (r: string) => <Tag color={r === 'admin' ? 'purple' : 'blue'}>{r === 'admin' ? 'Admin' : 'User'}</Tag> },
-    { title: 'Joined', dataIndex: 'created_at', key: 'created_at', width: 130, render: (d: string) => <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</span> },
-    { title: '', key: 'action', width: 60, render: (_: any, r: User) => <Button type="text" danger icon={<Trash2 size={14} />} onClick={() => handleDeleteUser(r.id, r.email)} /> },
+    { 
+      title: 'Name', 
+      dataIndex: 'full_name', 
+      key: 'full_name', 
+      render: (t: string, record: User) => (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{t || 'N/A'}</span>
+          {record.id === user?.id && (
+            <Tag color="blue" style={{ fontSize: 10, margin: 0 }}>You</Tag>
+          )}
+        </div>
+      )
+    },
+    { 
+      title: 'Email', 
+      dataIndex: 'email', 
+      key: 'email', 
+      render: (t: string) => <span style={{ color: 'var(--text-secondary)' }}>{t}</span> 
+    },
+    { 
+      title: 'Role', 
+      dataIndex: 'role', 
+      key: 'role', 
+      width: 120, 
+      render: (r: string) => (
+        <Tag color={r === 'admin' ? 'purple' : 'blue'}>
+          {r === 'admin' ? 'Admin' : 'User'}
+        </Tag>
+      )
+    },
+    { 
+      title: 'Joined', 
+      dataIndex: 'created_at', 
+      key: 'created_at', 
+      width: 130, 
+      render: (d: string) => (
+        <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>
+          {new Date(d).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}
+        </span>
+      )
+    },
+    { 
+      title: '', 
+      key: 'action', 
+      width: 60, 
+      render: (_: any, r: User) => (
+        r.id !== user?.id && (
+          <Button 
+            type="text" 
+            danger 
+            icon={<Trash2 size={14} />} 
+            onClick={() => handleDeleteUser(r.id, r.email, r.role)}
+          />
+        )
+      )
+    },
   ]
 
   if (loading) return null
@@ -87,43 +165,168 @@ export default function UserManagementPage() {
   return (
     <AppShell>
       <div style={{ padding: '24px 32px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
-            <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>User Management</h1>
-            <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>Manage user accounts</p>
+            <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>
+              User Management
+            </h1>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>
+              Manage user and admin accounts
+            </p>
           </div>
-          <Button type="primary" icon={<Plus size={14} />} onClick={() => setShowForm(!showForm)} style={{ height: 32, fontSize: 13, borderRadius: 6 }}>
-            {showForm ? 'Cancel' : 'Add User'}
+          <Button 
+            type="primary" 
+            icon={<Plus size={14} />} 
+            onClick={() => setShowForm(!showForm)} 
+            style={{ 
+              height: 32, 
+              fontSize: 13, 
+              borderRadius: 6,
+              ...(viewType === 'admins' && {
+                backgroundColor: '#7c3aed',
+                borderColor: '#7c3aed'
+              })
+            }}
+          >
+            {showForm ? 'Cancel' : `Add ${viewType === 'admins' ? 'Admin' : 'User'}`}
           </Button>
         </div>
 
+        {/* Role Selector */}
+        <div style={{ marginBottom: 20 }}>
+          <Segmented
+            value={viewType}
+            onChange={(value) => {
+              setViewType(value as ViewType)
+              setShowForm(false)
+              form.resetFields()
+            }}
+            options={[
+              {
+                label: (
+                  <div style={{ padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Users size={16} />
+                    <span>Users</span>
+                    <Tag style={{ margin: 0 }}>{allUsers.filter(u => u.role === 'user').length}</Tag>
+                  </div>
+                ),
+                value: 'users'
+              },
+              {
+                label: (
+                  <div style={{ padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Shield size={16} />
+                    <span>Admins</span>
+                    <Tag color="purple" style={{ margin: 0 }}>{allUsers.filter(u => u.role === 'admin').length}</Tag>
+                  </div>
+                ),
+                value: 'admins'
+              }
+            ]}
+            size="large"
+          />
+        </div>
+
         {showForm && (
-          <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 20, marginBottom: 20 }}>
-            <h3 style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, margin: '0 0 16px 0' }}>Create New User</h3>
+          <div style={{ 
+            backgroundColor: 'var(--bg-surface)', 
+            border: '1px solid var(--border-subtle)', 
+            borderRadius: 8, 
+            padding: 20, 
+            marginBottom: 20 
+          }}>
+            <h3 style={{ 
+              color: 'var(--text-primary)', 
+              fontSize: 15, 
+              fontWeight: 600, 
+              margin: '0 0 16px 0' 
+            }}>
+              Create New {viewType === 'admins' ? 'Admin' : 'User'}
+            </h3>
             <Form form={form} layout="vertical" onFinish={handleCreateUser}>
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16, marginBottom: 16 }}>
-                <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Full Name</span>} name="fullName" rules={[{ required: true }]}>
+              <div style={{ 
+                display: 'grid', 
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', 
+                gap: 16, 
+                marginBottom: 16 
+              }}>
+                <Form.Item 
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Full Name</span>} 
+                  name="fullName" 
+                  rules={[{ required: true, message: 'Name is required' }]}
+                >
                   <Input placeholder="John Doe" style={{ height: 40 }} />
                 </Form.Item>
-                <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Email</span>} name="email" rules={[{ required: true }, { type: 'email' }]}>
-                  <Input placeholder="user@example.com" style={{ height: 40 }} />
+                <Form.Item 
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Email</span>} 
+                  name="email" 
+                  rules={[
+                    { required: true, message: 'Email is required' }, 
+                    { type: 'email', message: 'Invalid email' }
+                  ]}
+                >
+                  <Input 
+                    placeholder={viewType === 'admins' ? 'admin@company.com' : 'user@example.com'} 
+                    style={{ height: 40 }} 
+                  />
                 </Form.Item>
-                <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Password</span>} name="password" rules={[{ required: true }, { min: 6 }]}>
+                <Form.Item 
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Password</span>} 
+                  name="password" 
+                  rules={[
+                    { required: true, message: 'Password is required' }, 
+                    { min: 6, message: 'Minimum 6 characters' }
+                  ]}
+                >
                   <Input.Password placeholder="Min 6 characters" style={{ height: 40 }} />
                 </Form.Item>
               </div>
               <Form.Item style={{ marginBottom: 0 }}>
                 <Space>
-                  <Button type="primary" htmlType="submit" loading={submitting} style={{ height: 40, borderRadius: 6 }}>Create User</Button>
-                  <Button style={{ height: 40, borderRadius: 6 }} onClick={() => { form.resetFields(); setShowForm(false) }}>Cancel</Button>
+                  <Button 
+                    type="primary" 
+                    htmlType="submit" 
+                    loading={submitting} 
+                    style={{ 
+                      height: 40, 
+                      borderRadius: 6,
+                      ...(viewType === 'admins' && {
+                        backgroundColor: '#7c3aed',
+                        borderColor: '#7c3aed'
+                      })
+                    }}
+                  >
+                    Create {viewType === 'admins' ? 'Admin' : 'User'}
+                  </Button>
+                  <Button 
+                    style={{ height: 40, borderRadius: 6 }} 
+                    onClick={() => { 
+                      form.resetFields()
+                      setShowForm(false) 
+                    }}
+                  >
+                    Cancel
+                  </Button>
                 </Space>
               </Form.Item>
             </Form>
           </div>
         )}
 
-        <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, overflow: 'hidden' }}>
-          <Table columns={columns} dataSource={users.map(u => ({ ...u, key: u.id }))} pagination={{ pageSize: 10 }} />
+        <div style={{ 
+          backgroundColor: 'var(--bg-surface)', 
+          border: '1px solid var(--border-subtle)', 
+          borderRadius: 8, 
+          overflow: 'hidden' 
+        }}>
+          <Table 
+            columns={columns} 
+            dataSource={filteredUsers.map(u => ({ ...u, key: u.id }))} 
+            pagination={{ pageSize: 10 }}
+            locale={{
+              emptyText: `No ${viewType === 'admins' ? 'admin' : 'user'} accounts found`
+            }}
+          />
         </div>
       </div>
     </AppShell>
