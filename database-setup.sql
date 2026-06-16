@@ -56,14 +56,14 @@ CREATE TABLE IF NOT EXISTS public.tbl_feedback (
    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
  );
 
- CREATE TABLE IF NOT EXISTS public.tbl_contacts (
-   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-   name VARCHAR(255) NOT NULL,
-   email VARCHAR(255) NOT NULL,
-   phone VARCHAR(50),
-   position VARCHAR(255),
-   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
- );
+CREATE TABLE IF NOT EXISTS public.tbl_contacts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  email VARCHAR(255) NOT NULL,
+  phone VARCHAR(50),
+  position VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
 
 ALTER TABLE IF EXISTS public.tbl_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_tickets ENABLE ROW LEVEL SECURITY;
@@ -86,14 +86,9 @@ DO $$
 DECLARE 
     r RECORD;
 BEGIN
-    -- Drop all tbl_users table policies
-    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'tbl_users' AND schemaname = 'public') LOOP
-        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON public.tbl_users';
-    END LOOP;
-    
-    -- Drop all tbl_tickets table policies
-    FOR r IN (SELECT policyname FROM pg_policies WHERE tablename = 'tbl_tickets' AND schemaname = 'public') LOOP
-        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON public.tbl_tickets';
+    -- Drop all policies for all tables
+    FOR r IN (SELECT schemaname, tablename, policyname FROM pg_policies WHERE schemaname = 'public') LOOP
+        EXECUTE 'DROP POLICY IF EXISTS ' || quote_ident(r.policyname) || ' ON ' || quote_ident(r.schemaname) || '.' || quote_ident(r.tablename);
     END LOOP;
 END $$;
 
@@ -113,6 +108,7 @@ ALTER TABLE public.tbl_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_contacts ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- STEP 4: Create tbl_users table policies
@@ -226,7 +222,7 @@ USING (auth.uid() IS NOT NULL);
 -- Admins can insert contacts
 CREATE POLICY "tbl_contacts_insert_admin"
 ON public.tbl_contacts FOR INSERT
-USING (public.get_user_role() = 'admin');
+WITH CHECK (public.get_user_role() = 'admin');
 
 -- Admins can update contacts
 CREATE POLICY "tbl_contacts_update_admin"

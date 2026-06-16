@@ -37,7 +37,10 @@ export async function POST(request: NextRequest) {
       .select()
       .single()
 
-    if (error) throw error
+    if (error) {
+      console.error('Insert error:', error)
+      return NextResponse.json({ error: error.message, details: error.details }, { status: 400 })
+    }
 
     return NextResponse.json({ success: true, contact: data })
   } catch (error) {
