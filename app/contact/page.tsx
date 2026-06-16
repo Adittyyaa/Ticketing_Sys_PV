@@ -10,11 +10,10 @@ import { Search, Mail, Phone, Briefcase, Users, Plus, Edit, Trash2 } from 'lucid
 
 interface Contact {
   id: string
+  name: string
   email: string
-  full_name: string
   phone?: string
-  job_title?: string
-  role: string
+  position?: string
   created_at: string
 }
 
@@ -48,8 +47,19 @@ export default function ContactPage() {
 
   const fetchContacts = async () => {
     try {
-      const { data } = await supabase.from('tbl_users').select('id, email, full_name, phone, job_title, role, created_at').order('created_at', { ascending: false })
-      setContacts(data || [])
+      const { data: users } = await supabase.from('tbl_users').select('id, email, full_name, phone, job_title, created_at').order('created_at', { ascending: false })
+      const { data: savedContacts } = await supabase.from('tbl_contacts').select('*').order('created_at', { ascending: false })
+      
+      const mappedUsers = (users || []).map(u => ({
+        id: u.id,
+        name: u.full_name || 'Unknown',
+        email: u.email,
+        phone: u.phone,
+        position: u.job_title,
+        created_at: u.created_at
+      } as Contact))
+      
+      setContacts([...mappedUsers, ...(savedContacts || [])])
     } catch { message.error('Failed to load contacts') }
     finally { setTableLoading(false) }
   }
@@ -57,9 +67,9 @@ export default function ContactPage() {
   const filteredContacts = contacts.filter(c => {
     if (!searchQuery) return true
     const q = searchQuery.toLowerCase()
-    return c.full_name?.toLowerCase().includes(q) ||
+    return c.name?.toLowerCase().includes(q) ||
            c.email.toLowerCase().includes(q) ||
-           c.job_title?.toLowerCase().includes(q) ||
+           c.position?.toLowerCase().includes(q) ||
            c.phone?.includes(searchQuery)
   })
 
@@ -71,29 +81,19 @@ export default function ContactPage() {
 
   const handleEdit = (contact: Contact) => {
     setEditingContact(contact)
-    form.setFieldsValue({
-      full_name: contact.full_name,
-      email: contact.email,
-      phone: contact.phone,
-      job_title: contact.job_title,
-    })
+    form.setFieldsValue(contact)
     setModalVisible(true)
   }
 
-  const handleDelete = (contact: Contact) => {
-    if (contact.id === user?.id) {
-      message.error('Cannot delete your own account')
-      return
-    }
-    
+  const handleDelete = async (contact: Contact) => {
     Modal.confirm({
       title: 'Delete Contact',
-      content: `Remove ${contact.full_name || contact.email} from contacts?`,
+      content: `Remove ${contact.name || contact.email} from contacts?`,
       okText: 'Delete',
       okType: 'danger',
       onOk: async () => {
         try {
-          const { error } = await supabase.from('tbl_users').delete().eq('id', contact.id)
+          const { error } = await supabase.from('tbl_contacts').delete().eq('id', contact.id)
           if (error) throw error
           message.success('Contact deleted')
           fetchContacts()
@@ -107,26 +107,21 @@ export default function ContactPage() {
   const handleSubmit = async (values: any) => {
     setSubmitting(true)
     try {
-      if (editingContact) {
-        const { error } = await supabase.from('tbl_users').update({
-          full_name: values.full_name,
-          phone: values.phone,
-          job_title: values.job_title,
-        }).eq('id', editingContact.id)
-        if (error) throw error
-        message.success('Contact updated')
-      } else {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session) throw new Error('No session')
-        const response = await fetch('/api/admin/create-user', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-          body: JSON.stringify({ email: values.email, password: values.password, fullName: values.full_name })
-        })
-        const result = await response.json()
-        if (!response.ok) throw new Error(result.error || 'Failed to create user')
-        message.success('User created')
-      }
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) throw new Error('No session')
+
+      const response = await fetch('/api/contact', {
+        method: editingContact ? 'PUT' : 'POST',
+        headers: { 
+          'Content-Type': 'application/json', 
+          'Authorization': `Bearer ${session.access_token}` 
+        },
+        body: JSON.stringify(editingContact ? { ...values, id: editingContact.id } : values)
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Failed to save contact')
+      
+      message.success(editingContact ? 'Contact updated' : 'Contact added')
       setModalVisible(false)
       fetchContacts()
     } catch (err) {
@@ -139,19 +134,14 @@ export default function ContactPage() {
   const columns = [
     {
       title: 'Name',
-      dataIndex: 'full_name',
-      key: 'full_name',
+      dataIndex: 'name',
+      key: 'name',
       render: (text: string, record: Contact) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Avatar style={{ backgroundColor: record.role === 'admin' ? '#7c3aed' : '#3b82f6' }}>
+          <Avatar style={{ backgroundColor: '#3b82f6' }}>
             {(text?.[0] || record.email[0] || 'U').toUpperCase()}
           </Avatar>
-          <div>
-            <div style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{text || 'N/A'}</div>
-            {record.id === user?.id && (
-              <Tag color="blue" style={{ fontSize: 10, margin: '2px 0 0 0' }}>You</Tag>
-            )}
-          </div>
+          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{text || 'N/A'}</span>
         </div>
       )
     },
@@ -179,25 +169,14 @@ export default function ContactPage() {
     },
     {
       title: 'Position',
-      dataIndex: 'job_title',
-      key: 'job_title',
+      dataIndex: 'position',
+      key: 'position',
       render: (text: string) => text ? (
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <Briefcase size={14} color="var(--text-tertiary)" />
           <span style={{ color: 'var(--text-secondary)' }}>{text}</span>
         </div>
       ) : <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Not specified</span>
-    },
-    {
-      title: 'Role',
-      dataIndex: 'role',
-      key: 'role',
-      width: 120,
-      render: (role: string) => (
-        <Tag color={role === 'admin' ? 'purple' : 'blue'} style={{ fontWeight: 500 }}>
-          {role === 'admin' ? 'Admin' : 'User'}
-        </Tag>
-      )
     },
     ...(isAdmin ? [{
       title: '',
@@ -220,10 +199,10 @@ export default function ContactPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
             <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>
-              Employee Directory
+              Contact Directory
             </h1>
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>
-              Contact information for all team members
+              Email, phone and position for all team members
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
@@ -270,29 +249,22 @@ export default function ContactPage() {
           destroyOnClose
         >
           <Form form={form} layout="vertical" onFinish={handleSubmit} style={{ marginTop: 16 }}>
-            <Form.Item name="full_name" label="Full Name" rules={[{ required: true, message: 'Name is required' }]}>
+            <Form.Item name="name" label="Full Name" rules={[{ required: true, message: 'Name is required' }]}>
               <Input placeholder="John Doe" />
             </Form.Item>
-            {!editingContact && (
-              <>
-                <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Valid email required' }]}>
-                  <Input placeholder="john@example.com" />
-                </Form.Item>
-                <Form.Item name="password" label="Password" rules={[{ required: true, min: 6, message: 'Min 6 characters' }]}>
-                  <Input.Password placeholder="Password" />
-                </Form.Item>
-              </>
-            )}
+            <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Valid email required' }]}>
+              <Input placeholder="john@example.com" />
+            </Form.Item>
             <Form.Item name="phone" label="Phone">
               <Input placeholder="+1 (555) 123-4567" />
             </Form.Item>
-            <Form.Item name="job_title" label="Position">
+            <Form.Item name="position" label="Position">
               <Input placeholder="Software Engineer" />
             </Form.Item>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
               <Button onClick={() => setModalVisible(false)}>Cancel</Button>
               <Button type="primary" htmlType="submit" loading={submitting} style={{ backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}>
-                {editingContact ? 'Save Changes' : 'Create'}
+                {editingContact ? 'Save Changes' : 'Add Contact'}
               </Button>
             </div>
           </Form>

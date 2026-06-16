@@ -48,13 +48,22 @@ CREATE TABLE IF NOT EXISTS public.tbl_attachments (
 );
 
 CREATE TABLE IF NOT EXISTS public.tbl_feedback (
-  id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  category TEXT NOT NULL,
-  rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
-  message TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-);
+   id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
+   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+   category TEXT NOT NULL,
+   rating INTEGER NOT NULL CHECK (rating >= 1 AND rating <= 5),
+   message TEXT NOT NULL,
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+ );
+
+ CREATE TABLE IF NOT EXISTS public.tbl_contacts (
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   name VARCHAR(255) NOT NULL,
+   email VARCHAR(255) NOT NULL,
+   phone VARCHAR(50),
+   position VARCHAR(255),
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+ );
 
 ALTER TABLE IF EXISTS public.tbl_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_tickets ENABLE ROW LEVEL SECURITY;
@@ -66,10 +75,11 @@ ALTER TABLE IF EXISTS public.tbl_feedback ENABLE ROW LEVEL SECURITY;
 -- STEP 1: Clean slate - disable RLS and drop all policies
 -- ============================================
 ALTER TABLE IF EXISTS public.tbl_users DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.tbl_tickets DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.tbl_comments DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.tbl_attachments DISABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.tbl_feedback DISABLE ROW LEVEL SECURITY;
+ ALTER TABLE IF EXISTS public.tbl_tickets DISABLE ROW LEVEL SECURITY;
+ ALTER TABLE IF EXISTS public.tbl_comments DISABLE ROW LEVEL SECURITY;
+ ALTER TABLE IF EXISTS public.tbl_attachments DISABLE ROW LEVEL SECURITY;
+ ALTER TABLE IF EXISTS public.tbl_feedback DISABLE ROW LEVEL SECURITY;
+ ALTER TABLE IF EXISTS public.tbl_contacts DISABLE ROW LEVEL SECURITY;
 
 -- Drop all existing policies
 DO $$ 
@@ -173,14 +183,14 @@ ON public.tbl_feedback FOR INSERT
 WITH CHECK (auth.uid() = user_id);
 
 -- Users can view their own feedback
-CREATE POLICY "tbl_feedback_select_own"
-ON public.tbl_feedback FOR SELECT
-USING (auth.uid() = user_id);
+ CREATE POLICY "tbl_feedback_select_own"
+ ON public.tbl_feedback FOR SELECT
+ USING (auth.uid() = user_id);
 
--- Admins can view all feedback
-CREATE POLICY "tbl_feedback_select_admin"
-ON public.tbl_feedback FOR SELECT
-USING (public.get_user_role() = 'admin');
+ -- Admins can view all feedback
+ CREATE POLICY "tbl_feedback_select_admin"
+ ON public.tbl_feedback FOR SELECT
+ USING (public.get_user_role() = 'admin');
 
 -- ============================================
 -- STEP 7: Create Analytics View
@@ -202,6 +212,32 @@ FROM public.tbl_tickets;
 
 -- Grant access to authenticated users
 GRANT SELECT ON public.tbl_ticket_analytics TO authenticated;
+
+-- ============================================
+-- STEP 7b: Enable RLS on tbl_contacts and add policies
+-- ============================================
+ALTER TABLE IF EXISTS public.tbl_contacts ENABLE ROW LEVEL SECURITY;
+
+-- All authenticated users can view contacts
+CREATE POLICY "tbl_contacts_select_all_authenticated"
+ON public.tbl_contacts FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+-- Admins can insert contacts
+CREATE POLICY "tbl_contacts_insert_admin"
+ON public.tbl_contacts FOR INSERT
+USING (public.get_user_role() = 'admin');
+
+-- Admins can update contacts
+CREATE POLICY "tbl_contacts_update_admin"
+ON public.tbl_contacts FOR UPDATE
+USING (public.get_user_role() = 'admin')
+WITH CHECK (public.get_user_role() = 'admin');
+
+-- Admins can delete contacts
+CREATE POLICY "tbl_contacts_delete_admin"
+ON public.tbl_contacts FOR DELETE
+USING (public.get_user_role() = 'admin');
 
 -- ============================================
 -- STEP 8: Add name and email fields to tbl_comments (if not exists)
