@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Drawer, Button, Input, Select, Space, Divider, Badge, Tag } from 'antd'
-import { Search, X } from 'lucide-react'
+import { Search } from 'lucide-react'
 
 interface FilterDrawerProps {
   open: boolean
@@ -29,9 +29,6 @@ interface FilterDrawerProps {
   // Actions
   onApply: () => void
   onReset: () => void
-  
-  // Applied filters count
-  appliedCount: number
 }
 
 const statusOptions = [
@@ -67,7 +64,6 @@ export default function TicketFilterDrawer({
   types,
   onApply,
   onReset,
-  appliedCount,
 }: FilterDrawerProps) {
   const [tempSearch, setTempSearch] = useState(searchQuery)
   const [tempStatus, setTempStatus] = useState(statusFilter)

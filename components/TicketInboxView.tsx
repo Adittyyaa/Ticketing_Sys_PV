@@ -1,7 +1,7 @@
 'use client'
 
 import { Ticket } from '@/types/types'
-import { formatDistanceToNow, format } from 'date-fns'
+import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { Tag, Avatar, Badge } from 'antd'
 import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
@@ -147,7 +147,7 @@ export default function TicketInboxView({ tickets }: TicketInboxViewProps) {
                     <span>{formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}</span>
                   </div>
 
-                  {ticket.comment_count > 0 && (
+                  {ticket.comment_count && ticket.comment_count > 0 && (
                     <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                       <MessageSquare size={12} />
                       <span>{ticket.comment_count}</span>

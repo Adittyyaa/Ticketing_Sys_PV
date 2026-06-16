@@ -53,6 +53,7 @@ export interface Ticket {
     email: string
     full_name?: string
   }
+  comment_count?: number
 }
 
 export interface User {

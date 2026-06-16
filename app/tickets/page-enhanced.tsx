@@ -529,7 +529,6 @@ export default function TicketsPage() {
           types={types}
           onApply={() => setCurrentPage(1)}
           onReset={resetFilters}
-          appliedCount={appliedFiltersCount}
         />
 
         {/* Error Alert */}
