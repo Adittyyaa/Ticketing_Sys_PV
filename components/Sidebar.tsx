@@ -11,12 +11,14 @@ import {
   ChevronLeft,
   ChevronRight,
   BarChart3,
+  Mail,
 } from 'lucide-react'
 import { useState } from 'react'
 
 const NAV_ITEMS = [
   { href: '/admin/overview', label: 'Overview', icon: BarChart3, adminOnly: true },
   { href: '/tickets', label: 'Tickets', icon: Ticket, adminOnly: false },
+  { href: '/contact', label: 'Contact', icon: Mail, adminOnly: false },
   { href: '/admin/users', label: 'User Management', icon: Users, adminOnly: true },
   { href: '/admin/settings', label: 'Settings', icon: Settings, adminOnly: true },
 ]
