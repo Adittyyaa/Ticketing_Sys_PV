@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Alert, Button, Input, Select, Spin, Badge } from 'antd'
+import { Alert, Button, Input, Spin, Badge } from 'antd'
 import { FileText, Plus, Search, SlidersHorizontal } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
@@ -16,29 +16,22 @@ import Link from 'next/link'
 
 type ViewMode = 'card' | 'table'
 
-const statusOptions = [
-  { label: 'All Status', value: 'all' },
-  { label: 'Untouched', value: 'UNTOUCHED' },
-  { label: 'Pending', value: 'PENDING' },
-  { label: 'Opened', value: 'OPENED' },
-  { label: 'Solved', value: 'SOLVED' },
-]
-
-const priorityOptions = [
-  { label: 'All Priority', value: 'all' },
-  { label: 'Low', value: 'LOW' },
-  { label: 'Medium', value: 'MEDIUM' },
-  { label: 'High', value: 'HIGH' },
-  { label: 'Urgent', value: 'URGENT' },
-]
-
-function filterTickets(tickets: Ticket[], search: string, status: string, priority: string) {
+function filterTickets(
+  tickets: Ticket[], 
+  search: string, 
+  status: string, 
+  priority: string, 
+  category: string, 
+  type: string
+) {
   const rawSearch = search.trim().replace(/[%;]/g, '').substring(0, 100).toLowerCase()
 
   return tickets
     .filter((ticket) => {
       if (status !== 'all' && ticket.status !== status) return false
       if (priority !== 'all' && ticket.priority !== priority) return false
+      if (category !== 'all' && ticket.category !== category) return false
+      if (type !== 'all' && ticket.type !== type) return false
       if (!rawSearch || rawSearch.length < 2) return true
 
       const searchableText = `${ticket.title} ${ticket.description} ${ticket.number}`.toLowerCase()
@@ -129,8 +122,22 @@ export default function TicketsPage() {
         setCategories(uniqueCategories)
         setTypes(uniqueTypes)
 
-        const my = filterTickets(tickets.filter((ticket) => ticket.user_id === user.id), effectiveSearch, statusFilter, priorityFilter)
-        const other = isAdminLocal ? filterTickets(tickets.filter((ticket) => ticket.user_id !== user.id), effectiveSearch, statusFilter, priorityFilter) : []
+        const my = filterTickets(
+          tickets.filter((ticket) => ticket.user_id === user.id), 
+          effectiveSearch, 
+          statusFilter, 
+          priorityFilter,
+          categoryFilter,
+          typeFilter
+        )
+        const other = isAdminLocal ? filterTickets(
+          tickets.filter((ticket) => ticket.user_id !== user.id), 
+          effectiveSearch, 
+          statusFilter, 
+          priorityFilter,
+          categoryFilter,
+          typeFilter
+        ) : []
 
         if (cancelled) return
 
@@ -153,7 +160,7 @@ export default function TicketsPage() {
     return () => {
       cancelled = true
     }
-  }, [user, isAdminLocal, filters.search, searchQuery, statusFilter, priorityFilter, setTickets])
+  }, [user, isAdminLocal, filters.search, searchQuery, statusFilter, priorityFilter, categoryFilter, typeFilter, setTickets])
 
   const resetFilters = () => {
     setFilters({ search: '' })
@@ -215,12 +222,6 @@ export default function TicketsPage() {
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 260, height: 32 }}
-          />
-          <Select value={statusFilter} onChange={setStatusFilter} style={{ width: 130, height: 32 }}
-            options={statusOptions}
-          />
-          <Select value={priorityFilter} onChange={setPriorityFilter} style={{ width: 130, height: 32 }}
-            options={priorityOptions}
           />
           <div style={{ flex: 1 }} />
           <Badge 

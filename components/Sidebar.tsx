@@ -7,7 +7,6 @@ import { useAuthStore } from '@/lib/store'
 import {
   Ticket,
   Users,
-  Shield,
   Settings,
   ChevronLeft,
   ChevronRight,
@@ -18,8 +17,7 @@ import { useState } from 'react'
 const NAV_ITEMS = [
   { href: '/admin/overview', label: 'Overview', icon: BarChart3, adminOnly: true },
   { href: '/tickets', label: 'Tickets', icon: Ticket, adminOnly: false },
-  { href: '/admin/users', label: 'Users', icon: Users, adminOnly: true },
-  { href: '/admin/manage-admins', label: 'Admins', icon: Shield, adminOnly: true },
+  { href: '/admin/users', label: 'User Management', icon: Users, adminOnly: true },
   { href: '/admin/settings', label: 'Settings', icon: Settings, adminOnly: true },
 ]
 
