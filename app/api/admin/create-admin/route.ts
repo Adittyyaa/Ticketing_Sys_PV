@@ -98,6 +98,29 @@ export async function POST(request: NextRequest) {
       user_metadata: { full_name: fullName },
     })
 
+    // If user already exists in auth, just update their role
+    if (authErr?.message?.includes('duplicate key') || authErr?.message?.includes('already exists')) {
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+      const existingUser = existingUsers?.users?.find(u => u.email === email)
+      
+      if (existingUser) {
+        // Update to admin role
+        const { error: updateErr } = await supabaseAdmin
+          .from('tbl_users')
+          .update({ role: 'admin', full_name: fullName })
+          .eq('id', existingUser.id)
+        
+        if (updateErr) throw new Error(updateErr.message)
+        
+        return NextResponse.json({ 
+          success: true, 
+          userId: existingUser.id,
+          message: 'User updated to admin successfully'
+        })
+      }
+      throw new Error(authErr.message)
+    }
+
     if (authErr) throw new Error(authErr.message)
 
     // Create admin user profile

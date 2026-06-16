@@ -92,13 +92,31 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create auth user WITH email already confirmed (admin-created users)
+    // Create new auth user
     const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm email for admin-created users
+      email_confirm: true,
       user_metadata: { full_name: fullName },
     })
+
+    // If user already exists in auth, just update their profile
+    if (authErr?.message?.includes('duplicate key') || authErr?.message?.includes('already exists')) {
+      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+      const existingUser = existingUsers?.users?.find(u => u.email === email)
+      
+      if (existingUser) {
+        const { error: updateErr } = await supabaseAdmin
+          .from('tbl_users')
+          .update({ full_name: fullName })
+          .eq('id', existingUser.id)
+        
+        if (updateErr) throw new Error(updateErr.message)
+        
+        return NextResponse.json({ success: true, userId: existingUser.id, message: 'User updated successfully' })
+      }
+      throw new Error(authErr.message)
+    }
 
     if (authErr) throw new Error(authErr.message)
 
@@ -106,15 +124,13 @@ export async function POST(request: NextRequest) {
     if (authData.user) {
       const { error: profileErr } = await supabaseAdmin
         .from('tbl_users')
-        .insert([
-          {
-            id: authData.user.id,
-            email,
-            full_name: fullName,
-            role: 'user',
-            created_at: new Date().toISOString(),
-          },
-        ])
+        .insert([{
+          id: authData.user.id,
+          email,
+          full_name: fullName,
+          role: 'user',
+          created_at: new Date().toISOString(),
+        }])
 
       if (profileErr) throw new Error(profileErr.message)
     }
