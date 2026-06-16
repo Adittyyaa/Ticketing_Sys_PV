@@ -14,7 +14,7 @@ const priorities: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
 export default function NewTicketPage() {
   const router = useRouter()
-  const { user, setUser, setLoading } = useAuthStore()
+  const { user, setUser, setLoading, setIsAdmin } = useAuthStore()
   const { addTicket } = useTicketStore()
   const [loading, setLocalLoading] = useState(false)
   const [form] = Form.useForm()
@@ -22,21 +22,25 @@ export default function NewTicketPage() {
   const [dbCategories, setDbCategories] = useState<CategoryData[]>([])
   const [dbTags, setDbTags] = useState<Tag[]>([])
   const [dbTypes, setDbTypes] = useState<TicketType[]>([])
+  const [dbUsers, setDbUsers] = useState<{ id: string; email: string; full_name?: string }[]>([])
   const [fetchingData, setFetchingData] = useState(true)
+  const [isAdminUser, setIsAdminUser] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, tagRes, typeRes] = await Promise.all([
+        const [catRes, tagRes, typeRes, usersRes] = await Promise.all([
           supabase.from('tbl_categories').select('*').order('name'),
           supabase.from('tbl_tags').select('*').order('name'),
-          supabase.from('tbl_ticket_types').select('*').order('name')
+          supabase.from('tbl_ticket_types').select('*').order('name'),
+          supabase.from('tbl_users').select('id, email, full_name').order('email')
         ])
         if (catRes.data) setDbCategories(catRes.data)
         if (tagRes.data) setDbTags(tagRes.data)
         if (typeRes.data) setDbTypes(typeRes.data)
+        if (usersRes.data) setDbUsers(usersRes.data as { id: string; email: string; full_name?: string }[])
       } catch (err) {
-        console.error('Error fetching categories/tags/types:', err)
+        console.error('Error fetching categories/tags/types/users:', err)
       } finally {
         setFetchingData(false)
       }
@@ -46,13 +50,19 @@ export default function NewTicketPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user) { router.push('/auth'); return }
-        setUser({ id: session.user.id, email: session.user.email || '' })
+        
+        const { data: userData } = await supabase.from('tbl_users').select('role').eq('id', session.user.id).single()
+        const isAdmin = userData?.role === 'admin'
+        
+        setUser({ id: session.user.id, email: session.user.email || '', role: userData?.role || 'user' })
         setLoading(false)
+        setIsAdmin(isAdmin)
+        setIsAdminUser(isAdmin)
         fetchData()
       } catch { router.push('/auth') }
     }
     checkAuth()
-  }, [setUser, setLoading, router])
+  }, [setUser, setLoading, setIsAdmin, router])
 
   const onFinish = async (values: { 
     title: string; 
@@ -61,24 +71,19 @@ export default function NewTicketPage() {
     type?: string;
     product_reference_number?: string;
     priority: Priority; 
-    tags?: string[] 
+    tags?: string[];
+    assigned_to?: string;
   }) => {
     if (!user) {
       message.error('No user session found. Please log in again.')
       return
     }
 
-    console.log('=== TICKET CREATION DEBUG ===')
-    console.log('User from store:', user)
-    console.log('Form values:', values)
-    
     const tags = values.tags || []
     if (tags.length > 10) { message.error('Maximum 10 tags allowed'); return }
     
     setLocalLoading(true)
     try {
-      // 1. Ensure user exists in tbl_users
-      console.log('Step 1: Checking if user exists in tbl_users...')
       const { data: userData, error: userCheckError } = await supabase
         .from('tbl_users')
         .select('id')
@@ -86,7 +91,6 @@ export default function NewTicketPage() {
         .single()
 
       if (userCheckError || !userData) {
-        console.log('Step 1b: User not found, creating user record...')
         const { error: userInsertError } = await supabase
           .from('tbl_users')
           .insert([{
@@ -96,24 +100,19 @@ export default function NewTicketPage() {
           }])
         
         if (userInsertError) {
-          console.error('Failed to create user record:', userInsertError)
           message.error(`User setup error: ${userInsertError.message}`)
           return
         }
       }
 
-      // 2. Save any new tags to tbl_tags
       const existingTagNames = dbTags.map(t => t.name)
       const newTags = tags.filter(t => !existingTagNames.includes(t))
       
       if (newTags.length > 0) {
-        console.log('Step 2: Inserting new tags:', newTags)
         await supabase.from('tbl_tags').insert(newTags.map(name => ({ name })))
       }
 
-      // 3. Create the ticket
-      console.log('Step 3: Creating ticket...')
-      const ticketData = { 
+      const ticketData: any = { 
         title: values.title.trim(), 
         description: values.description.trim(), 
         category: values.category,
@@ -124,24 +123,24 @@ export default function NewTicketPage() {
         tags, 
         user_id: user.id 
       }
-      console.log('Ticket data to insert:', ticketData)
+      
+      if (isAdminUser && values.assigned_to) {
+        ticketData.assigned_to = values.assigned_to
+      }
 
       const { data, error } = await supabase.from('tbl_tickets').insert([ticketData]).select()
 
       if (error) {
-        console.error('Ticket creation error:', error)
         message.error(`Failed to create ticket: ${error.message}`)
         return
       }
       
       if (data && data[0]) { 
-        console.log('✅ Ticket created successfully!')
         addTicket(data[0])
         message.success('Ticket created!')
         router.push('/tickets') 
       }
     } catch (err: any) { 
-      console.error('Unexpected error:', err)
       message.error(`Failed to create ticket: ${err?.message || 'Unknown error'}`) 
     } finally { 
       setLocalLoading(false) 
@@ -239,6 +238,26 @@ export default function NewTicketPage() {
                   <Input placeholder="e.g., PRD-2024-001 (optional)" size="large" />
                 </Form.Item>
               </Col>
+
+              {isAdminUser && (
+                <Col xs={24} md={12}>
+                  <Form.Item 
+                    label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Assign To</span>} 
+                    name="assigned_to"
+                  >
+                    <Select 
+                      size="large"
+                      loading={fetchingData}
+                      placeholder="Select user to assign (optional)"
+                      allowClear
+                      options={dbUsers.map((u) => ({ 
+                        label: u.full_name || u.email, 
+                        value: u.id 
+                      }))} 
+                    />
+                  </Form.Item>
+                </Col>
+              )}
 
               <Col span={24}>
                 <Form.Item 
