@@ -4,18 +4,19 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Alert, Button, Input, Spin, Badge, Dropdown, Space } from 'antd'
 import type { MenuProps } from 'antd'
-import { FileText, Plus, Search, SlidersHorizontal, ArrowUpDown, Check } from 'lucide-react'
+import { FileText, Plus, Search, SlidersHorizontal, ArrowUpDown, Check, LayoutGrid, Mail, Table as TableIcon } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import TicketTable from '@/components/TicketTable'
 import TicketCardView from '@/components/TicketCardView'
+import TicketInboxView from '@/components/TicketInboxView'
 import TicketFilterDrawer from '@/components/TicketFilterDrawer'
 import { Ticket } from '@/types/types'
 import { getAdminAuthHeader } from '@/lib/admin-api'
 import Link from 'next/link'
 
-type ViewMode = 'card' | 'table'
+type ViewMode = 'card' | 'inbox' | 'table'
 type SortField = 'created_at' | 'updated_at' | 'priority' | 'status' | 'number'
 type SortOrder = 'asc' | 'desc'
 
@@ -78,7 +79,7 @@ export default function TicketsPage() {
   const [myTickets, setMyTickets] = useState<Ticket[]>([])
   const [otherTickets, setOtherTickets] = useState<Ticket[]>([])
   const [isLoading, setIsLoading] = useState(false)
-  const [viewMode] = useState<ViewMode>('card')
+  const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [statusFilter, setStatusFilter] = useState('all')
   const [priorityFilter, setPriorityFilter] = useState('all')
   const [categoryFilter, setCategoryFilter] = useState('all')
@@ -220,6 +221,35 @@ export default function TicketsPage() {
     return option?.label || 'Date created'
   }
 
+  const layoutOptions: { label: string; value: ViewMode; icon: any }[] = [
+    { label: 'Card', value: 'card', icon: LayoutGrid },
+    { label: 'Inbox', value: 'inbox', icon: Mail },
+    { label: 'Table', value: 'table', icon: TableIcon },
+  ]
+
+  const getLayoutIcon = () => {
+    const option = layoutOptions.find(o => o.value === viewMode)
+    const Icon = option?.icon || LayoutGrid
+    return <Icon size={14} />
+  }
+
+  const layoutMenuItems: MenuProps['items'] = layoutOptions.map(option => {
+    const Icon = option.icon
+    return {
+      key: option.value,
+      label: (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, minWidth: 120 }}>
+          <Space size={8}>
+            <Icon size={14} />
+            <span>{option.label}</span>
+          </Space>
+          {viewMode === option.value && <Check size={14} style={{ color: 'var(--ant-primary-color)' }} />}
+        </div>
+      ),
+      onClick: () => setViewMode(option.value),
+    }
+  })
+
   const sortMenuItems: MenuProps['items'] = [
     ...sortOptions.map(option => ({
       key: option.field,
@@ -271,10 +301,12 @@ export default function TicketsPage() {
           <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontWeight: 500, margin: '0 0 8px' }}>No tickets found</p>
           <p style={{ color: 'var(--text-tertiary)', fontSize: 13, margin: 0 }}>{emptyDescription}</p>
         </div>
-      ) : viewMode === 'card' ? (
-        <TicketCardView tickets={tickets} />
       ) : (
-        <TicketTable tickets={tickets} />
+        <>
+          {viewMode === 'card' && <TicketCardView tickets={tickets} />}
+          {viewMode === 'inbox' && <TicketInboxView tickets={tickets} />}
+          {viewMode === 'table' && <TicketTable tickets={tickets} />}
+        </>
       )}
     </section>
   )
@@ -315,6 +347,18 @@ export default function TicketsPage() {
               <Space size={8}>
                 <ArrowUpDown size={14} />
                 <span style={{ fontSize: 13 }}>Sort by: {getSortLabel()}</span>
+              </Space>
+            </Button>
+          </Dropdown>
+
+          <Dropdown menu={{ items: layoutMenuItems }} trigger={['click']} placement="bottomLeft">
+            <Button 
+              size="middle"
+              style={{ height: 32, minWidth: 120 }}
+            >
+              <Space size={8}>
+                {getLayoutIcon()}
+                <span style={{ fontSize: 13 }}>Layout: {viewMode.charAt(0).toUpperCase() + viewMode.slice(1)}</span>
               </Space>
             </Button>
           </Dropdown>
