@@ -2,8 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Alert, Button, Input, Spin, Badge } from 'antd'
-import { FileText, Plus, Search, SlidersHorizontal } from 'lucide-react'
+import { Alert, Button, Input, Spin, Badge, Dropdown, Space } from 'antd'
+import type { MenuProps } from 'antd'
+import { FileText, Plus, Search, SlidersHorizontal, ArrowUpDown, Check } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
@@ -15,6 +16,38 @@ import { getAdminAuthHeader } from '@/lib/admin-api'
 import Link from 'next/link'
 
 type ViewMode = 'card' | 'table'
+type SortField = 'created_at' | 'updated_at' | 'priority' | 'status' | 'number'
+type SortOrder = 'asc' | 'desc'
+
+function sortTickets(tickets: Ticket[], field: SortField, order: SortOrder): Ticket[] {
+  const sorted = [...tickets].sort((a, b) => {
+    let comparison = 0
+    
+    switch (field) {
+      case 'created_at':
+        comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        break
+      case 'updated_at':
+        comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
+        break
+      case 'priority':
+        const priorityOrder = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
+        comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0)
+        break
+      case 'status':
+        const statusOrder = { UNTOUCHED: 1, PENDING: 2, OPENED: 3, SOLVED: 4 }
+        comparison = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0)
+        break
+      case 'number':
+        comparison = (a.number || 0) - (b.number || 0)
+        break
+    }
+    
+    return order === 'asc' ? comparison : -comparison
+  })
+  
+  return sorted
+}
 
 function filterTickets(
   tickets: Ticket[], 
@@ -26,18 +59,16 @@ function filterTickets(
 ) {
   const rawSearch = search.trim().replace(/[%;]/g, '').substring(0, 100).toLowerCase()
 
-  return tickets
-    .filter((ticket) => {
-      if (status !== 'all' && ticket.status !== status) return false
-      if (priority !== 'all' && ticket.priority !== priority) return false
-      if (category !== 'all' && ticket.category !== category) return false
-      if (type !== 'all' && ticket.type !== type) return false
-      if (!rawSearch || rawSearch.length < 2) return true
+  return tickets.filter((ticket) => {
+    if (status !== 'all' && ticket.status !== status) return false
+    if (priority !== 'all' && ticket.priority !== priority) return false
+    if (category !== 'all' && ticket.category !== category) return false
+    if (type !== 'all' && ticket.type !== type) return false
+    if (!rawSearch || rawSearch.length < 2) return true
 
-      const searchableText = `${ticket.title} ${ticket.description} ${ticket.number}`.toLowerCase()
-      return searchableText.includes(rawSearch)
-    })
-    .sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime())
+    const searchableText = `${ticket.title} ${ticket.description} ${ticket.number}`.toLowerCase()
+    return searchableText.includes(rawSearch)
+  })
 }
 
 export default function TicketsPage() {
@@ -58,6 +89,8 @@ export default function TicketsPage() {
   const [filterDrawerOpen, setFilterDrawerOpen] = useState(false)
   const [categories, setCategories] = useState<string[]>([])
   const [types, setTypes] = useState<string[]>([])
+  const [sortField, setSortField] = useState<SortField>('created_at')
+  const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -122,7 +155,7 @@ export default function TicketsPage() {
         setCategories(uniqueCategories)
         setTypes(uniqueTypes)
 
-        const my = filterTickets(
+        let my = filterTickets(
           tickets.filter((ticket) => ticket.user_id === user.id), 
           effectiveSearch, 
           statusFilter, 
@@ -130,7 +163,9 @@ export default function TicketsPage() {
           categoryFilter,
           typeFilter
         )
-        const other = isAdminLocal ? filterTickets(
+        my = sortTickets(my, sortField, sortOrder)
+        
+        let other = isAdminLocal ? filterTickets(
           tickets.filter((ticket) => ticket.user_id !== user.id), 
           effectiveSearch, 
           statusFilter, 
@@ -138,6 +173,7 @@ export default function TicketsPage() {
           categoryFilter,
           typeFilter
         ) : []
+        other = sortTickets(other, sortField, sortOrder)
 
         if (cancelled) return
 
@@ -160,7 +196,7 @@ export default function TicketsPage() {
     return () => {
       cancelled = true
     }
-  }, [user, isAdminLocal, filters.search, searchQuery, statusFilter, priorityFilter, categoryFilter, typeFilter, setTickets])
+  }, [user, isAdminLocal, filters.search, searchQuery, statusFilter, priorityFilter, categoryFilter, typeFilter, sortField, sortOrder, setTickets])
 
   const resetFilters = () => {
     setFilters({ search: '' })
@@ -170,6 +206,53 @@ export default function TicketsPage() {
     setTypeFilter('all')
     setSearchQuery('')
   }
+
+  const sortOptions: { label: string; field: SortField }[] = [
+    { label: 'Date created', field: 'created_at' },
+    { label: 'Last modified', field: 'updated_at' },
+    { label: 'Priority', field: 'priority' },
+    { label: 'Status', field: 'status' },
+    { label: 'Ticket number', field: 'number' },
+  ]
+
+  const getSortLabel = () => {
+    const option = sortOptions.find(o => o.field === sortField)
+    return option?.label || 'Date created'
+  }
+
+  const sortMenuItems: MenuProps['items'] = [
+    ...sortOptions.map(option => ({
+      key: option.field,
+      label: (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <span>{option.label}</span>
+          {sortField === option.field && <Check size={14} style={{ color: 'var(--ant-primary-color)' }} />}
+        </div>
+      ),
+      onClick: () => setSortField(option.field),
+    })),
+    { type: 'divider' },
+    {
+      key: 'asc',
+      label: (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <span>Ascending</span>
+          {sortOrder === 'asc' && <Check size={14} style={{ color: 'var(--ant-primary-color)' }} />}
+        </div>
+      ),
+      onClick: () => setSortOrder('asc'),
+    },
+    {
+      key: 'desc',
+      label: (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+          <span>Descending</span>
+          {sortOrder === 'desc' && <Check size={14} style={{ color: 'var(--ant-primary-color)' }} />}
+        </div>
+      ),
+      onClick: () => setSortOrder('desc'),
+    },
+  ]
 
   const renderTicketSection = (title: string, tickets: Ticket[], emptyDescription: string) => (
     <section style={{ marginBottom: 28 }}>
@@ -223,6 +306,19 @@ export default function TicketsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 260, height: 32 }}
           />
+          
+          <Dropdown menu={{ items: sortMenuItems }} trigger={['click']} placement="bottomLeft">
+            <Button 
+              size="middle"
+              style={{ height: 32, minWidth: 160 }}
+            >
+              <Space size={8}>
+                <ArrowUpDown size={14} />
+                <span style={{ fontSize: 13 }}>Sort by: {getSortLabel()}</span>
+              </Space>
+            </Button>
+          </Dropdown>
+          
           <div style={{ flex: 1 }} />
           <Badge 
             count={[searchQuery, statusFilter !== 'all', priorityFilter !== 'all', categoryFilter !== 'all', typeFilter !== 'all'].filter(Boolean).length} 
