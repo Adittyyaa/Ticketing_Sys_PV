@@ -16,36 +16,44 @@ CREATE TABLE IF NOT EXISTS public.tbl_users (
 );
 
 CREATE TABLE IF NOT EXISTS public.tbl_tickets (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  title VARCHAR(255) NOT NULL,
-  description TEXT NOT NULL,
-  priority VARCHAR(50) DEFAULT 'MEDIUM' NOT NULL,
-  status VARCHAR(50) DEFAULT 'UNTOUCHED' NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  comment_count INTEGER DEFAULT 0 NOT NULL
-);
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+   number SERIAL UNIQUE,
+   title VARCHAR(255) NOT NULL,
+   description TEXT NOT NULL,
+   category VARCHAR(255) NOT NULL,
+   type VARCHAR(255),
+   product_reference_number VARCHAR(255),
+   priority VARCHAR(50) DEFAULT 'MEDIUM' NOT NULL,
+   status VARCHAR(50) DEFAULT 'UNTOUCHED' NOT NULL,
+   tags TEXT[] DEFAULT '{}',
+   assigned_to UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+   comment_count INTEGER DEFAULT 0 NOT NULL
+ );
 
 CREATE TABLE IF NOT EXISTS public.tbl_comments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ticket_id UUID NOT NULL REFERENCES public.tbl_tickets(id) ON DELETE CASCADE,
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  commenter_name VARCHAR(255),
-  commenter_email VARCHAR(255)
-);
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   ticket_id UUID NOT NULL REFERENCES public.tbl_tickets(id) ON DELETE CASCADE,
+   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+   content TEXT NOT NULL,
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+   commenter_name VARCHAR(255),
+   commenter_email VARCHAR(255)
+ );
 
 CREATE TABLE IF NOT EXISTS public.tbl_attachments (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  ticket_id UUID NOT NULL REFERENCES public.tbl_tickets(id) ON DELETE CASCADE,
-  file_name VARCHAR(255) NOT NULL,
-  file_path VARCHAR(500) NOT NULL,
-  file_size INTEGER,
-  uploaded_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-);
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   ticket_id UUID NOT NULL REFERENCES public.tbl_tickets(id) ON DELETE CASCADE,
+   file_name VARCHAR(255) NOT NULL,
+   file_path VARCHAR(500) NOT NULL,
+   file_size INTEGER,
+   file_type VARCHAR(100),
+   uploaded_by UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+ );
 
 CREATE TABLE IF NOT EXISTS public.tbl_feedback (
    id VARCHAR(255) PRIMARY KEY DEFAULT gen_random_uuid()::text,
@@ -57,13 +65,14 @@ CREATE TABLE IF NOT EXISTS public.tbl_feedback (
  );
 
 CREATE TABLE IF NOT EXISTS public.tbl_contacts (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL,
-  phone VARCHAR(50),
-  position VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-);
+   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+   name VARCHAR(255) NOT NULL,
+   email VARCHAR(255) NOT NULL,
+   phone VARCHAR(50),
+   position VARCHAR(255),
+   department VARCHAR(255),
+   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+ );
 
 -- Categories, Tags, and Ticket Types
 CREATE TABLE IF NOT EXISTS public.tbl_categories (
@@ -92,6 +101,43 @@ CREATE TABLE IF NOT EXISTS public.tbl_saved_replies (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
+
+-- Add unique constraints (safe to skip if exists)
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tbl_categories_name_key'
+  ) THEN
+    ALTER TABLE public.tbl_categories ADD CONSTRAINT tbl_categories_name_key UNIQUE (name);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tbl_tags_name_key'
+  ) THEN
+    ALTER TABLE public.tbl_tags ADD CONSTRAINT tbl_tags_name_key UNIQUE (name);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tbl_ticket_types_name_key'
+  ) THEN
+    ALTER TABLE public.tbl_ticket_types ADD CONSTRAINT tbl_ticket_types_name_key UNIQUE (name);
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint WHERE conname = 'tbl_saved_replies_title_key'
+  ) THEN
+    ALTER TABLE public.tbl_saved_replies ADD CONSTRAINT tbl_saved_replies_title_key UNIQUE (title);
+  END IF;
+END $$;
 
 ALTER TABLE IF EXISTS public.tbl_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_attachments ENABLE ROW LEVEL SECURITY;
@@ -408,13 +454,27 @@ CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON public.tbl_notifications
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.tbl_notifications TO authenticated;
 
 -- ============================================
--- STEP 8: Add name and email fields to tbl_comments (if not exists)
+-- STEP 8: Create triggers for updated_at
 -- ============================================
-ALTER TABLE IF EXISTS public.tbl_comments 
-ADD COLUMN IF NOT EXISTS commenter_name VARCHAR(255);
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
 
-ALTER TABLE IF EXISTS public.tbl_comments 
-ADD COLUMN IF NOT EXISTS commenter_email VARCHAR(255);
+DROP TRIGGER IF EXISTS update_tbl_tickets_updated_at ON public.tbl_tickets;
+CREATE TRIGGER update_tbl_tickets_updated_at
+    BEFORE UPDATE ON public.tbl_tickets
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
+
+DROP TRIGGER IF EXISTS update_tbl_comments_updated_at ON public.tbl_comments;
+CREATE TRIGGER update_tbl_comments_updated_at
+    BEFORE UPDATE ON public.tbl_comments
+    FOR EACH ROW
+    EXECUTE FUNCTION public.update_updated_at_column();
 
 -- ============================================
 -- STEP 9: Create Storage bucket for attachments (run in Storage section)
