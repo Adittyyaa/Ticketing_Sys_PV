@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
-import { Table, Form, Input, Button, message, Modal, Tag, Space, Segmented } from 'antd'
-import { Plus, Trash2, Users, Shield } from 'lucide-react'
+import { Table, Form, Input, Button, message, Modal, Select, Tag } from 'antd'
+import { Plus, Trash2, Users } from 'lucide-react'
 
 interface User {
   id: string
@@ -16,8 +16,6 @@ interface User {
   created_at: string
 }
 
-type ViewType = 'users' | 'admins'
-
 export default function UserManagementPage() {
   const router = useRouter()
   const { user, isAdmin } = useAuthStore()
@@ -25,7 +23,6 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [viewType, setViewType] = useState<ViewType>('users')
   const [form] = Form.useForm()
 
   useEffect(() => {
@@ -47,20 +44,19 @@ export default function UserManagementPage() {
       const { data: { session } } = await supabase.auth.getSession()
       if (!session) throw new Error('No active session')
       
-      const endpoint = viewType === 'admins' ? '/api/admin/create-admin' : '/api/admin/create-user'
-      const response = await fetch(endpoint, {
+      const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
-        body: JSON.stringify({ email: values.email, password: values.password, fullName: values.fullName }),
+        body: JSON.stringify({ email: values.email, password: values.password, fullName: values.fullName, role: values.role }),
       })
       const result = await response.json()
-      if (!response.ok) throw new Error(result.error || `Failed to create ${viewType === 'admins' ? 'admin' : 'user'}`)
-      message.success(`${viewType === 'admins' ? 'Admin' : 'User'} created successfully!`)
+      if (!response.ok) throw new Error(result.error || 'Failed to create user')
+      message.success('User created successfully!')
       form.resetFields()
       setShowForm(false)
       fetchUsers()
     } catch (err) { 
-      message.error(err instanceof Error ? err.message : `Error creating ${viewType === 'admins' ? 'admin' : 'user'}`) 
+      message.error(err instanceof Error ? err.message : 'Error creating user') 
     }
     finally { setSubmitting(false) }
   }
@@ -82,7 +78,6 @@ export default function UserManagementPage() {
       onOk: async () => {
         try {
           if (userRole === 'admin') {
-            // Convert admin to user instead of deleting
             const { error } = await supabase.from('tbl_users').update({ role: 'user' }).eq('id', userId)
             if (error) throw error
             message.success('Admin access revoked')
@@ -98,8 +93,6 @@ export default function UserManagementPage() {
       }
     })
   }
-
-  const filteredUsers = allUsers.filter(u => viewType === 'admins' ? u.role === 'admin' : u.role === 'user')
 
   const columns = [
     { 
@@ -171,60 +164,27 @@ export default function UserManagementPage() {
               User Management
             </h1>
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>
-              Manage user and admin accounts
+              Manage all users and admins
             </p>
           </div>
-          <Button 
-            type="primary" 
-            icon={<Plus size={14} />} 
-            onClick={() => setShowForm(!showForm)} 
-            style={{ 
-              height: 32, 
-              fontSize: 13, 
-              borderRadius: 6,
-              ...(viewType === 'admins' && {
-                backgroundColor: '#7c3aed',
-                borderColor: '#7c3aed'
-              })
-            }}
-          >
-            {showForm ? 'Cancel' : `Add ${viewType === 'admins' ? 'Admin' : 'User'}`}
-          </Button>
-        </div>
-
-        {/* Role Selector */}
-        <div style={{ marginBottom: 20 }}>
-          <Segmented
-            value={viewType}
-            onChange={(value) => {
-              setViewType(value as ViewType)
-              setShowForm(false)
-              form.resetFields()
-            }}
-            options={[
-              {
-                label: (
-                  <div style={{ padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Users size={16} />
-                    <span>Users</span>
-                    <Tag style={{ margin: 0 }}>{allUsers.filter(u => u.role === 'user').length}</Tag>
-                  </div>
-                ),
-                value: 'users'
-              },
-              {
-                label: (
-                  <div style={{ padding: '4px 12px', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <Shield size={16} />
-                    <span>Admins</span>
-                    <Tag color="purple" style={{ margin: 0 }}>{allUsers.filter(u => u.role === 'admin').length}</Tag>
-                  </div>
-                ),
-                value: 'admins'
-              }
-            ]}
-            size="large"
-          />
+          <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Tag color="blue" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <Users size={12} />
+              {allUsers.length} User{allUsers.length !== 1 ? 's' : ''}
+            </Tag>
+            <Button 
+              type="primary" 
+              icon={<Plus size={14} />} 
+              onClick={() => setShowForm(!showForm)} 
+              style={{ 
+                height: 32, 
+                fontSize: 13, 
+                borderRadius: 6
+              }}
+            >
+              {showForm ? 'Cancel' : 'Add User'}
+            </Button>
+          </div>
         </div>
 
         {showForm && (
@@ -241,7 +201,7 @@ export default function UserManagementPage() {
               fontWeight: 600, 
               margin: '0 0 16px 0' 
             }}>
-              Create New {viewType === 'admins' ? 'Admin' : 'User'}
+              Create New User
             </h3>
             <Form form={form} layout="vertical" onFinish={handleCreateUser}>
               <div style={{ 
@@ -265,10 +225,7 @@ export default function UserManagementPage() {
                     { type: 'email', message: 'Invalid email' }
                   ]}
                 >
-                  <Input 
-                    placeholder={viewType === 'admins' ? 'admin@company.com' : 'user@example.com'} 
-                    style={{ height: 40 }} 
-                  />
+                  <Input placeholder="user@example.com" style={{ height: 40 }} />
                 </Form.Item>
                 <Form.Item 
                   label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Password</span>} 
@@ -280,34 +237,38 @@ export default function UserManagementPage() {
                 >
                   <Input.Password placeholder="Min 6 characters" style={{ height: 40 }} />
                 </Form.Item>
+                <Form.Item 
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Role</span>} 
+                  name="role" 
+                  rules={[{ required: true, message: 'Role is required' }]}
+                  initialValue="user"
+                >
+                  <Select
+                    style={{ height: 40 }}
+                    options={[
+                      { value: 'user', label: 'User' },
+                      { value: 'admin', label: 'Admin' }
+                    ]}
+                  />
+                </Form.Item>
               </div>
               <Form.Item style={{ marginBottom: 0 }}>
-                <Space>
+                <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                   <Button 
                     type="primary" 
                     htmlType="submit" 
                     loading={submitting} 
-                    style={{ 
-                      height: 40, 
-                      borderRadius: 6,
-                      ...(viewType === 'admins' && {
-                        backgroundColor: '#7c3aed',
-                        borderColor: '#7c3aed'
-                      })
-                    }}
+                    style={{ height: 40, borderRadius: 6 }}
                   >
-                    Create {viewType === 'admins' ? 'Admin' : 'User'}
+                    Create User
                   </Button>
                   <Button 
                     style={{ height: 40, borderRadius: 6 }} 
-                    onClick={() => { 
-                      form.resetFields()
-                      setShowForm(false) 
-                    }}
+                    onClick={() => { form.resetFields(); setShowForm(false) }}
                   >
                     Cancel
                   </Button>
-                </Space>
+                </div>
               </Form.Item>
             </Form>
           </div>
@@ -321,11 +282,9 @@ export default function UserManagementPage() {
         }}>
           <Table 
             columns={columns} 
-            dataSource={filteredUsers.map(u => ({ ...u, key: u.id }))} 
+            dataSource={allUsers.map(u => ({ ...u, key: u.id }))} 
             pagination={{ pageSize: 10 }}
-            locale={{
-              emptyText: `No ${viewType === 'admins' ? 'admin' : 'user'} accounts found`
-            }}
+            locale={{ emptyText: 'No user accounts found' }}
           />
         </div>
       </div>
