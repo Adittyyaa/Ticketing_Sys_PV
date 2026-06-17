@@ -3,8 +3,8 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
-import { Button, Input, Form, Empty, message, Select, Space, Divider, AutoComplete, Popconfirm } from 'antd'
-import { DeleteOutlined, SendOutlined, MessageOutlined } from '@ant-design/icons'
+import { Button, Input, Form, Empty, message, Divider, AutoComplete, Popconfirm } from 'antd'
+import { DeleteOutlined, SendOutlined } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { SavedReply } from '@/types/types'
 
@@ -33,8 +33,9 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
   const [form] = Form.useForm()
   
   const [savedReplies, setSavedReplies] = useState<SavedReply[]>([])
-  const [fetchingReplies, setFetchingReplies] = useState(false)
   const [users, setUsers] = useState<Array<{id: string, email: string, full_name?: string, role?: string}>>([])
+  const [searchValue, setSearchValue] = useState('')
+  const [dropdownOptions, setDropdownOptions] = useState<Array<{value: string, label: React.ReactNode}>>([])
 
   useEffect(() => { fetchComments() }, [ticketId])
   
@@ -44,6 +45,39 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
     }
     fetchUsers()
   }, [isAdmin, user?.id])
+
+  useEffect(() => {
+    const inputValue = form.getFieldValue('content') || ''
+    
+    if (inputValue.includes('@')) {
+      const atIndex = inputValue.lastIndexOf('@')
+      const query = inputValue.substring(atIndex + 1)
+      const filteredUsers = users.filter(u => u.id !== user?.id && u.email.toLowerCase().includes(query.toLowerCase()))
+      setDropdownOptions(filteredUsers.map(u => ({
+        value: `@${u.email}`,
+        label: (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ color: 'var(--accent-primary)' }}>@{u.email}</span>
+          </div>
+        )
+      })))
+    } else if (inputValue.includes('/r')) {
+      const rIndex = inputValue.lastIndexOf('/r')
+      const query = inputValue.substring(rIndex + 2)
+      const filteredReplies = savedReplies.filter(r => r.title.toLowerCase().includes(query.toLowerCase()))
+      setDropdownOptions(filteredReplies.map(r => ({
+        value: `/r ${r.title}`,
+        label: (
+          <div style={{ padding: '4px 0' }}>
+            <span style={{ color: 'var(--accent-primary)', fontWeight: 500 }}>/r</span>
+            <span style={{ color: 'var(--text-primary)' }}> {r.title}</span>
+          </div>
+        )
+      })))
+    } else {
+      setDropdownOptions([])
+    }
+  }, [searchValue, savedReplies, users, user?.id, form])
 
   const fetchComments = async () => {
     try {
@@ -55,15 +89,12 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
   }
 
   const fetchSavedReplies = async () => {
-    setFetchingReplies(true)
     try {
       const { data, error } = await supabase.from('tbl_saved_replies').select('*').order('title')
       if (error) throw error
       setSavedReplies(data || [])
     } catch (err) {
       console.error('Error fetching saved replies:', err)
-    } finally {
-      setFetchingReplies(false)
     }
   }
 
@@ -74,7 +105,6 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
       setUsers(data || [])
     } catch (err) {
       console.error('Error fetching users:', err)
-      // Try to create user profile if missing
       if (user?.id) {
         const { data: upsertData } = await supabase.from('tbl_users').upsert([{
           id: user.id,
@@ -117,11 +147,19 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
     }
   }
 
-  const handleUseReply = (replyId: string) => {
-    const reply = savedReplies.find(r => r.id === replyId)
-    if (reply) {
-      const currentContent = form.getFieldValue('content') || ''
-      form.setFieldsValue({ content: currentContent ? `${currentContent}\n\n${reply.content}` : reply.content })
+  const handleSelect = (value: string) => {
+    const currentContent = form.getFieldValue('content') || ''
+    
+    if (value.startsWith('/r ')) {
+      const replyTitle = value.substring(3)
+      const actualReply = savedReplies.find(r => r.title === replyTitle)
+      if (actualReply) {
+        const beforeCmd = currentContent.substring(0, currentContent.lastIndexOf('/r'))
+        form.setFieldsValue({ content: beforeCmd ? `${beforeCmd.trim()}\n\n${actualReply.content}` : actualReply.content })
+      }
+    } else if (value.startsWith('@')) {
+      const beforeMention = currentContent.substring(0, currentContent.lastIndexOf('@'))
+      form.setFieldsValue({ content: beforeMention + value })
     }
   }
 
@@ -189,49 +227,22 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
 
       <Divider style={{ margin: '12px 0' }} />
 
-      {isAdmin && savedReplies.length > 0 && (
-        <div style={{ marginBottom: 12 }}>
-          <Space>
-            <span style={{ fontSize: 12, color: 'var(--text-secondary)' }}><MessageOutlined /> Saved Reply:</span>
-            <Select
-              placeholder="Select a macro..."
-              style={{ width: 200 }}
-              size="small"
-              onChange={handleUseReply}
-              loading={fetchingReplies}
-              value={undefined}
-              dropdownMatchSelectWidth={false}
-              options={savedReplies.map(r => ({ label: r.title, value: r.id }))}
-            />
-          </Space>
-        </div>
-      )}
-
       <Form form={form} onFinish={handleSubmit} layout="vertical">
         <Form.Item name="content" rules={[{ required: true, message: 'Please enter a comment' }]} style={{ marginBottom: 8 }}>
           <AutoComplete
             style={{ width: '100%' }}
-            options={users.filter(u => u.id !== user?.id).map(u => ({
-              value: `@${u.email}`,
-              label: (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <span style={{ color: 'var(--accent-primary)' }}>@{u.email}</span>
-                </div>
-              ),
-            }))}
-            onSelect={(value) => {
-              const currentContent = form.getFieldValue('content') || ''
-              form.setFieldsValue({ content: currentContent ? `${currentContent} ${value}` : value })
-            }}
-            filterOption={(inputValue, option) =>
-              option?.value.toLowerCase().includes(inputValue.toLowerCase()) || false
-            }
+            options={dropdownOptions}
+            onSearch={(value) => setSearchValue(value)}
+            onSelect={handleSelect}
+            open={dropdownOptions.length > 0}
           >
-            <Input.TextArea placeholder="Add a comment... Use @email to mention users" rows={3} disabled={submitting} style={{ fontSize: 13 }} />
+            <Input.TextArea 
+              placeholder="Add a comment... Use @email to mention users, /r to use saved replies" 
+              rows={3} 
+              disabled={submitting} 
+              style={{ fontSize: 13 }} 
+            />
           </AutoComplete>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: 11, marginTop: 4, display: 'block' }}>
-            Tip: Use @email to mention users (e.g., @john@example.com)
-          </span>
         </Form.Item>
         <Form.Item style={{ marginBottom: 0 }}>
           <Button type="primary" htmlType="submit" loading={submitting} icon={<SendOutlined />} style={{ height: 32, fontSize: 13, borderRadius: 6 }}>
