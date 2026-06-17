@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
-import { Table, Form, Input, Button, message, Modal, Select, Tag } from 'antd'
-import { Plus, Trash2, Users, Search } from 'lucide-react'
+import { Table, Form, Input, Button, message, Modal, Select, Tag, Spin } from 'antd'
+import { Plus, Trash2, Users, Search, Edit } from 'lucide-react'
 
 interface User {
   id: string
@@ -20,11 +20,13 @@ export default function UserManagementPage() {
   const router = useRouter()
   const { user, isAdmin } = useAuthStore()
   const [allUsers, setAllUsers] = useState<User[]>([])
-  const [loading, setLoading] = useState(true)
+  const [loading, setLoadingState] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [searchQuery, setSearchQuery] = useState('')
   const [form] = Form.useForm()
+  const [editingUserId, setEditingUserId] = useState<string | null>(null)
+  const [editRoleForm] = Form.useForm()
 
   useEffect(() => {
     if (!isAdmin) { router.push('/tickets'); return }
@@ -36,7 +38,7 @@ export default function UserManagementPage() {
       const { data } = await supabase.from('tbl_users').select('*').order('created_at', { ascending: false })
       setAllUsers(data || [])
     } catch { message.error('Failed to load users') }
-    finally { setLoading(false) }
+    finally { setLoadingState(false) }
   }
 
   const filteredUsers = useMemo(() => {
@@ -69,6 +71,19 @@ export default function UserManagementPage() {
       message.error(err instanceof Error ? err.message : 'Error creating user') 
     }
     finally { setSubmitting(false) }
+  }
+
+  const handleUpdateRole = async (userId: string) => {
+    try {
+      const values = await editRoleForm.validateFields()
+      const { error } = await supabase.from('tbl_users').update({ role: values.role }).eq('id', userId)
+      if (error) throw error
+      message.success('User role updated')
+      setEditingUserId(null)
+      fetchUsers()
+    } catch (err) { 
+      message.error('Failed to update role') 
+    }
   }
 
   const handleDeleteUser = async (userId: string, email: string, userRole: string) => {
@@ -128,12 +143,30 @@ export default function UserManagementPage() {
       title: 'Role', 
       dataIndex: 'role', 
       key: 'role', 
-      width: 120, 
-      render: (r: string) => (
-        <Tag color={r === 'admin' ? 'purple' : 'blue'}>
-          {r === 'admin' ? 'Admin' : 'User'}
-        </Tag>
-      )
+      width: 140, 
+      render: (r: string, record: User) => {
+        const isEditing = editingUserId === record.id
+        return isEditing ? (
+          <Form form={editRoleForm} layout="inline">
+            <Form.Item name="role" initialValue={r} style={{ margin: 0 }}>
+              <Select
+                size="small"
+                style={{ width: 100 }}
+                options={[
+                  { value: 'user', label: 'User' },
+                  { value: 'admin', label: 'Admin' }
+                ]}
+                onBlur={() => handleUpdateRole(record.id)}
+                onChange={() => handleUpdateRole(record.id)}
+              />
+            </Form.Item>
+          </Form>
+        ) : (
+          <Tag color={r === 'admin' ? 'purple' : 'blue'}>
+            {r === 'admin' ? 'Admin' : 'User'}
+          </Tag>
+        )
+      }
     },
     { 
       title: 'Joined', 
@@ -149,21 +182,41 @@ export default function UserManagementPage() {
     { 
       title: '', 
       key: 'action', 
-      width: 60, 
+      width: 80, 
       render: (_: any, r: User) => (
         r.id !== user?.id && (
-          <Button 
-            type="text" 
-            danger 
-            icon={<Trash2 size={14} />} 
-            onClick={() => handleDeleteUser(r.id, r.email, r.role)}
-          />
+          <div style={{ display: 'flex', gap: 4 }}>
+            <Button 
+              type="text" 
+              size="small"
+              icon={<Edit size={14} />} 
+              onClick={() => {
+                setEditingUserId(r.id)
+                editRoleForm.setFieldsValue({ role: r.role })
+              }}
+            />
+            <Button 
+              type="text" 
+              danger 
+              size="small"
+              icon={<Trash2 size={14} />} 
+              onClick={() => handleDeleteUser(r.id, r.email, r.role)}
+            />
+          </div>
         )
       )
     },
   ]
 
-  if (loading) return null
+  if (loading) {
+    return (
+      <AppShell>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 96px)' }}>
+          <Spin size="large" />
+        </div>
+      </AppShell>
+    )
+  }
 
   return (
     <AppShell>
@@ -303,6 +356,14 @@ export default function UserManagementPage() {
             dataSource={filteredUsers.map(u => ({ ...u, key: u.id }))} 
             pagination={{ pageSize: 10 }}
             locale={{ emptyText: 'No user accounts found' }}
+            onRow={(record) => ({
+              onDoubleClick: () => {
+                if (record.id !== user?.id) {
+                  setEditingUserId(record.id)
+                  editRoleForm.setFieldsValue({ role: record.role })
+                }
+              }
+            })}
           />
         </div>
       </div>

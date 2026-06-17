@@ -7,9 +7,11 @@ import { PlusOutlined, EditOutlined, DeleteOutlined, TagOutlined, FolderOutlined
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
-import { CategoryData, Tag, SavedReply } from '@/types/types'
+import { CategoryData, Tag, SavedReply, CustomStatus } from '@/types/types'
 import { getAdminAuthHeader } from '@/lib/admin-api'
 import { useTheme } from '@/contexts/ThemeContext'
+
+const STATUS_COLORS = ['#64748b', '#f59e0b', '#3b82f6', '#10b981', '#ef4444', '#8b5cf6', '#f97316', '#06b6d4']
 
 export default function SettingsPage() {
   const router = useRouter()
@@ -21,6 +23,7 @@ export default function SettingsPage() {
   const [categories, setCategories] = useState<CategoryData[]>([])
   const [tags, setTags] = useState<Tag[]>([])
   const [savedReplies, setSavedReplies] = useState<SavedReply[]>([])
+  const [customStatuses, setCustomStatuses] = useState<CustomStatus[]>([])
   const [loading, setTableLoading] = useState(false)
 
   // Modal states
@@ -72,6 +75,10 @@ export default function SettingsPage() {
         const { data, error } = await supabase.from('tbl_saved_replies').select('*').order('title')
         if (error) throw error
         setSavedReplies(data || [])
+      } else if (activeTab === 'statuses') {
+        const { data, error } = await supabase.from('tbl_custom_statuses').select('*').order('name')
+        if (error) throw error
+        setCustomStatuses(data || [])
       }
     } catch {
       message.error(`Failed to load ${activeTab}`)
@@ -101,20 +108,21 @@ export default function SettingsPage() {
       if (activeTab === 'categories') table = 'tbl_categories'
       else if (activeTab === 'tags') table = 'tbl_tags'
       else if (activeTab === 'replies') table = 'tbl_saved_replies'
-      
+      else if (activeTab === 'statuses') table = 'tbl_custom_statuses'
+
       // Add created_at for categories and tags
-      if ((activeTab === 'categories' || activeTab === 'tags') && !editingItem) {
+      if ((activeTab === 'categories' || activeTab === 'tags' || activeTab === 'statuses') && !editingItem) {
         insertValues.created_at = new Date().toISOString()
       }
 
       if (editingItem) {
         const { error } = await supabase.from(table).update(values).eq('id', editingItem.id)
         if (error) throw error
-        message.success(`${activeTab.slice(0, -1)} updated`)
+        message.success(`${activeTab === 'statuses' ? 'Status' : activeTab === 'replies' ? 'Reply' : activeTab.slice(0, -1)} updated`)
       } else {
         const { error } = await supabase.from(table).insert([insertValues])
         if (error) throw error
-        message.success(`${activeTab.slice(0, -1)} added`)
+        message.success(`${activeTab === 'statuses' ? 'Status' : activeTab === 'replies' ? 'Reply' : activeTab.slice(0, -1)} added`)
       }
       
       setIsModalVisible(false)
@@ -123,7 +131,7 @@ export default function SettingsPage() {
       if (error.code === '23505') {
         message.error('This name already exists')
       } else {
-        message.error(`Failed to save ${activeTab.slice(0, -1)}`)
+        message.error(`Failed to save ${activeTab}`)
       }
     } finally {
       setTableLoading(false)
@@ -137,13 +145,14 @@ export default function SettingsPage() {
       if (activeTab === 'categories') table = 'tbl_categories'
       else if (activeTab === 'tags') table = 'tbl_tags'
       else if (activeTab === 'replies') table = 'tbl_saved_replies'
+      else if (activeTab === 'statuses') table = 'tbl_custom_statuses'
 
       const { error } = await supabase.from(table).delete().eq('id', id)
       if (error) throw error
-      message.success(`${activeTab.slice(0, -1)} deleted`)
+      message.success(`${activeTab === 'statuses' ? 'Status' : activeTab === 'replies' ? 'Reply' : activeTab.slice(0, -1)} deleted`)
       fetchData()
     } catch {
-      message.error(`Failed to delete ${activeTab.slice(0, -1)}`)
+      message.error(`Failed to delete ${activeTab}`)
     } finally {
       setTableLoading(false)
     }
@@ -198,7 +207,75 @@ export default function SettingsPage() {
           </Space>
         ) 
       },
+    ],
+    statuses: [
+      { title: 'Name', dataIndex: 'name', key: 'name' },
+      { 
+        title: 'Color', 
+        dataIndex: 'color', 
+        key: 'color',
+        width: 100,
+        render: (color: string) => (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <span style={{ width: 16, height: 16, backgroundColor: color, borderRadius: 4, border: '1px solid var(--border-subtle)' }} />
+            <span style={{ fontSize: 12 }}>{color}</span>
+          </div>
+        )
+      },
+      { 
+        title: 'Actions', 
+        key: 'actions', 
+        width: 120,
+        render: (_: any, record: any) => (
+          <Space>
+            <Button size="small" icon={<EditOutlined />} onClick={() => showModal(record)} />
+            <Popconfirm title="Delete this status?" onConfirm={() => handleDelete(record.id)}>
+              <Button size="small" danger icon={<DeleteOutlined />} />
+            </Popconfirm>
+          </Space>
+        ) 
+      },
     ]
+  }
+
+  const modalTitle = () => {
+    if (editingItem) return `Edit ${activeTab === 'statuses' ? 'Status' : activeTab === 'replies' ? 'Reply' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1, -1)}`
+    return `Add ${activeTab === 'statuses' ? 'Status' : activeTab === 'replies' ? 'Reply' : activeTab.charAt(0).toUpperCase() + activeTab.slice(1, -1)}`
+  }
+
+  const renderForm = () => {
+    if (activeTab === 'statuses') {
+      return (
+        <>
+          <Form.Item name="name" label="Status Name" rules={[{ required: true }]}>
+            <Input placeholder="e.g., In Review" />
+          </Form.Item>
+          <Form.Item name="color" label="Color" rules={[{ required: true }]}>
+            <Select
+              style={{ width: '100%' }}
+              options={STATUS_COLORS.map(c => ({ value: c, label: <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}><span style={{ width: 16, height: 16, backgroundColor: c, borderRadius: 4 }} />{c}</div> }))}
+            />
+          </Form.Item>
+        </>
+      )
+    }
+    if (activeTab === 'replies') {
+      return (
+        <>
+          <Form.Item name="title" label="Title" rules={[{ required: true }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item name="content" label="Content" rules={[{ required: true }]}>
+            <Input.TextArea rows={6} />
+          </Form.Item>
+        </>
+      )
+    }
+    return (
+      <Form.Item name="name" label="Name" rules={[{ required: true }]}>
+        <Input />
+      </Form.Item>
+    )
   }
 
   if (!user || !isAdmin) return null
@@ -262,6 +339,24 @@ export default function SettingsPage() {
               )
             },
             {
+              key: 'statuses',
+              label: (<span><TagOutlined /> Custom Statuses</span>),
+              children: (
+                <Card>
+                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                    <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>Add Status</Button>
+                  </div>
+                  <Table 
+                    dataSource={customStatuses} 
+                    columns={columns.statuses} 
+                    rowKey="id" 
+                    loading={loading}
+                    size="small"
+                  />
+                </Card>
+              )
+            },
+            {
               key: 'replies',
               label: (<span><MessageOutlined /> Saved Replies</span>),
               children: (
@@ -308,28 +403,15 @@ export default function SettingsPage() {
           ]}
         />
 
-<Modal
-          title={`${editingItem ? 'Edit' : 'Add'} ${activeTab === 'replies' ? 'Reply' : activeTab === 'categories' ? 'Category' : 'Tag'}`}
+        <Modal
+          title={modalTitle()}
           open={isModalVisible}
           onOk={handleOk}
           onCancel={() => setIsModalVisible(false)}
           confirmLoading={loading}
         >
           <Form form={form} layout="vertical">
-            {activeTab === 'replies' ? (
-              <>
-                <Form.Item name="title" label="Title" rules={[{ required: true }]}>
-                  <Input />
-                </Form.Item>
-                <Form.Item name="content" label="Content" rules={[{ required: true }]}>
-                  <Input.TextArea rows={6} />
-                </Form.Item>
-              </>
-            ) : (
-              <Form.Item name="name" label="Name" rules={[{ required: true }]}>
-                <Input />
-              </Form.Item>
-            )}
+            {renderForm()}
           </Form>
         </Modal>
       </div>

@@ -36,7 +36,7 @@ function sortTickets(tickets: Ticket[], field: SortField, order: SortOrder): Tic
         comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0)
         break
       case 'status':
-        const statusOrder = { UNTOUCHED: 1, PENDING: 2, OPENED: 3, SOLVED: 4 }
+        const statusOrder: Record<string, number> = { UNTOUCHED: 1, PENDING: 2, OPENED: 3, SOLVED: 4 }
         comparison = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0)
         break
       case 'number':
