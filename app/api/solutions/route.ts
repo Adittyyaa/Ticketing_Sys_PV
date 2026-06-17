@@ -71,7 +71,7 @@ export async function GET(request: NextRequest) {
 
     const searchFilter = buildSolutionSearchFilter(search)
     if (searchFilter) {
-      query.or(searchFilter)
+      query = query.or(searchFilter)
     }
 
     const { data, error } = await query.order('created_at', { ascending: false })

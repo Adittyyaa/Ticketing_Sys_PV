@@ -43,7 +43,7 @@ ON public.tbl_solutions FOR DELETE
 USING (public.get_user_role() = 'admin');
 
 -- ============================================
--- UPDATE TRIGGER FOR updated_at
+-- UPDATE TRIGGER FOR updated_ata
 -- ============================================
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
