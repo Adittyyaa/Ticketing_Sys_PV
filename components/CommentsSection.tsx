@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
-import { Button, Input, Form, Empty, Popconfirm, message, Select, Space, Divider } from 'antd'
+import { Button, Input, Form, Empty, message, Select, Space, Divider, AutoComplete, Popconfirm } from 'antd'
 import { DeleteOutlined, SendOutlined, MessageOutlined } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
 import { SavedReply } from '@/types/types'
@@ -21,9 +21,11 @@ interface CommentData {
 
 interface CommentsSectionProps {
   ticketId: string
+  ticketNumber?: number
+  ticketTitle?: string
 }
 
-export default function TicketComments({ ticketId }: CommentsSectionProps) {
+export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: CommentsSectionProps) {
   const { user, isAdmin } = useAuthStore()
   const [comments, setComments] = useState<CommentData[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,6 +34,7 @@ export default function TicketComments({ ticketId }: CommentsSectionProps) {
   
   const [savedReplies, setSavedReplies] = useState<SavedReply[]>([])
   const [fetchingReplies, setFetchingReplies] = useState(false)
+  const [users, setUsers] = useState<Array<{id: string, email: string, full_name?: string, role?: string}>>([])
 
   useEffect(() => { fetchComments() }, [ticketId])
   
@@ -39,6 +42,7 @@ export default function TicketComments({ ticketId }: CommentsSectionProps) {
     if (isAdmin) {
       fetchSavedReplies()
     }
+    fetchUsers()
   }, [isAdmin])
 
   const fetchComments = async () => {
@@ -63,6 +67,45 @@ export default function TicketComments({ ticketId }: CommentsSectionProps) {
     }
   }
 
+  const fetchUsers = async () => {
+    try {
+      const { data, error } = await supabase.from('tbl_users').select('id, email, full_name, role').order('email')
+      if (error) throw error
+      setUsers(data || [])
+    } catch (err) {
+      console.error('Error fetching users:', err)
+    }
+  }
+
+  const extractMentions = (content: string): string[] => {
+    const mentionRegex = /@([a-zA-Z0-9._%+-]+)/g
+    const matches = content.match(mentionRegex)
+    return matches ? matches.map(m => m.substring(1).toLowerCase()) : []
+  }
+
+  const findUserByEmail = (email: string) => {
+    return users.find(u => u.email.toLowerCase() === email.toLowerCase())
+  }
+
+  const createNotifications = async (commentId: string, content: string) => {
+    const mentionedEmails = extractMentions(content)
+    for (const email of mentionedEmails) {
+      const mentionedUser = findUserByEmail(email)
+      if (mentionedUser && mentionedUser.id !== user?.id) {
+        await supabase.from('tbl_notifications').insert({
+          user_id: mentionedUser.id,
+          ticket_id: ticketId,
+          comment_id: commentId,
+          type: 'mention',
+          message: `${user?.email || 'Someone'} mentioned you in ticket #${ticketNumber || ticketId}`,
+          ticket_number: ticketNumber,
+          ticket_title: ticketTitle,
+          commenter_name: user?.email
+        })
+      }
+    }
+  }
+
   const handleUseReply = (replyId: string) => {
     const reply = savedReplies.find(r => r.id === replyId)
     if (reply) {
@@ -78,6 +121,7 @@ export default function TicketComments({ ticketId }: CommentsSectionProps) {
       const { data, error } = await supabase.from('tbl_comments').insert([{ ticket_id: ticketId, user_id: user.id, content: values.content.trim(), commenter_name: user.email, commenter_email: user.email }]).select('*').single()
       if (error) throw error
       setComments((prev) => [...prev, data])
+      await createNotifications(data.id, values.content.trim())
       form.resetFields()
       message.success('Comment added')
     } catch { message.error('Failed to post comment') }
@@ -154,7 +198,29 @@ export default function TicketComments({ ticketId }: CommentsSectionProps) {
 
       <Form form={form} onFinish={handleSubmit} layout="vertical">
         <Form.Item name="content" rules={[{ required: true, message: 'Please enter a comment' }]} style={{ marginBottom: 8 }}>
-          <Input.TextArea placeholder="Add a comment..." rows={3} disabled={submitting} style={{ fontSize: 13 }} />
+          <AutoComplete
+            style={{ width: '100%' }}
+            options={users.filter(u => u.id !== user?.id).map(u => ({
+              value: `@${u.email}`,
+              label: (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <span style={{ color: 'var(--accent-primary)' }}>@{u.email}</span>
+                </div>
+              ),
+            }))}
+            onSelect={(value) => {
+              const currentContent = form.getFieldValue('content') || ''
+              form.setFieldsValue({ content: currentContent ? `${currentContent} ${value}` : value })
+            }}
+            filterOption={(inputValue, option) =>
+              option?.value.toLowerCase().includes(inputValue.toLowerCase()) || false
+            }
+          >
+            <Input.TextArea placeholder="Add a comment... Use @email to mention users" rows={3} disabled={submitting} style={{ fontSize: 13 }} />
+          </AutoComplete>
+          <span style={{ color: 'var(--text-tertiary)', fontSize: 11, marginTop: 4, display: 'block' }}>
+            Tip: Use @email to mention users (e.g., @john@example.com)
+          </span>
         </Form.Item>
         <Form.Item style={{ marginBottom: 0 }}>
           <Button type="primary" htmlType="submit" loading={submitting} icon={<SendOutlined />} style={{ height: 32, fontSize: 13, borderRadius: 6 }}>

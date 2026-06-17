@@ -223,8 +223,8 @@ export default function TicketDetailPage() {
               </div>
             )}
 
-            {/* Comments */}
-            <TicketComments ticketId={ticketId} />
+{/* Comments */}
+             <TicketComments ticketId={ticketId} ticketNumber={ticket.number} ticketTitle={ticket.title} />
 
             {/* Attachments */}
             <div style={{ marginTop: 20 }}>

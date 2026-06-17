@@ -115,3 +115,18 @@ export interface Solution {
   created_at: string
   updated_at: string
 }
+
+export interface Notification {
+  id: string
+  user_id: string
+  ticket_id?: string
+  comment_id?: string
+  type: 'mention' | 'ticket_assigned' | 'ticket_updated'
+  message: string
+  is_read: boolean
+  created_at: string
+  ticket_number?: number
+  ticket_title?: string
+  commenter_name?: string
+  updated_at?: string
+}
