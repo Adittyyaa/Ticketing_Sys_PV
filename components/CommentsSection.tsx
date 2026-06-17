@@ -49,15 +49,15 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
   useEffect(() => {
     const inputValue = form.getFieldValue('content') || ''
     
-    if (inputValue.includes('@')) {
-      const atIndex = inputValue.lastIndexOf('@')
-      const query = inputValue.substring(atIndex + 1)
+    if (inputValue.includes('#')) {
+      const hashIndex = inputValue.lastIndexOf('#')
+      const query = inputValue.substring(hashIndex + 1)
       const filteredUsers = users.filter(u => u.id !== user?.id && u.email.toLowerCase().includes(query.toLowerCase()))
       setDropdownOptions(filteredUsers.map(u => ({
-        value: `@${u.email}`,
+        value: `#${u.email}`,
         label: (
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={{ color: 'var(--accent-primary)' }}>@{u.email}</span>
+            <span style={{ color: 'var(--accent-primary)' }}>#{u.email}</span>
           </div>
         )
       })))
@@ -119,7 +119,7 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
   }
 
   const extractMentions = (content: string): string[] => {
-    const mentionRegex = /@([a-zA-Z0-9._%+-]+)/g
+    const mentionRegex = /#([a-zA-Z0-9._%+-]+)/g
     const matches = content.match(mentionRegex)
     return matches ? matches.map(m => m.substring(1).toLowerCase()) : []
   }
@@ -157,8 +157,8 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
         const beforeCmd = currentContent.substring(0, currentContent.lastIndexOf('/r'))
         form.setFieldsValue({ content: beforeCmd ? `${beforeCmd.trim()}\n\n${actualReply.content}` : actualReply.content })
       }
-    } else if (value.startsWith('@')) {
-      const beforeMention = currentContent.substring(0, currentContent.lastIndexOf('@'))
+    } else if (value.startsWith('#')) {
+      const beforeMention = currentContent.substring(0, currentContent.lastIndexOf('#'))
       form.setFieldsValue({ content: beforeMention + value })
     }
   }
@@ -237,7 +237,7 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
             open={dropdownOptions.length > 0}
           >
             <Input.TextArea 
-              placeholder="Add a comment... Use @email to mention users, /r to use saved replies" 
+              placeholder="Add a comment... Use #email to mention users, /r to use saved replies" 
               rows={3} 
               disabled={submitting} 
               style={{ fontSize: 13 }} 
