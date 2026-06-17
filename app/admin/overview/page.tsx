@@ -43,31 +43,32 @@ export default function AdminOverviewPage() {
 
   if (loading) return null
 
-  // Calculate ticket statistics
-  const total = tickets.length
-  const closed = tickets.filter(t => t.status === 'SOLVED').length
-  const open = total - closed
-  const resolutionRate = total > 0 ? Math.round((closed / total) * 100) : 0
-
-  const statusCounts = {
-    UNTOUCHED: tickets.filter(t => t.status === 'UNTOUCHED').length,
-    PENDING: tickets.filter(t => t.status === 'PENDING').length,
-    OPENED: tickets.filter(t => t.status === 'OPENED').length,
-    SOLVED: closed,
-  }
-
-  const priorityCounts = {
-    LOW: tickets.filter(t => t.priority === 'LOW').length,
-    MEDIUM: tickets.filter(t => t.priority === 'MEDIUM').length,
-    HIGH: tickets.filter(t => t.priority === 'HIGH').length,
-    URGENT: tickets.filter(t => t.priority === 'URGENT').length,
-  }
-
-  const categories: { [key: string]: number } = {}
-  tickets.forEach(t => {
-    const cat = t.category || 'Other'
-    categories[cat] = (categories[cat] || 0) + 1
-  })
+  // Optimized calculations with single iteration
+  const { total, closed, open, resolutionRate, statusCounts, priorityCounts, categories } = (() => {
+    let total = tickets.length
+    let closed = 0
+    const status = { UNTOUCHED: 0, PENDING: 0, OPENED: 0, SOLVED: 0 }
+    const priority = { LOW: 0, MEDIUM: 0, HIGH: 0, URGENT: 0 }
+    const cats: { [key: string]: number } = {}
+    
+    tickets.forEach(t => {
+      if (t.status === 'SOLVED') closed++
+      status[t.status as keyof typeof status]++
+      priority[t.priority as keyof typeof priority]++
+      const cat = t.category || 'Other'
+      cats[cat] = (cats[cat] || 0) + 1
+    })
+    
+    return {
+      total,
+      closed,
+      open: total - closed,
+      resolutionRate: total > 0 ? Math.round((closed / total) * 100) : 0,
+      statusCounts: status,
+      priorityCounts: priority,
+      categories: cats
+    }
+  })()
 
   // Status donut chart SVG helper
   const statusData = [
