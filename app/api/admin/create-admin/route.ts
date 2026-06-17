@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
       if (existingUser) {
         const { data: existingProfile } = await supabaseAdmin
           .from('tbl_users')
-          .select('id')
+          .select('id, created_at')
           .eq('id', existingUser.id)
           .maybeSingle()
 
