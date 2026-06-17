@@ -20,14 +20,14 @@ export default function TopBar() {
   const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead, clearNotifications } = useNotificationStore()
 
   useEffect(() => {
-    if (user?.id) {
-      fetchNotifications(user.id)
-    }
+    if (!user?.id) return
+    fetchNotifications(user.id)
+    
     const channel = supabase
-      .channel('notifications_channel')
+      .channel(`notifications_${user.id}`)
       .on(
         'postgres_changes',
-        { event: 'INSERT', schema: 'public', table: 'tbl_notifications', filter: `user_id=eq.${user?.id}` },
+        { event: 'INSERT', schema: 'public', table: 'tbl_notifications', filter: `user_id=eq.${user.id}` },
         (payload) => {
           useNotificationStore.getState().addNotification(payload.new as any)
         }

@@ -34,7 +34,9 @@ export const useNotificationStore = create<NotificationStore>((set, get) => ({
     }
   },
   markAllAsRead: async () => {
-    const { error } = await supabase.from('tbl_notifications').update({ is_read: true }).eq('is_read', false)
+    const userId = get().notifications[0]?.user_id
+    if (!userId) return
+    const { error } = await supabase.from('tbl_notifications').update({ is_read: true }).eq('user_id', userId).eq('is_read', false)
     if (!error) {
       set((state) => ({
         notifications: state.notifications.map(n => ({ ...n, is_read: true })),

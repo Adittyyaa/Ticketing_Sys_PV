@@ -30,8 +30,13 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
       const { data, error } = await supabase.from('tbl_users').select('*').eq('id', user.id).single()
       if (error) {
         if (error.code === 'PGRST116') {
-          const { data: newUser, error: createError } = await supabase.from('tbl_users').insert([{ id: user.id, email: user.email || '', full_name: '', role: 'user', created_at: new Date().toISOString() }]).select().single()
-          if (createError) throw createError
+          const { data: newUser } = await supabase.from('tbl_users').upsert({
+            id: user.id,
+            email: user.email || '',
+            full_name: '',
+            role: 'user',
+            created_at: new Date().toISOString()
+          }, { onConflict: 'id' }).select().single()
           if (newUser) { form.setFieldsValue({ full_name: newUser.full_name || '', phone: newUser.phone || '', job_title: newUser.job_title || '' }); setRole(newUser.role) }
         } else throw error
       } else if (data) {
@@ -48,11 +53,15 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
     try {
       const values = await form.validateFields()
       setIsSaving(true)
-      const { error: updateError } = await supabase.from('tbl_users').update({ full_name: values.full_name, phone: values.phone, job_title: values.job_title, company: 'PV Advisory' }).eq('id', user.id)
-      if (updateError) {
-        const { error: insertError } = await supabase.from('tbl_users').insert([{ id: user.id, email: user.email || '', full_name: values.full_name, phone: values.phone, job_title: values.job_title, company: 'PV Advisory', role: 'user' }])
-        if (insertError) throw insertError
-      }
+      const { error: updateError } = await supabase.from('tbl_users').upsert({
+        id: user.id,
+        email: user.email || '',
+        full_name: values.full_name,
+        phone: values.phone,
+        job_title: values.job_title,
+        company: 'PV Advisory',
+      }, { onConflict: 'id' })
+      if (updateError) throw new Error(updateError.message)
       message.success('Account details saved!')
       setIsEditable(false)
     } catch (error: any) {

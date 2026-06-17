@@ -30,7 +30,7 @@ function sortTickets(tickets: Ticket[], field: SortField, order: SortOrder): Tic
         break
       case 'updated_at':
         comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
-        break
+break
       case 'priority':
         const priorityOrder = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
         comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0)

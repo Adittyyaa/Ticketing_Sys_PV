@@ -96,11 +96,11 @@ export default function NewTicketPage() {
       if (userCheckError || !userData) {
         const { error: userInsertError } = await supabase
           .from('tbl_users')
-          .insert([{
+          .upsert({
             id: user.id,
             email: user.email,
             role: 'user'
-          }])
+          }, { onConflict: 'id' })
         
         if (userInsertError) {
           message.error(`User setup error: ${userInsertError.message}`)
