@@ -13,14 +13,23 @@ export default function CallbackPage() {
         const { data: { session }, error } = await supabase.auth.getSession()
         if (error) throw error
         if (session) {
-          const { data: userData, error: userError } = await supabase
+          const { error: userError } = await supabase
             .from('tbl_users')
             .select('role')
             .eq('id', session.user.id)
             .single()
-          if (userError) { router.push('/tickets'); return }
-          if (userData?.role === 'admin') router.push('/tickets')
-          else router.push('/tickets')
+          
+          if (userError && userError.code === 'PGRST116') {
+            await supabase.from('tbl_users').insert([{
+              id: session.user.id,
+              email: session.user.email || '',
+              full_name: session.user.user_metadata?.full_name || '',
+              role: 'user',
+              created_at: new Date().toISOString()
+            }])
+          }
+          
+          router.push('/tickets')
         } else {
           router.push('/auth')
         }

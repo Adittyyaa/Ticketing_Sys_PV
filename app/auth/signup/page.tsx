@@ -29,7 +29,13 @@ export default function SignUpPage() {
       })
       if (signUpError) throw signUpError
       if (authData.user) {
-        await supabase.from('tbl_users').insert([{ id: authData.user.id, email: values.email, full_name: values.fullName, role: 'user' }])
+        await supabase.from('tbl_users').upsert([{
+          id: authData.user.id,
+          email: values.email,
+          full_name: values.fullName,
+          role: 'user',
+          created_at: new Date().toISOString()
+        }], { onConflict: 'id' })
       }
       setSuccess('Account created! Please check your email to confirm.')
       form.resetFields()

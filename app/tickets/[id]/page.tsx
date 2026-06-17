@@ -35,7 +35,19 @@ export default function TicketDetailPage() {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user) { router.push('/auth'); return }
+        
+        // Ensure user has a profile in tbl_users
         const { data: userData } = await supabase.from('tbl_users').select('role').eq('id', session.user.id).single()
+        if (!userData) {
+          await supabase.from('tbl_users').upsert([{
+            id: session.user.id,
+            email: session.user.email || '',
+            full_name: session.user.user_metadata?.full_name || '',
+            role: 'user',
+            created_at: new Date().toISOString()
+          }], { onConflict: 'id' })
+        }
+        
         const admin = userData?.role === 'admin'
         setIsAdmin(admin)
         setUser({ id: session.user.id, email: session.user.email || '', role: userData?.role || 'user' })

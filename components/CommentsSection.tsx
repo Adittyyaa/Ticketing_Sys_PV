@@ -43,7 +43,7 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
       fetchSavedReplies()
     }
     fetchUsers()
-  }, [isAdmin])
+  }, [isAdmin, user?.id])
 
   const fetchComments = async () => {
     try {
@@ -74,6 +74,17 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
       setUsers(data || [])
     } catch (err) {
       console.error('Error fetching users:', err)
+      // Try to create user profile if missing
+      if (user?.id) {
+        const { data: upsertData } = await supabase.from('tbl_users').upsert([{
+          id: user.id,
+          email: user.email || '',
+          full_name: user.email || '',
+          role: 'user',
+          created_at: new Date().toISOString()
+        }], { onConflict: 'id' }).select()
+        if (upsertData) setUsers([upsertData[0] as any])
+      }
     }
   }
 

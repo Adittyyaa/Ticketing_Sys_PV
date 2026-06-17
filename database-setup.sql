@@ -155,6 +155,11 @@ CREATE POLICY "tbl_users_select_own"
 ON public.tbl_users FOR SELECT
 USING (auth.uid() = id);
 
+-- All authenticated users can view users (needed for mentions)
+CREATE POLICY "tbl_users_select_all_authenticated"
+ON public.tbl_users FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
 -- Admins can view all users
 CREATE POLICY "tbl_users_select_admin"
 ON public.tbl_users FOR SELECT
