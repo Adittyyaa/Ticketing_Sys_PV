@@ -1,15 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
-// Email validation regex
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const isDuplicateEmailError = (message: string) => /duplicate|already exists|already registered/i.test(message)
 
 export async function POST(request: NextRequest) {
   try {
     const { email, password, fullName } = await request.json()
 
-    // Input validation
     if (!email || !password || !fullName) {
       return NextResponse.json(
         { error: 'Email, password, and full name are required' },
@@ -17,52 +14,30 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Validate email format
     if (!EMAIL_REGEX.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
     }
 
-    // Validate password strength
     if (password.length < 12) {
-      return NextResponse.json(
-        { error: 'Password must be at least 12 characters' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Password must be at least 12 characters' }, { status: 400 })
     }
 
     if (!/[A-Z]/.test(password)) {
-      return NextResponse.json(
-        { error: 'Password must contain uppercase letter' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Password must contain uppercase letter' }, { status: 400 })
     }
 
     if (!/[0-9]/.test(password)) {
-      return NextResponse.json(
-        { error: 'Password must contain number' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Password must contain number' }, { status: 400 })
     }
 
     if (!/[^A-Za-z0-9]/.test(password)) {
-      return NextResponse.json(
-        { error: 'Password must contain special character' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Password must contain special character' }, { status: 400 })
     }
 
-    // Validate full name
     if (fullName.length < 2 || fullName.length > 255) {
-      return NextResponse.json(
-        { error: 'Full name must be between 2 and 255 characters' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Full name must be between 2 and 255 characters' }, { status: 400 })
     }
 
-    // Verify the requester is an admin
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -74,7 +49,6 @@ export async function POST(request: NextRequest) {
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     )
 
-    // Verify the token and check if user is admin
     const { data: { user: requestingUser }, error: verifyError } = await supabaseAdmin.auth.getUser(token)
     
     if (verifyError || !requestingUser) {
@@ -91,80 +65,60 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Only admins can create admin accounts' }, { status: 403 })
     }
 
-    // Create auth user WITH email already confirmed (admin-created admins)
+    // First check if user already exists in auth.users
+    const { data: existingAuthUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+    const existingAuthUser = existingAuthUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
+
+    if (existingAuthUser) {
+      const { data: existingProfile } = await supabaseAdmin
+        .from('tbl_users')
+        .select('id, created_at')
+        .eq('id', existingAuthUser.id)
+        .maybeSingle()
+
+      const { error: upsertErr } = await supabaseAdmin
+        .from('tbl_users')
+        .upsert({
+          id: existingAuthUser.id,
+          email,
+          full_name: fullName,
+          role: 'admin',
+          created_at: existingProfile?.created_at || new Date().toISOString(),
+        }, { onConflict: 'id' })
+      
+      if (upsertErr) throw new Error(upsertErr.message)
+      
+      return NextResponse.json({ success: true, userId: existingAuthUser.id, message: 'User profile updated to admin successfully' })
+    }
+
     const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
-      email_confirm: true, // Auto-confirm email for admin-created accounts
+      email_confirm: true,
       user_metadata: { full_name: fullName },
     })
 
-    const authErrorMessage = authErr?.message
-
-    // If user already exists in auth, just update their role
-    if (authErrorMessage && isDuplicateEmailError(authErrorMessage)) {
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
-      const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
-      
-      if (existingUser) {
-        const { data: existingProfile } = await supabaseAdmin
-          .from('tbl_users')
-          .select('id, created_at')
-          .eq('id', existingUser.id)
-          .maybeSingle()
-
-        // Use upsert to avoid duplicate key error
-        const { error: upsertErr } = await supabaseAdmin
-          .from('tbl_users')
-          .upsert({
-            id: existingUser.id,
-            email,
-            full_name: fullName,
-            role: 'admin',
-            created_at: existingProfile?.created_at || new Date().toISOString(),
-          }, { onConflict: 'id' })
-        
-        if (upsertErr) throw new Error(upsertErr.message)
-        
-        return NextResponse.json({ 
-          success: true, 
-          userId: existingUser.id,
-          message: 'User profile updated to admin successfully'
-        })
-      }
-      throw new Error(authErrorMessage)
-    }
-
     if (authErr) throw new Error(authErr.message)
 
-    // Create admin user profile
     if (authData.user) {
       const { error: profileErr } = await supabaseAdmin
         .from('tbl_users')
-        .insert([
-          {
-            id: authData.user.id,
-            email,
-            full_name: fullName,
-            role: 'admin', // Set as admin
-            created_at: new Date().toISOString(),
-          },
-        ])
+        .upsert({
+          id: authData.user.id,
+          email,
+          full_name: fullName,
+          role: 'admin',
+          created_at: new Date().toISOString(),
+        }, { onConflict: 'id' })
 
       if (profileErr) {
-        // Rollback: delete auth user if profile creation fails
         await supabaseAdmin.auth.admin.deleteUser(authData.user.id)
         throw new Error(profileErr.message)
       }
     }
 
-    return NextResponse.json({ 
-      success: true, 
-      userId: authData.user.id,
-      message: 'Admin account created successfully'
-    })
+    return NextResponse.json({ success: true, userId: authData.user.id, message: 'Admin account created successfully' })
   } catch (error) {
-    console.error('Create admin error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create admin account' },
       { status: 400 }

@@ -2,32 +2,26 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const isDuplicateEmailError = (message: string) => /duplicate|already exists|already registered/i.test(message)
 
 export async function POST(request: NextRequest) {
   try {
-    // CRITICAL FIX: Add authentication check
     const authHeader = request.headers.get('authorization')
     if (!authHeader) {
       return NextResponse.json({ error: 'Unauthorized - missing auth token' }, { status: 401 })
     }
 
     const token = authHeader.replace('Bearer ', '')
-    
-    // Use service role key for admin operations
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL || '',
       process.env.SUPABASE_SERVICE_ROLE_KEY || ''
     )
 
-    // Verify the token and check if user is admin
     const { data: { user: requestingUser }, error: verifyError } = await supabaseAdmin.auth.getUser(token)
     
     if (verifyError || !requestingUser) {
       return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 })
     }
 
-    // Check if user is admin
     const { data: requestingUserData } = await supabaseAdmin
       .from('tbl_users')
       .select('role')
@@ -40,60 +34,59 @@ export async function POST(request: NextRequest) {
 
     const { email, password, fullName } = await request.json()
 
-    // Input validation
     if (!email || !password || !fullName) {
-      return NextResponse.json(
-        { error: 'Email, password, and full name are required' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Email, password, and full name are required' }, { status: 400 })
     }
 
-    // Validate email format
     if (!EMAIL_REGEX.test(email)) {
-      return NextResponse.json(
-        { error: 'Invalid email format' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
     }
 
-    // Validate password strength
     if (password.length < 12) {
-      return NextResponse.json(
-        { error: 'Password must be at least 12 characters' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Password must be at least 12 characters' }, { status: 400 })
     }
 
     if (!/[A-Z]/.test(password)) {
-      return NextResponse.json(
-        { error: 'Password must contain uppercase letter' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Password must contain uppercase letter' }, { status: 400 })
     }
 
     if (!/[0-9]/.test(password)) {
-      return NextResponse.json(
-        { error: 'Password must contain number' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Password must contain number' }, { status: 400 })
     }
 
     if (!/[^A-Za-z0-9]/.test(password)) {
-      return NextResponse.json(
-        { error: 'Password must contain special character' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Password must contain special character' }, { status: 400 })
     }
 
-    // Validate full name
     if (fullName.length < 2 || fullName.length > 255) {
-      return NextResponse.json(
-        { error: 'Full name must be between 2 and 255 characters' },
-        { status: 400 }
-      )
+      return NextResponse.json({ error: 'Full name must be between 2 and 255 characters' }, { status: 400 })
     }
 
-    // Create new auth user
+    const { data: existingAuthUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
+    const existingAuthUser = existingAuthUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
+
+    if (existingAuthUser) {
+      const { data: existingProfile } = await supabaseAdmin
+        .from('tbl_users')
+        .select('id, created_at')
+        .eq('id', existingAuthUser.id)
+        .maybeSingle()
+
+      const { error: upsertErr } = await supabaseAdmin
+        .from('tbl_users')
+        .upsert({
+          id: existingAuthUser.id,
+          email,
+          full_name: fullName,
+          role: 'user',
+          created_at: existingProfile?.created_at || new Date().toISOString(),
+        }, { onConflict: 'id' })
+      
+      if (upsertErr) throw new Error(upsertErr.message)
+      
+      return NextResponse.json({ success: true, userId: existingAuthUser.id, message: 'User profile updated successfully' })
+    }
+
     const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
       email,
       password,
@@ -101,51 +94,18 @@ export async function POST(request: NextRequest) {
       user_metadata: { full_name: fullName },
     })
 
-    const authErrorMessage = authErr?.message
-
-    // If user already exists in auth, just update their profile
-    if (authErrorMessage && isDuplicateEmailError(authErrorMessage)) {
-      const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
-      const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
-      
-      if (existingUser) {
-        const { data: existingProfile } = await supabaseAdmin
-          .from('tbl_users')
-          .select('id, created_at')
-          .eq('id', existingUser.id)
-          .maybeSingle()
-
-        // Update or insert profile - use upsert to avoid duplicate key error
-        const { error: upsertErr } = await supabaseAdmin
-          .from('tbl_users')
-          .upsert({
-            id: existingUser.id,
-            email,
-            full_name: fullName,
-            role: 'user',
-            created_at: existingProfile?.created_at || new Date().toISOString(),
-          }, { onConflict: 'id' })
-        
-        if (upsertErr) throw new Error(upsertErr.message)
-        
-        return NextResponse.json({ success: true, userId: existingUser.id, message: 'User profile updated successfully' })
-      }
-      throw new Error(authErrorMessage)
-    }
-
     if (authErr) throw new Error(authErr.message)
 
-    // Create user profile
     if (authData.user) {
       const { error: profileErr } = await supabaseAdmin
         .from('tbl_users')
-        .insert([{
+        .upsert({
           id: authData.user.id,
           email,
           full_name: fullName,
           role: 'user',
           created_at: new Date().toISOString(),
-        }])
+        }, { onConflict: 'id' })
 
       if (profileErr) throw new Error(profileErr.message)
     }
