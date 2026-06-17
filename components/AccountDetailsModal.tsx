@@ -21,13 +21,18 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
   const [saved, setSaved] = useState(false)
 
   useEffect(() => {
-    if (isOpen && user?.id) loadUserData()
+    if (isOpen && user?.id) {
+      loadUserData().catch(() => {})
+    }
   }, [isOpen, user?.id])
 
   useEffect(() => {
+    let timer: NodeJS.Timeout
     if (saved) {
-      const timer = setTimeout(() => setSaved(false), 3000)
-      return () => clearTimeout(timer)
+      timer = setTimeout(() => setSaved(false), 3000)
+    }
+    return () => {
+      if (timer) clearTimeout(timer)
     }
   }, [saved])
 
