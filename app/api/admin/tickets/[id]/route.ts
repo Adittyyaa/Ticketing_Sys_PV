@@ -20,14 +20,19 @@ export async function GET(
       .eq('id', id)
       .single()
 
-    if (error) throw error
+    if (error) {
+      return NextResponse.json(
+        { error: 'Ticket not found' },
+        { status: 404 }
+      )
+    }
 
     return NextResponse.json({ ticket: data })
   } catch (error) {
     console.error('Admin ticket fetch error:', error)
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to fetch ticket' },
-      { status: 404 }
+      { status: 500 }
     )
   }
 }
