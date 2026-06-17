@@ -1,8 +1,8 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Modal, Form, Input, Button, Alert, Spin, Tag, message } from 'antd'
-import { UserOutlined, PhoneOutlined, IdcardOutlined, BankOutlined } from '@ant-design/icons'
+import { Modal, Input, Button, Spin, Badge } from 'antd'
+import { User, Phone, Briefcase, Building2, Edit3 } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 
@@ -13,133 +13,290 @@ interface AccountDetailsModalProps {
 
 export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsModalProps) {
   const { user } = useAuthStore()
-  const [form] = Form.useForm()
   const [isLoading, setIsLoading] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [role, setRole] = useState('')
   const [isEditable, setIsEditable] = useState(true)
+  const [formData, setFormData] = useState({ full_name: '', phone: '', job_title: '' })
+  const [saved, setSaved] = useState(false)
 
   useEffect(() => {
     if (isOpen && user?.id) loadUserData()
   }, [isOpen, user?.id])
 
+  useEffect(() => {
+    if (saved) {
+      const timer = setTimeout(() => setSaved(false), 3000)
+      return () => clearTimeout(timer)
+    }
+  }, [saved])
+
   const loadUserData = async () => {
     if (!user?.id) return
     setIsLoading(true)
     try {
-      const { data, error } = await supabase.from('tbl_users').select('*').eq('id', user.id).single()
-      if (error) {
-        if (error.code === 'PGRST116') {
-          const { data: newUser } = await supabase.from('tbl_users').upsert({
-            id: user.id,
-            email: user.email || '',
-            full_name: '',
-            role: 'user',
-            created_at: new Date().toISOString()
-          }, { onConflict: 'id' }).select().single()
-          if (newUser) { form.setFieldsValue({ full_name: newUser.full_name || '', phone: newUser.phone || '', job_title: newUser.job_title || '' }); setRole(newUser.role) }
-        } else throw error
-      } else if (data) {
-        form.setFieldsValue({ full_name: data.full_name || '', phone: data.phone || '', job_title: data.job_title || '' })
+      const { data } = await supabase.from('tbl_users').select('*').eq('id', user.id).single()
+      if (data) {
+        setFormData({ full_name: data.full_name || '', phone: data.phone || '', job_title: data.job_title || '' })
         setRole(data.role)
         if (data.full_name || data.phone || data.job_title) setIsEditable(false)
+      } else {
+        await supabase.from('tbl_users').upsert({
+          id: user.id,
+          email: user.email || '',
+          full_name: '',
+          role: 'user',
+          created_at: new Date().toISOString()
+        }, { onConflict: 'id' })
       }
-    } catch { message.error('Failed to load account details') }
-    finally { setIsLoading(false) }
+    } catch {
+      // Handle error silently
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   const handleSave = async () => {
     if (!user?.id) return
+    setIsSaving(true)
     try {
-      const values = await form.validateFields()
-      setIsSaving(true)
-      const { error: updateError } = await supabase.from('tbl_users').upsert({
+      const { error } = await supabase.from('tbl_users').upsert({
         id: user.id,
         email: user.email || '',
-        full_name: values.full_name,
-        phone: values.phone,
-        job_title: values.job_title,
+        full_name: formData.full_name,
+        phone: formData.phone,
+        job_title: formData.job_title,
         company: 'PV Advisory',
       }, { onConflict: 'id' })
-      if (updateError) throw new Error(updateError.message)
-      message.success('Account details saved!')
+      if (error) throw error
+      setSaved(true)
       setIsEditable(false)
-    } catch (error: any) {
-      if (error.errorFields) message.error('Please fill in all required fields')
-      else message.error('Failed to save account details')
-    } finally { setIsSaving(false) }
+    } catch {
+      // Handle error silently
+    } finally {
+      setIsSaving(false)
+    }
   }
 
-  const inputStyle = { height: 40, borderRadius: 6 }
+  const glassOverlayStyle: React.CSSProperties = {
+    backdropFilter: 'blur(12px)',
+    background: 'rgba(24, 24, 28, 0.75)',
+    border: '1px solid rgba(255, 255, 255, 0.08)',
+  }
 
-  const handleEdit = () => {
-    setIsEditable(true)
+  if (isLoading) {
+    return (
+      <Modal open={isOpen} onCancel={onClose} footer={null} width={480} style={{ padding: 0 }}>
+        <div style={{ padding: 48, textAlign: 'center' }}>
+          <Spin size="large" />
+        </div>
+      </Modal>
+    )
   }
 
   return (
     <Modal
-      title={<span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Account Details</span>}
       open={isOpen}
       onCancel={onClose}
-      width={560}
-      footer={
-        !isLoading && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
-            <Button onClick={onClose} style={{ borderRadius: 6 }}>Close</Button>
-            {isEditable && <Button type="primary" onClick={handleSave} loading={isSaving} style={{ borderRadius: 6 }}>Save Changes</Button>}
-            {!isEditable && <Button onClick={handleEdit} style={{ borderRadius: 6 }}>Edit Profile</Button>}
-          </div>
-        )
-      }
-      styles={{
-        body: { backgroundColor: 'var(--bg-surface)', padding: 0 },
-        header: { backgroundColor: 'var(--bg-surface)', borderBottom: '1px solid var(--border-subtle)' },
-        footer: { backgroundColor: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)' },
-      }}
+      footer={null}
+      width={480}
+      style={{ ...glassOverlayStyle, borderRadius: 16 }}
+      styles={{ body: { padding: 0 } }}
+      closeIcon={false}
     >
-      {isLoading ? (
-        <div style={{ textAlign: 'center', padding: '40px 0' }}><Spin size="large" /></div>
-      ) : (
-        <div style={{ padding: 24 }}>
-          {/* Account Info */}
-          <div style={{ marginBottom: 24 }}>
-            <h4 style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Account Information</h4>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <div style={{ padding: '10px 12px', backgroundColor: 'var(--bg-elevated)', borderRadius: 6 }}>
-                <div style={{ color: 'var(--text-tertiary)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Email</div>
-                <div style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, marginTop: 2 }}>{user?.email}</div>
-              </div>
-              <div style={{ padding: '10px 12px', backgroundColor: 'var(--bg-elevated)', borderRadius: 6 }}>
-                <div style={{ color: 'var(--text-tertiary)', fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Role</div>
-                <div style={{ marginTop: 2 }}><Tag color={role === 'admin' ? 'purple' : 'blue'}>{role === 'admin' ? 'Administrator' : 'User'}</Tag></div>
-              </div>
-            </div>
+      <div style={{ padding: 32 }}>
+        {saved && (
+          <div style={{
+            position: 'absolute',
+            top: -48,
+            right: 32,
+            padding: '8px 16px',
+            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+            borderRadius: 999,
+            fontSize: 12,
+            color: '#fff',
+            fontWeight: 500,
+            boxShadow: '0 4px 16px rgba(16, 185, 129, 0.25)',
+          }}>
+            Profile saved
           </div>
+        )}
 
-          {!isEditable && (
-            <Alert message="Profile saved" description="Your details have been saved and are locked." type="success" showIcon={false} style={{ backgroundColor: 'rgba(16,185,129,0.08)', border: '1px solid rgba(16,185,129,0.2)', color: '#10b981', marginBottom: 24, borderRadius: 6 }} />
-          )}
+        <div style={{ marginBottom: 24 }}>
+          <h2 style={{ color: '#fff', fontSize: 24, fontWeight: 600, margin: 0, letterSpacing: -0.5 }}>Account Details</h2>
+          <p style={{ color: '#94a3b8', fontSize: 14, margin: '4px 0 0 0' }}>Manage your profile information</p>
+        </div>
 
-          {/* Personal Info */}
-          <div>
-            <h4 style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 12 }}>Personal Information</h4>
-            <Form form={form} layout="vertical" disabled={!isEditable}>
-              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Full Name</span>} name="full_name" rules={[{ required: isEditable, message: 'Required' }]}>
-                <Input prefix={<UserOutlined style={{ color: 'var(--text-placeholder)' }} />} placeholder="Enter your full name" style={inputStyle} />
-              </Form.Item>
-              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Phone Number</span>} name="phone" rules={[{ required: isEditable, message: 'Required' }]}>
-                <Input prefix={<PhoneOutlined style={{ color: 'var(--text-placeholder)' }} />} placeholder="+1 (555) 000-0000" style={inputStyle} />
-              </Form.Item>
-              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Job Title</span>} name="job_title" rules={[{ required: isEditable, message: 'Required' }]}>
-                <Input prefix={<IdcardOutlined style={{ color: 'var(--text-placeholder)' }} />} placeholder="e.g., Senior Manager" style={inputStyle} />
-              </Form.Item>
-              <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Company</span>}>
-                <Input prefix={<BankOutlined style={{ color: 'var(--text-placeholder)' }} />} value="PV Advisory" disabled style={{ ...inputStyle, color: 'var(--text-tertiary)' }} />
-              </Form.Item>
-            </Form>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24 }}>
+          <div style={{
+            width: 64,
+            height: 64,
+            borderRadius: '50%',
+            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            flexShrink: 0,
+          }}>
+            <User size={28} style={{ color: '#fff' }} />
+          </div>
+          <div style={{ flex: 1, minWidth: 0 }}>
+            <div style={{ color: '#e2e8f0', fontSize: 16, fontWeight: 500, marginBottom: 4 }}>{user?.email}</div>
+            <Badge count={role === 'admin' ? 'Admin' : 'User'}
+              style={{
+                backgroundColor: role === 'admin' ? '#8b5cf6' : '#3b82f6',
+                color: '#fff',
+                fontSize: 11,
+                fontWeight: 600,
+                height: 20,
+                minWidth: 48,
+                padding: '0 8px',
+                borderRadius: 999,
+              }}
+            />
           </div>
         </div>
-      )}
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          <div style={{ position: 'relative' }}>
+            <Input
+              prefix={<User size={16} style={{ color: '#94a3b8', marginRight: 8 }} />}
+              placeholder="Full Name"
+              value={formData.full_name}
+              onChange={(e) => setFormData({ ...formData, full_name: e.target.value })}
+              disabled={!isEditable}
+              style={{
+                height: 48,
+                background: '#1e293b',
+                border: '1px solid #334155',
+                color: '#e2e8f0',
+                fontSize: 14,
+                borderRadius: 12,
+                paddingLeft: 40,
+              }}
+              styles={{
+                input: { color: '#e2e8f0', fontSize: 14 },
+                prefix: { color: '#94a3b8' },
+              }}
+            />
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <Input
+              prefix={<Phone size={16} style={{ color: '#94a3b8', marginRight: 8 }} />}
+              placeholder="Phone Number"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              disabled={!isEditable}
+              style={{
+                height: 48,
+                background: '#1e293b',
+                border: '1px solid #334155',
+                color: '#e2e8f0',
+                fontSize: 14,
+                borderRadius: 12,
+                paddingLeft: 40,
+              }}
+              styles={{
+                input: { color: '#e2e8f0', fontSize: 14 },
+              }}
+            />
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <Input
+              prefix={<Briefcase size={16} style={{ color: '#94a3b8', marginRight: 8 }} />}
+              placeholder="Job Title"
+              value={formData.job_title}
+              onChange={(e) => setFormData({ ...formData, job_title: e.target.value })}
+              disabled={!isEditable}
+              style={{
+                height: 48,
+                background: '#1e293b',
+                border: '1px solid #334155',
+                color: '#e2e8f0',
+                fontSize: 14,
+                borderRadius: 12,
+                paddingLeft: 40,
+              }}
+              styles={{
+                input: { color: '#e2e8f0', fontSize: 14 },
+              }}
+            />
+          </div>
+
+          <div style={{ position: 'relative' }}>
+            <Input
+              prefix={<Building2 size={16} style={{ color: '#94a3b8', marginRight: 8 }} />}
+              value="PV Advisory"
+              disabled
+              style={{
+                height: 48,
+                background: '#1e293b',
+                border: '1px solid #334155',
+                color: '#94a3b8',
+                fontSize: 14,
+                borderRadius: 12,
+                paddingLeft: 40,
+              }}
+              styles={{
+                input: { color: '#94a3b8', fontSize: 14 },
+              }}
+            />
+          </div>
+        </div>
+
+        <div style={{ display: 'flex', gap: 12, marginTop: 32, justifyContent: 'flex-end' }}>
+          <Button
+            onClick={onClose}
+            style={{
+              height: 40,
+              background: '#1e293b',
+              border: '1px solid #334155',
+              color: '#e2e8f0',
+              borderRadius: 12,
+              fontSize: 14,
+              fontWeight: 500,
+            }}
+          >
+            Close
+          </Button>
+          {isEditable ? (
+            <Button
+              type="primary"
+              onClick={handleSave}
+              loading={isSaving}
+              style={{
+                height: 40,
+                background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                border: 'none',
+                borderRadius: 12,
+                fontSize: 14,
+                fontWeight: 500,
+                boxShadow: '0 4px 16px rgba(99, 102, 241, 0.25)',
+              }}
+            >
+              Save Changes
+            </Button>
+          ) : (
+            <Button
+              onClick={() => setIsEditable(true)}
+              style={{
+                height: 40,
+                background: '#1e293b',
+                border: '1px solid #334155',
+                color: '#e2e8f0',
+                borderRadius: 12,
+                fontSize: 14,
+                fontWeight: 500,
+              }}
+              icon={<Edit3 size={14} />}
+            >
+              Edit Profile
+            </Button>
+          )}
+        </div>
+      </div>
     </Modal>
   )
 }
