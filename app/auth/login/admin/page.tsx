@@ -108,7 +108,6 @@ export default function AdminLoginPage() {
           </Form.Item>
         </Form>
         <div style={{ textAlign: 'center', marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--border-subtle)' }}>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>Regular user? </span>
           <Link href="/auth/login/user" style={{ color: 'var(--text-link)', fontSize: 12, fontWeight: 600 }}>User Sign In</Link>
         </div>
       </div>

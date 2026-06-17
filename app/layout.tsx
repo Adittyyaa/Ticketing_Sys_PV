@@ -17,7 +17,8 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
-        <title>Ticket System</title>
+        <link rel="icon" href="/logo.jpeg" type="image/jpeg" />
+        <title>Ticketing System</title>
         <meta name="description" content="Support & Issue Tracking Platform" />
       </head>
       <body style={{ margin: 0, padding: 0 }}>
