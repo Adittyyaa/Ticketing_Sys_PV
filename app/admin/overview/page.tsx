@@ -6,7 +6,7 @@ import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { getAdminAuthHeader } from '@/lib/admin-api'
 import { Ticket } from '@/types/types'
-import { Button, message, Space } from 'antd'
+import { Button, Spin, message, Space } from 'antd'
 import FeedbackModal from '@/components/FeedbackModal'
 
 export default function AdminOverviewPage() {
@@ -41,7 +41,13 @@ export default function AdminOverviewPage() {
     fetchOverviewData()
   }, [isAdmin, router])
 
-  if (loading) return null
+  if (loading) return (
+    <AppShell>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 96px)' }}>
+        <Spin size="large" />
+      </div>
+    </AppShell>
+  )
 
   // Optimized calculations with single iteration
   const { total, closed, open, resolutionRate, statusCounts, priorityCounts, categories } = (() => {
