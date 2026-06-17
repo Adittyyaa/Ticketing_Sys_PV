@@ -8,6 +8,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { CategoryData, Tag, SavedReply } from '@/types/types'
+import { getAdminAuthHeader } from '@/lib/admin-api'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export default function SettingsPage() {
@@ -216,7 +217,20 @@ export default function SettingsPage() {
               label: (<span><FolderOutlined /> Categories</span>),
               children: (
                 <Card>
-                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end' }}>
+                  <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+                    {categories.length === 0 && (
+                      <Button onClick={async () => {
+                        const authHeader = await getAdminAuthHeader()
+                        const res = await fetch('/api/admin/seed', { method: 'POST', headers: { Authorization: authHeader } })
+                        const data = await res.json()
+                        if (res.ok) {
+                          message.success(data.message)
+                          fetchData()
+                        } else {
+                          message.error(data.error)
+                        }
+                      }}>Seed Default Categories</Button>
+                    )}
                     <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal()}>Add Category</Button>
                   </div>
                   <Table 
@@ -294,8 +308,8 @@ export default function SettingsPage() {
           ]}
         />
 
-        <Modal
-          title={`${editingItem ? 'Edit' : 'Add'} ${activeTab.slice(0, -1)}`}
+<Modal
+          title={`${editingItem ? 'Edit' : 'Add'} ${activeTab === 'replies' ? 'Reply' : activeTab === 'categories' ? 'Category' : 'Tag'}`}
           open={isModalVisible}
           onOk={handleOk}
           onCancel={() => setIsModalVisible(false)}
