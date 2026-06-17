@@ -65,11 +65,42 @@ CREATE TABLE IF NOT EXISTS public.tbl_contacts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
-ALTER TABLE IF EXISTS public.tbl_users ENABLE ROW LEVEL SECURITY;
-ALTER TABLE IF EXISTS public.tbl_tickets ENABLE ROW LEVEL SECURITY;
+-- Categories, Tags, and Ticket Types
+CREATE TABLE IF NOT EXISTS public.tbl_categories (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.tbl_tags (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.tbl_ticket_types (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.tbl_saved_replies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  content TEXT NOT NULL,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
 ALTER TABLE IF EXISTS public.tbl_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_feedback ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_ticket_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_saved_replies ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- STEP 1: Clean slate - disable RLS and drop all policies
@@ -103,12 +134,17 @@ $$ LANGUAGE sql SECURITY DEFINER STABLE;
 -- ============================================
 -- STEP 3: Enable RLS on all tables
 -- ============================================
+-- Enable RLS on all tables
 ALTER TABLE public.tbl_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tbl_tickets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_attachments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE IF EXISTS public.tbl_contacts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_categories ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_tags ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_ticket_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE IF EXISTS public.tbl_saved_replies ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
 -- STEP 4: Create tbl_users table policies
@@ -249,6 +285,78 @@ WITH CHECK (public.get_user_role() = 'admin');
 -- Admins can delete contacts
 CREATE POLICY "tbl_contacts_delete_admin"
 ON public.tbl_contacts FOR DELETE
+USING (public.get_user_role() = 'admin');
+
+-- ============================================
+-- STEP 8: Categories, Tags, and Ticket Types policies
+-- ============================================
+
+-- Categories: All authenticated users can view, admins can manage
+CREATE POLICY "tbl_categories_select_all"
+ON public.tbl_categories FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "tbl_categories_insert_admin"
+ON public.tbl_categories FOR INSERT
+WITH CHECK (public.get_user_role() = 'admin');
+
+CREATE POLICY "tbl_categories_update_admin"
+ON public.tbl_categories FOR UPDATE
+USING (public.get_user_role() = 'admin');
+
+CREATE POLICY "tbl_categories_delete_admin"
+ON public.tbl_categories FOR DELETE
+USING (public.get_user_role() = 'admin');
+
+-- Tags: All authenticated users can view, admins can manage
+CREATE POLICY "tbl_tags_select_all"
+ON public.tbl_tags FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "tbl_tags_insert_admin"
+ON public.tbl_tags FOR INSERT
+WITH CHECK (public.get_user_role() = 'admin');
+
+CREATE POLICY "tbl_tags_update_admin"
+ON public.tbl_tags FOR UPDATE
+USING (public.get_user_role() = 'admin');
+
+CREATE POLICY "tbl_tags_delete_admin"
+ON public.tbl_tags FOR DELETE
+USING (public.get_user_role() = 'admin');
+
+-- Ticket Types: All authenticated users can view, admins can manage
+CREATE POLICY "tbl_ticket_types_select_all"
+ON public.tbl_ticket_types FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "tbl_ticket_types_insert_admin"
+ON public.tbl_ticket_types FOR INSERT
+WITH CHECK (public.get_user_role() = 'admin');
+
+CREATE POLICY "tbl_ticket_types_update_admin"
+ON public.tbl_ticket_types FOR UPDATE
+USING (public.get_user_role() = 'admin');
+
+CREATE POLICY "tbl_ticket_types_delete_admin"
+ON public.tbl_ticket_types FOR DELETE
+USING (public.get_user_role() = 'admin');
+
+-- Saved Replies: All authenticated users can view, admins can manage
+CREATE POLICY "tbl_saved_replies_select_all"
+ON public.tbl_saved_replies FOR SELECT
+USING (auth.uid() IS NOT NULL);
+
+CREATE POLICY "tbl_saved_replies_insert_admin"
+ON public.tbl_saved_replies FOR INSERT
+WITH CHECK (public.get_user_role() = 'admin');
+
+CREATE POLICY "tbl_saved_replies_update_admin"
+ON public.tbl_saved_replies FOR UPDATE
+USING (public.get_user_role() = 'admin');
+
+CREATE POLICY "tbl_saved_replies_delete_admin"
+ON public.tbl_saved_replies FOR DELETE
 USING (public.get_user_role() = 'admin');
 
 -- ============================================

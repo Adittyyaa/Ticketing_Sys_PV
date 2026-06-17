@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { Priority, Status, CategoryData, Tag, TicketType } from '@/types/types'
+import { CATEGORIES } from '@/lib/constants'
 import { Form, Input, Select, Button, message, Row, Col, Card } from 'antd'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -36,11 +37,13 @@ export default function NewTicketPage() {
           supabase.from('tbl_users').select('id, email, full_name').order('email')
         ])
         if (catRes.data) setDbCategories(catRes.data)
+        else setDbCategories(CATEGORIES.map((c, i) => ({ id: i.toString(), name: c as string, created_at: '' })))
         if (tagRes.data) setDbTags(tagRes.data)
         if (typeRes.data) setDbTypes(typeRes.data)
         if (usersRes.data) setDbUsers(usersRes.data as { id: string; email: string; full_name?: string }[])
       } catch (err) {
         console.error('Error fetching categories/tags/types/users:', err)
+        setDbCategories(CATEGORIES.map((c, i) => ({ id: i.toString(), name: c as string, created_at: '' })))
       } finally {
         setFetchingData(false)
       }

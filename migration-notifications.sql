@@ -13,7 +13,8 @@ CREATE TABLE IF NOT EXISTS public.tbl_notifications (
   ticket_number INTEGER,
   ticket_title VARCHAR(255),
   commenter_name VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
 -- Enable RLS

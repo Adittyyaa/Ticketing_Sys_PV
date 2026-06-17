@@ -95,16 +95,23 @@ export default function SettingsPage() {
       setTableLoading(true)
       
       let table = ''
+      const insertValues: any = values
+      
       if (activeTab === 'categories') table = 'tbl_categories'
       else if (activeTab === 'tags') table = 'tbl_tags'
       else if (activeTab === 'replies') table = 'tbl_saved_replies'
+      
+      // Add created_at for categories and tags
+      if ((activeTab === 'categories' || activeTab === 'tags') && !editingItem) {
+        insertValues.created_at = new Date().toISOString()
+      }
 
       if (editingItem) {
         const { error } = await supabase.from(table).update(values).eq('id', editingItem.id)
         if (error) throw error
         message.success(`${activeTab.slice(0, -1)} updated`)
       } else {
-        const { error } = await supabase.from(table).insert([values])
+        const { error } = await supabase.from(table).insert([insertValues])
         if (error) throw error
         message.success(`${activeTab.slice(0, -1)} added`)
       }
