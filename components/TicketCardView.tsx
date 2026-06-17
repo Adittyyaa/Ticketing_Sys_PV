@@ -3,8 +3,8 @@
 import { Ticket } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
-import { Empty, Tooltip, Pagination } from 'antd'
-import { priorityDisplay } from '@/lib/design-tokens'
+import { Empty, Pagination, Tag } from 'antd'
+import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
 
 interface TicketCardViewProps {
   tickets: Ticket[]
@@ -26,57 +26,91 @@ export default function TicketCardView({
   }
 
   return (
-    <div>
-      {paginatedTickets.map((ticket) => {
-        const p = priorityDisplay[ticket.priority]
+    <div style={{ 
+      backgroundColor: 'var(--bg-surface)', 
+      border: '1px solid var(--border-subtle)', 
+      borderRadius: 12,
+      overflow: 'hidden'
+    }}>
+      <div style={{ 
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
+        gap: 16, 
+        padding: 16 
+      }}>
+        {paginatedTickets.map((ticket) => {
+          const p = priorityDisplay[ticket.priority]
+          const s = statusDisplay[ticket.status]
 
-        return (
-          <Link
-            key={ticket.id}
-            href={`/tickets/${ticket.id}`}
-            style={{ textDecoration: 'none', display: 'block' }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                padding: '10px 16px',
-                backgroundColor: 'transparent',
-                borderBottom: '1px solid var(--border-subtle)',
-                cursor: 'pointer',
-                transition: 'background-color 100ms',
-                gap: 12,
-              }}
-              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
-              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
+          return (
+            <Link
+              key={ticket.id}
+              href={`/tickets/${ticket.id}`}
+              style={{ textDecoration: 'none', display: 'block' }}
             >
-              <Tooltip title={`${p.label} priority`}>
-                <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: p.color, flexShrink: 0 }} />
-              </Tooltip>
+              <div
+                style={{
+                  padding: 16,
+                  backgroundColor: 'var(--bg-card)',
+                  border: '1px solid var(--border-subtle)',
+                  borderRadius: 8,
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.08)'}
+                onMouseLeave={(e) => e.currentTarget.style.boxShadow = 'none'}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 500 }}>#{ticket.number}</span>
+                  <Tag color={p.color} style={{ fontSize: 11, fontWeight: 500, margin: 0 }}>
+                    {p.label}
+                  </Tag>
+                </div>
 
-              <span style={{ color: 'var(--text-tertiary)', fontSize: 12, fontWeight: 500, flexShrink: 0, minWidth: 40 }}>#{ticket.number}</span>
+                <h3 style={{ 
+                  color: 'var(--text-primary)', 
+                  fontSize: 14, 
+                  fontWeight: 600, 
+                  margin: 0,
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  whiteSpace: 'nowrap',
+                }}>
+                  {ticket.title}
+                </h3>
 
-              <span style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 500, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {ticket.title}
-              </span>
+                <p style={{ 
+                  color: 'var(--text-secondary)', 
+                  fontSize: 12, 
+                  margin: 0,
+                  lineHeight: 1.5,
+                  display: '-webkit-box',
+                  WebkitLineClamp: 2,
+                  WebkitBoxOrient: 'vertical',
+                  overflow: 'hidden',
+                  minHeight: 36,
+                }}>
+                  {ticket.description}
+                </p>
 
-              <span style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 500, padding: '2px 8px', backgroundColor: 'var(--bg-elevated)', borderRadius: 4, flexShrink: 0 }}>
-                {ticket.category}
-              </span>
-
-              <span style={{ fontSize: 11, fontWeight: 500, color: p.color, flexShrink: 0, minWidth: 52, textAlign: 'right' }}>
-                {p.label}
-              </span>
-
-              <span style={{ color: 'var(--text-tertiary)', fontSize: 11, flexShrink: 0, minWidth: 60, textAlign: 'right' }}>
-                {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: false })}
-              </span>
-            </div>
-          </Link>
-        )
-      })}
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 'auto' }}>
+                  <Tag color={s.color === 'var(--accent-success)' ? 'green' : s.color === 'var(--accent-warning)' ? 'orange' : s.color === 'var(--accent-primary)' ? 'blue' : 'default'} style={{ fontSize: 11, margin: 0 }}>
+                    {s.label}
+                  </Tag>
+                  <span style={{ color: 'var(--text-tertiary)', fontSize: 11 }}>
+                    {formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}
+                  </span>
+                </div>
+              </div>
+            </Link>
+          )
+        })}
+      </div>
       {tickets.length > pageSize && (
-        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px', backgroundColor: 'var(--bg-surface)' }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px', backgroundColor: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)' }}>
           <Pagination
             current={currentPage}
             pageSize={pageSize}
