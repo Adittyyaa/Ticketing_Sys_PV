@@ -119,6 +119,11 @@ CREATE POLICY "tbl_users_select_own"
 ON public.tbl_users FOR SELECT
 USING (auth.uid() = id);
 
+-- Admins can view all users
+CREATE POLICY "tbl_users_select_admin"
+ON public.tbl_users FOR SELECT
+USING (public.get_user_role() = 'admin');
+
 -- Allow users to INSERT their own record (for new signups)
 CREATE POLICY "tbl_users_insert_own"
 ON public.tbl_users FOR INSERT
@@ -129,6 +134,17 @@ CREATE POLICY "tbl_users_update_own"
 ON public.tbl_users FOR UPDATE
 USING (auth.uid() = id)
 WITH CHECK (auth.uid() = id);
+
+-- Admins can update any user (for role changes)
+CREATE POLICY "tbl_users_update_admin"
+ON public.tbl_users FOR UPDATE
+USING (public.get_user_role() = 'admin')
+WITH CHECK (public.get_user_role() = 'admin');
+
+-- Admins can delete users
+CREATE POLICY "tbl_users_delete_admin"
+ON public.tbl_users FOR DELETE
+USING (public.get_user_role() = 'admin');
 
 -- ============================================
 -- STEP 5: Create tbl_tickets table policies

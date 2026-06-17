@@ -113,28 +113,18 @@ export async function POST(request: NextRequest) {
           .eq('id', existingUser.id)
           .maybeSingle()
 
-        const profilePayload = {
-          id: existingUser.id,
-          email,
-          full_name: fullName,
-          role: 'admin',
-          created_at: new Date().toISOString(),
-        }
-
-        if (existingProfile) {
-          const { error: updateErr } = await supabaseAdmin
-            .from('tbl_users')
-            .update({ email, full_name: fullName, role: 'admin' })
-            .eq('id', existingUser.id)
-          
-          if (updateErr) throw new Error(updateErr.message)
-        } else {
-          const { error: insertErr } = await supabaseAdmin
-            .from('tbl_users')
-            .insert([profilePayload])
-          
-          if (insertErr) throw new Error(insertErr.message)
-        }
+        // Use upsert to avoid duplicate key error
+        const { error: upsertErr } = await supabaseAdmin
+          .from('tbl_users')
+          .upsert({
+            id: existingUser.id,
+            email,
+            full_name: fullName,
+            role: 'admin',
+            created_at: existingProfile?.created_at || new Date().toISOString(),
+          }, { onConflict: 'id' })
+        
+        if (upsertErr) throw new Error(upsertErr.message)
         
         return NextResponse.json({ 
           success: true, 
