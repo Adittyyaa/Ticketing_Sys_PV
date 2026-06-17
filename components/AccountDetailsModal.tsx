@@ -63,6 +63,10 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
 
   const inputStyle = { height: 40, borderRadius: 6 }
 
+  const handleEdit = () => {
+    setIsEditable(true)
+  }
+
   return (
     <Modal
       title={<span style={{ fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>Account Details</span>}
@@ -74,6 +78,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
             <Button onClick={onClose} style={{ borderRadius: 6 }}>Close</Button>
             {isEditable && <Button type="primary" onClick={handleSave} loading={isSaving} style={{ borderRadius: 6 }}>Save Changes</Button>}
+            {!isEditable && <Button onClick={handleEdit} style={{ borderRadius: 6 }}>Edit Profile</Button>}
           </div>
         )
       }
