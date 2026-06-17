@@ -30,7 +30,7 @@ function sortTickets(tickets: Ticket[], field: SortField, order: SortOrder): Tic
         break
       case 'updated_at':
         comparison = new Date(a.updated_at).getTime() - new Date(b.updated_at).getTime()
-break
+        break
       case 'priority':
         const priorityOrder = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
         comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0)
@@ -76,8 +76,7 @@ export default function TicketsPage() {
   const router = useRouter()
   const { user, setUser, setLoading, isAdmin, setIsAdmin } = useAuthStore()
   const { setTickets, filters, setFilters } = useTicketStore()
-  const [myTickets, setMyTickets] = useState<Ticket[]>([])
-  const [otherTickets, setOtherTickets] = useState<Ticket[]>([])
+  const [tickets, setTicketsList] = useState<Ticket[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [viewMode, setViewMode] = useState<ViewMode>('card')
   const [statusFilter, setStatusFilter] = useState('all')
@@ -126,7 +125,7 @@ export default function TicketsPage() {
       try {
         const effectiveSearch = filters.search?.trim() || searchQuery.trim() || ''
         const rawSearch = effectiveSearch.replace(/[%;]/g, '').substring(0, 100)
-        let tickets: Ticket[] = []
+        let fetchedTickets: Ticket[] = []
 
         if (isAdminLocal) {
           const authHeader = await getAdminAuthHeader()
@@ -137,7 +136,7 @@ export default function TicketsPage() {
             throw new Error(result.error || 'Failed to fetch tickets')
           }
 
-          tickets = (result.tickets || []) as Ticket[]
+          fetchedTickets = (result.tickets || []) as Ticket[]
         } else {
           let query = supabase.from('tbl_tickets').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
 
@@ -147,40 +146,28 @@ export default function TicketsPage() {
 
           const { data, error } = await query
           if (error) throw error
-          tickets = (data || []) as Ticket[]
+          fetchedTickets = (data || []) as Ticket[]
         }
 
-        // Extract unique categories and types
-        const uniqueCategories = [...new Set(tickets.map(t => t.category).filter(Boolean))] as string[]
-        const uniqueTypes = [...new Set(tickets.map(t => t.type).filter(Boolean))] as string[]
+        const uniqueCategories = [...new Set(fetchedTickets.map(t => t.category).filter(Boolean))] as string[]
+        const uniqueTypes = [...new Set(fetchedTickets.map(t => t.type).filter(Boolean))] as string[]
         setCategories(uniqueCategories)
         setTypes(uniqueTypes)
 
-        let my = filterTickets(
-          tickets.filter((ticket) => ticket.user_id === user.id), 
-          effectiveSearch, 
-          statusFilter, 
+        const filtered = filterTickets(
+          fetchedTickets,
+          effectiveSearch,
+          statusFilter,
           priorityFilter,
           categoryFilter,
           typeFilter
         )
-        my = sortTickets(my, sortField, sortOrder)
-        
-        let other = isAdminLocal ? filterTickets(
-          tickets.filter((ticket) => ticket.user_id !== user.id), 
-          effectiveSearch, 
-          statusFilter, 
-          priorityFilter,
-          categoryFilter,
-          typeFilter
-        ) : []
-        other = sortTickets(other, sortField, sortOrder)
+        const sorted = sortTickets(filtered, sortField, sortOrder)
 
         if (cancelled) return
 
-        setMyTickets(my)
-        setOtherTickets(other)
-        setTickets(tickets)
+        setTicketsList(sorted)
+        setTickets(fetchedTickets)
       } catch (error) {
         if (!cancelled) {
           setTicketError(error instanceof Error ? error.message : 'Failed to fetch tickets')
@@ -284,33 +271,6 @@ export default function TicketsPage() {
     },
   ]
 
-  const renderTicketSection = (title: string, tickets: Ticket[], emptyDescription: string) => (
-    <section style={{ marginBottom: 28 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, padding: '14px 16px', marginBottom: 12, backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8 }}>
-        <div>
-          <h2 style={{ color: 'var(--text-primary)', fontSize: 15, fontWeight: 600, margin: 0 }}>{title}</h2>
-          <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>
-            {tickets.length} ticket{tickets.length !== 1 ? 's' : ''}
-          </p>
-        </div>
-      </div>
-
-      {tickets.length === 0 ? (
-        <div style={{ textAlign: 'center', padding: '48px 0', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8 }}>
-          <FileText size={48} style={{ color: 'var(--border-strong)', margin: '0 auto 16px' }} />
-          <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontWeight: 500, margin: '0 0 8px' }}>No tickets found</p>
-          <p style={{ color: 'var(--text-tertiary)', fontSize: 13, margin: 0 }}>{emptyDescription}</p>
-        </div>
-      ) : (
-        <>
-          {viewMode === 'card' && <TicketCardView tickets={tickets} />}
-          {viewMode === 'inbox' && <TicketInboxView tickets={tickets} />}
-          {viewMode === 'table' && <TicketTable tickets={tickets} />}
-        </>
-      )}
-    </section>
-  )
-
   if (!user) return null
 
   return (
@@ -320,7 +280,7 @@ export default function TicketsPage() {
           <div>
             <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>Tickets</h1>
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>
-              {isAdminLocal ? 'My tickets and other tickets' : 'View and manage your tickets'}
+              {isAdminLocal ? 'All tickets' : 'View and manage your tickets'}
             </p>
           </div>
           <Link href="/tickets/new">
@@ -378,9 +338,7 @@ export default function TicketsPage() {
               Filters
             </Button>
           </Badge>
-          <Button size="small" onClick={resetFilters} style={{ height: 32 }}>
-            Reset
-          </Button>
+          <Button size="small" onClick={resetFilters} style={{ height: 32 }}>Reset</Button>
         </div>
 
         {ticketError && <Alert message="Error loading tickets" description={ticketError} type="error" style={{ margin: '16px 0', borderRadius: 6 }} showIcon closable />}
@@ -390,14 +348,22 @@ export default function TicketsPage() {
             <Spin size="large" />
             <p style={{ color: 'var(--text-tertiary)', marginTop: 16, fontSize: 13 }}>Loading tickets...</p>
           </div>
+        ) : tickets.length === 0 ? (
+          <div style={{ textAlign: 'center', padding: '64px 0', backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8 }}>
+            <FileText size={48} style={{ color: 'var(--border-strong)', margin: '0 auto 16px' }} />
+            <p style={{ color: 'var(--text-secondary)', fontSize: 15, fontWeight: 500, margin: '0 0 8px' }}>No tickets found</p>
+            <p style={{ color: 'var(--text-tertiary)', fontSize: 13, margin: 0 }}>
+              {isAdminLocal ? 'No tickets have been created yet.' : 'Create your first ticket to get started.'}
+            </p>
+          </div>
         ) : (
           <>
-            {renderTicketSection('My Tickets', myTickets, isAdminLocal ? 'You do not have any tickets yet.' : 'Create your first ticket to get started.')}
-            {isAdminLocal && renderTicketSection('Other Tickets', otherTickets, 'No other tickets are available.')}
+            {viewMode === 'card' && <TicketCardView tickets={tickets} />}
+            {viewMode === 'inbox' && <TicketInboxView tickets={tickets} />}
+            {viewMode === 'table' && <TicketTable tickets={tickets} />}
           </>
         )}
 
-        {/* Filter Drawer */}
         <TicketFilterDrawer
           open={filterDrawerOpen}
           onClose={() => setFilterDrawerOpen(false)}
