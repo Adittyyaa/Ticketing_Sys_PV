@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const isDuplicateEmailError = (message: string) => /duplicate|already exists|already registered/i.test(message)
 
 export async function POST(request: NextRequest) {
   try {
@@ -100,22 +101,46 @@ export async function POST(request: NextRequest) {
       user_metadata: { full_name: fullName },
     })
 
+    const authErrorMessage = authErr?.message
+
     // If user already exists in auth, just update their profile
-    if (authErr?.message?.includes('duplicate key') || authErr?.message?.includes('already exists')) {
+    if (authErrorMessage && isDuplicateEmailError(authErrorMessage)) {
       const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
-      const existingUser = existingUsers?.users?.find(u => u.email === email)
+      const existingUser = existingUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
       
       if (existingUser) {
-        const { error: updateErr } = await supabaseAdmin
+        const { data: existingProfile } = await supabaseAdmin
           .from('tbl_users')
-          .update({ full_name: fullName })
+          .select('id')
           .eq('id', existingUser.id)
+          .maybeSingle()
+
+        const profilePayload = {
+          id: existingUser.id,
+          email,
+          full_name: fullName,
+          role: 'user',
+          created_at: new Date().toISOString(),
+        }
+
+        if (existingProfile) {
+          const { error: updateErr } = await supabaseAdmin
+            .from('tbl_users')
+            .update({ email, full_name: fullName })
+            .eq('id', existingUser.id)
+          
+          if (updateErr) throw new Error(updateErr.message)
+        } else {
+          const { error: insertErr } = await supabaseAdmin
+            .from('tbl_users')
+            .insert([profilePayload])
+          
+          if (insertErr) throw new Error(insertErr.message)
+        }
         
-        if (updateErr) throw new Error(updateErr.message)
-        
-        return NextResponse.json({ success: true, userId: existingUser.id, message: 'User updated successfully' })
+        return NextResponse.json({ success: true, userId: existingUser.id, message: 'User profile updated successfully' })
       }
-      throw new Error(authErr.message)
+      throw new Error(authErrorMessage)
     }
 
     if (authErr) throw new Error(authErr.message)

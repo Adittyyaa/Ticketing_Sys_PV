@@ -1,19 +1,20 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { Table, Input, message, Tag, Card, Avatar, Modal, Form, Button } from 'antd'
-import { Search, Mail, Phone, Briefcase, Users, Plus, Edit, Trash2 } from 'lucide-react'
+import { Search, Mail, Phone, Briefcase, Users, Plus, Edit, Trash2, Building2 } from 'lucide-react'
 
 interface Contact {
   id: string
   name: string
   email: string
-  phone?: string
-  position?: string
+  phone?: string | null
+  position?: string | null
+  department?: string | null
   created_at: string
 }
 
@@ -28,50 +29,77 @@ export default function ContactPage() {
   const [form] = Form.useForm()
   const [submitting, setSubmitting] = useState(false)
 
+  const fetchContacts = useCallback(async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) return
+
+      const params = new URLSearchParams()
+      const search = searchQuery.trim()
+      if (search) params.set('search', search)
+
+      const response = await fetch(`/api/contact${params.toString() ? `?${params.toString()}` : ''}`, {
+        headers: {
+          Authorization: `Bearer ${session.access_token}`
+        }
+      })
+
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error || 'Failed to load contacts')
+
+      setContacts(result.contacts || [])
+    } catch {
+      message.error('Failed to load contacts')
+    } finally {
+      setTableLoading(false)
+    }
+  }, [searchQuery])
+
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user) { router.push('/auth'); return }
+        if (!session?.user) {
+          router.push('/auth')
+          return
+        }
 
-        const { data: userData } = await supabase.from('tbl_users').select('id, email, full_name, role').eq('id', session.user.id).single()
-        
+        const { data: userData } = await supabase
+          .from('tbl_users')
+          .select('id, email, full_name, role')
+          .eq('id', session.user.id)
+          .single()
+
         setIsAdmin(userData?.role === 'admin')
         setUser({ id: session.user.id, email: session.user.email || '', role: userData?.role || 'user' })
         setLoading(false)
-        fetchContacts()
-      } catch { router.push('/auth') }
+      } catch {
+        router.push('/auth')
+      }
     }
+
     checkAuth()
   }, [router, setUser, setIsAdmin, setLoading])
 
-  const fetchContacts = async () => {
-    try {
-      const { data: users } = await supabase.from('tbl_users').select('id, email, full_name, phone, job_title, created_at').order('created_at', { ascending: false })
-      const { data: savedContacts } = await supabase.from('tbl_contacts').select('*').order('created_at', { ascending: false })
-      
-      const mappedUsers = (users || []).map(u => ({
-        id: u.id,
-        name: u.full_name || 'Unknown',
-        email: u.email,
-        phone: u.phone,
-        position: u.job_title,
-        created_at: u.created_at
-      } as Contact))
-      
-      setContacts([...mappedUsers, ...(savedContacts || [])])
-    } catch { message.error('Failed to load contacts') }
-    finally { setTableLoading(false) }
-  }
+  useEffect(() => {
+    if (!user) return
 
-  const filteredContacts = contacts.filter(c => {
-    if (!searchQuery) return true
-    const q = searchQuery.toLowerCase()
-    return c.name?.toLowerCase().includes(q) ||
-           c.email.toLowerCase().includes(q) ||
-           c.position?.toLowerCase().includes(q) ||
-           c.phone?.includes(searchQuery)
-  })
+    const timeout = setTimeout(fetchContacts, searchQuery.trim() ? 250 : 0)
+    return () => clearTimeout(timeout)
+  }, [fetchContacts, searchQuery, user])
+
+  const filteredContacts = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase()
+    if (!query) return contacts
+
+    return contacts.filter(contact => [
+      contact.name,
+      contact.email,
+      contact.phone,
+      contact.position,
+      contact.department
+    ].some(value => value?.toLowerCase().includes(query)))
+  }, [contacts, searchQuery])
 
   const handleAdd = () => {
     setEditingContact(null)
@@ -88,13 +116,24 @@ export default function ContactPage() {
   const handleDelete = async (contact: Contact) => {
     Modal.confirm({
       title: 'Delete Contact',
-      content: `Remove ${contact.name || contact.email} from contacts?`,
+      content: `Remove ${contact.name || contact.email} from the employee directory?`,
       okText: 'Delete',
       okType: 'danger',
       onOk: async () => {
         try {
-          const { error } = await supabase.from('tbl_contacts').delete().eq('id', contact.id)
-          if (error) throw error
+          const { data: { session } } = await supabase.auth.getSession()
+          if (!session) throw new Error('No active session')
+
+          const response = await fetch(`/api/contact?id=${contact.id}`, {
+            method: 'DELETE',
+            headers: {
+              Authorization: `Bearer ${session.access_token}`
+            }
+          })
+
+          const result = await response.json()
+          if (!response.ok) throw new Error(result.error || 'Failed to delete contact')
+
           message.success('Contact deleted')
           fetchContacts()
         } catch {
@@ -108,19 +147,29 @@ export default function ContactPage() {
     setSubmitting(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('No session')
+      if (!session) throw new Error('No active session')
+
+      const payload = {
+        id: editingContact?.id,
+        name: values.name?.trim(),
+        email: values.email?.trim().toLowerCase(),
+        phone: values.phone?.trim() || null,
+        position: values.position?.trim() || null,
+        department: values.department?.trim() || null
+      }
 
       const response = await fetch('/api/contact', {
         method: editingContact ? 'PUT' : 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${session.access_token}` 
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`
         },
-        body: JSON.stringify(editingContact ? { ...values, id: editingContact.id } : values)
+        body: JSON.stringify(payload)
       })
+
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Failed to save contact')
-      
+
       message.success(editingContact ? 'Contact updated' : 'Contact added')
       setModalVisible(false)
       fetchContacts()
@@ -133,15 +182,20 @@ export default function ContactPage() {
 
   const columns = [
     {
-      title: 'Name',
+      title: 'Employee',
       dataIndex: 'name',
       key: 'name',
       render: (text: string, record: Contact) => (
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
           <Avatar style={{ backgroundColor: '#3b82f6' }}>
-            {(text?.[0] || record.email[0] || 'U').toUpperCase()}
+            {(text?.[0] || record.email?.[0] || 'U').toUpperCase()}
           </Avatar>
-          <span style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{text || 'N/A'}</span>
+          <div>
+            <div style={{ color: 'var(--text-primary)', fontWeight: 500 }}>{text || 'N/A'}</div>
+            {record.department && (
+              <div style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{record.department}</div>
+            )}
+          </div>
         </div>
       )
     },
@@ -178,6 +232,17 @@ export default function ContactPage() {
         </div>
       ) : <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Not specified</span>
     },
+    {
+      title: 'Department',
+      dataIndex: 'department',
+      key: 'department',
+      render: (text: string) => text ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Building2 size={14} color="var(--text-tertiary)" />
+          <span style={{ color: 'var(--text-secondary)' }}>{text}</span>
+        </div>
+      ) : <span style={{ color: 'var(--text-tertiary)', fontStyle: 'italic' }}>Not specified</span>
+    },
     ...(isAdmin ? [{
       title: '',
       key: 'actions',
@@ -199,25 +264,25 @@ export default function ContactPage() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <div>
             <h1 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>
-              Contact Directory
+              Employee Directory
             </h1>
             <p style={{ color: 'var(--text-tertiary)', fontSize: 12, margin: '4px 0 0 0' }}>
-              Email, phone and position for all team members
+              Phonebook-style directory for employee contact details
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
             <Input
-              placeholder="Search contacts..."
+              placeholder="Search name, email, phone, position or department..."
               prefix={<Search size={14} style={{ color: 'var(--text-tertiary)' }} />}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              style={{ width: 240, height: 36 }}
+              style={{ width: 360, height: 36 }}
               allowClear
             />
             {isAdmin && (
-              <Button 
-                type="primary" 
-                icon={<Plus size={14} />} 
+              <Button
+                type="primary"
+                icon={<Plus size={14} />}
                 onClick={handleAdd}
                 style={{ height: 36, borderRadius: 6, backgroundColor: '#7c3aed', borderColor: '#7c3aed' }}
               >
@@ -237,7 +302,7 @@ export default function ContactPage() {
             dataSource={filteredContacts.map(c => ({ ...c, key: c.id }))}
             loading={loading}
             pagination={{ pageSize: 15 }}
-            locale={{ emptyText: 'No contacts found' }}
+            locale={{ emptyText: 'No employee contacts found' }}
           />
         </Card>
 
@@ -255,11 +320,14 @@ export default function ContactPage() {
             <Form.Item name="email" label="Email" rules={[{ required: true, type: 'email', message: 'Valid email required' }]}>
               <Input placeholder="john@example.com" />
             </Form.Item>
-            <Form.Item name="phone" label="Phone">
-              <Input placeholder="+1 (555) 123-4567" />
+            <Form.Item name="department" label="Department">
+              <Input placeholder="Engineering" />
             </Form.Item>
             <Form.Item name="position" label="Position">
               <Input placeholder="Software Engineer" />
+            </Form.Item>
+            <Form.Item name="phone" label="Phone">
+              <Input placeholder="+1 (555) 123-4567" />
             </Form.Item>
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>
               <Button onClick={() => setModalVisible(false)}>Cancel</Button>

@@ -105,3 +105,13 @@ export interface TicketAnalytics {
   unique_users: number
   avg_resolution_hours: number
 }
+
+export interface Solution {
+  id: string
+  title: string
+  description: string
+  steps: string
+  category: string
+  created_at: string
+  updated_at: string
+}

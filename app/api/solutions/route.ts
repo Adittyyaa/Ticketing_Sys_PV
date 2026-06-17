@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const MAX_SEARCH_LENGTH = 100
 
 function createAdminClient() {
@@ -9,10 +8,6 @@ function createAdminClient() {
     process.env.NEXT_PUBLIC_SUPABASE_URL || '',
     process.env.SUPABASE_SERVICE_ROLE_KEY || ''
   )
-}
-
-function normalizeEmail(email: string) {
-  return email.trim().toLowerCase()
 }
 
 function normalizeSearch(value: string) {
@@ -45,16 +40,14 @@ async function verifyAdmin(request: NextRequest) {
   return adminCheck?.role === 'admin' ? authenticated.supabaseAdmin : null
 }
 
-function buildContactSearchFilter(search: string) {
+function buildSolutionSearchFilter(search: string) {
   const term = normalizeSearch(search)
   if (!term) return ''
 
   return [
-    `name.ilike.%${term}%`,
-    `email.ilike.%${term}%`,
-    `phone.ilike.%${term}%`,
-    `position.ilike.%${term}%`,
-    `department.ilike.%${term}%`
+    `title.ilike.%${term}%`,
+    `description.ilike.%${term}%`,
+    `category.ilike.%${term}%`
   ].join(',')
 }
 
@@ -66,11 +59,17 @@ export async function GET(request: NextRequest) {
 
   try {
     const search = request.nextUrl.searchParams.get('search') || ''
-    const query = authenticated.supabaseAdmin
-      .from('tbl_contacts')
+    const category = request.nextUrl.searchParams.get('category') || ''
+    
+    let query = authenticated.supabaseAdmin
+      .from('tbl_solutions')
       .select('*')
 
-    const searchFilter = buildContactSearchFilter(search)
+    if (category) {
+      query = query.eq('category', category)
+    }
+
+    const searchFilter = buildSolutionSearchFilter(search)
     if (searchFilter) {
       query.or(searchFilter)
     }
@@ -79,11 +78,11 @@ export async function GET(request: NextRequest) {
 
     if (error) throw error
 
-    return NextResponse.json({ contacts: data || [] })
+    return NextResponse.json({ solutions: data || [] })
   } catch (error) {
-    console.error('Contact API error:', error)
+    console.error('Solutions API error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to load contacts' },
+      { error: error instanceof Error ? error.message : 'Failed to load solutions' },
       { status: 500 }
     )
   }
@@ -96,44 +95,35 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const { name, email, phone, position, department } = await request.json()
+    const { title, description, steps, category } = await request.json()
 
-    if (!name?.trim() || !email?.trim()) {
-      return NextResponse.json({ error: 'Name and email are required' }, { status: 400 })
-    }
-
-    if (!EMAIL_REGEX.test(email.trim())) {
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+    if (!title?.trim() || !description?.trim() || !steps?.trim()) {
+      return NextResponse.json({ error: 'Title, description, and steps are required' }, { status: 400 })
     }
 
     const payload = {
-      name: name.trim(),
-      email: normalizeEmail(email),
-      phone: phone?.trim() || null,
-      position: position?.trim() || null,
-      department: department?.trim() || null
+      title: title.trim(),
+      description: description.trim(),
+      steps: steps.trim(),
+      category: category?.trim() || 'General'
     }
 
     const { data, error } = await supabaseAdmin
-      .from('tbl_contacts')
+      .from('tbl_solutions')
       .insert([payload])
       .select()
       .single()
 
     if (error) {
-      if (error.code === '23505') {
-        return NextResponse.json({ error: 'A contact with this email already exists in the directory.' }, { status: 409 })
-      }
-
       console.error('Insert error:', error)
       return NextResponse.json({ error: error.message, details: error.details }, { status: 400 })
     }
 
-    return NextResponse.json({ success: true, contact: data })
+    return NextResponse.json({ success: true, solution: data })
   } catch (error) {
-    console.error('Contact API error:', error)
+    console.error('Solutions API error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to save contact' },
+      { error: error instanceof Error ? error.message : 'Failed to save solution' },
       { status: 500 }
     )
   }
@@ -146,48 +136,38 @@ export async function PUT(request: NextRequest) {
   }
 
   try {
-    const { id, name, email, phone, position, department } = await request.json()
+    const { id, title, description, steps, category } = await request.json()
 
     if (!id) {
-      return NextResponse.json({ error: 'Contact ID required' }, { status: 400 })
+      return NextResponse.json({ error: 'Solution ID required' }, { status: 400 })
     }
 
-    if (!name?.trim() || !email?.trim()) {
-      return NextResponse.json({ error: 'Name and email are required' }, { status: 400 })
-    }
-
-    if (!EMAIL_REGEX.test(email.trim())) {
-      return NextResponse.json({ error: 'Invalid email format' }, { status: 400 })
+    if (!title?.trim() || !description?.trim() || !steps?.trim()) {
+      return NextResponse.json({ error: 'Title, description, and steps are required' }, { status: 400 })
     }
 
     const payload = {
-      name: name.trim(),
-      email: normalizeEmail(email),
-      phone: phone?.trim() || null,
-      position: position?.trim() || null,
-      department: department?.trim() || null
+      title: title.trim(),
+      description: description.trim(),
+      steps: steps.trim(),
+      category: category?.trim() || 'General',
+      updated_at: new Date().toISOString()
     }
 
     const { data, error } = await supabaseAdmin
-      .from('tbl_contacts')
+      .from('tbl_solutions')
       .update(payload)
       .eq('id', id)
       .select()
       .single()
 
-    if (error) {
-      if (error.code === '23505') {
-        return NextResponse.json({ error: 'A contact with this email already exists in the directory.' }, { status: 409 })
-      }
+    if (error) throw error
 
-      throw error
-    }
-
-    return NextResponse.json({ success: true, contact: data })
+    return NextResponse.json({ success: true, solution: data })
   } catch (error) {
-    console.error('Contact API error:', error)
+    console.error('Solutions API error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to update contact' },
+      { error: error instanceof Error ? error.message : 'Failed to update solution' },
       { status: 500 }
     )
   }
@@ -203,11 +183,11 @@ export async function DELETE(request: NextRequest) {
     const id = request.nextUrl.searchParams.get('id')
 
     if (!id) {
-      return NextResponse.json({ error: 'Contact ID required' }, { status: 400 })
+      return NextResponse.json({ error: 'Solution ID required' }, { status: 400 })
     }
 
     const { error } = await supabaseAdmin
-      .from('tbl_contacts')
+      .from('tbl_solutions')
       .delete()
       .eq('id', id)
 
@@ -215,9 +195,9 @@ export async function DELETE(request: NextRequest) {
 
     return NextResponse.json({ success: true })
   } catch (error) {
-    console.error('Contact API error:', error)
+    console.error('Solutions API error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to delete contact' },
+      { error: error instanceof Error ? error.message : 'Failed to delete solution' },
       { status: 500 }
     )
   }
