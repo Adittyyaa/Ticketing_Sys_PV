@@ -4,22 +4,20 @@ import { Ticket, Priority, Status } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { Table, Tag } from 'antd'
-import { useAuthStore } from '@/lib/store'
 import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
 
 interface TicketTableProps {
   tickets: Ticket[]
-  onTicketsDeleted?: () => void
-  selectedRowKeys?: string[]
-  onSelectionChange?: (keys: string[]) => void
+  pageSize?: number
+  currentPage?: number
+  onPageChange?: (page: number) => void
 }
 
 const categoryConfig: Record<string, string> = {
   'Bug Report': 'red', 'Technical Issue': 'purple', 'Account Inquiry': 'cyan', 'New Feature Request': 'blue', 'Other': 'default',
 }
 
-export default function TicketTable({ tickets, selectedRowKeys = [], onSelectionChange }: TicketTableProps) {
-  const { isAdmin } = useAuthStore()
+export default function TicketTable({ tickets, pageSize = 20, currentPage = 1, onPageChange }: TicketTableProps) {
 
   const columns = [
     {
@@ -69,11 +67,14 @@ export default function TicketTable({ tickets, selectedRowKeys = [], onSelection
       <Table
         columns={columns}
         dataSource={tickets.map((t) => ({ ...t, key: t.id }))}
-        pagination={{ pageSize: 20 }}
-        rowSelection={isAdmin ? { 
-          selectedRowKeys, 
-          onChange: (keys) => onSelectionChange?.(keys as string[]) 
-        } : undefined}
+        pagination={{ 
+          pageSize,
+          current: currentPage,
+          onChange: (page) => onPageChange?.(page),
+          showSizeChanger: false,
+          showQuickJumper: true,
+          showTotal: (total, range) => `${range[0]}-${range[1]} of ${total} tickets`,
+        }}
         size="small"
       />
     </div>

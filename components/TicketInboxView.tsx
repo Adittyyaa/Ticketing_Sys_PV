@@ -3,12 +3,15 @@
 import { Ticket } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
-import { Tag, Avatar, Badge } from 'antd'
+import { Tag, Avatar, Badge, Pagination } from 'antd'
 import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
 import { User, MessageSquare, Paperclip, Calendar } from 'lucide-react'
 
 interface TicketInboxViewProps {
   tickets: Ticket[]
+  pageSize?: number
+  currentPage?: number
+  onPageChange?: (page: number) => void
 }
 
 const categoryConfig: Record<string, string> = {
@@ -23,7 +26,8 @@ const categoryConfig: Record<string, string> = {
   'Other': 'default',
 }
 
-export default function TicketInboxView({ tickets }: TicketInboxViewProps) {
+export default function TicketInboxView({ tickets, pageSize = 20, currentPage = 1, onPageChange }: TicketInboxViewProps) {
+  const paginatedTickets = tickets.slice((currentPage - 1) * pageSize, currentPage * pageSize)
   return (
     <div style={{ 
       backgroundColor: 'var(--bg-surface)', 
@@ -31,7 +35,7 @@ export default function TicketInboxView({ tickets }: TicketInboxViewProps) {
       borderRadius: 12,
       overflow: 'hidden'
     }}>
-      {tickets.map((ticket, index) => {
+      {paginatedTickets.map((ticket, index) => {
         const priorityConfig = priorityDisplay[ticket.priority]
         const statusConfig = statusDisplay[ticket.status]
         const isUnread = ticket.status === 'UNTOUCHED'
@@ -45,7 +49,7 @@ export default function TicketInboxView({ tickets }: TicketInboxViewProps) {
             <div
               style={{
                 padding: '16px 20px',
-                borderBottom: index < tickets.length - 1 ? '1px solid var(--border-subtle)' : 'none',
+                borderBottom: index < paginatedTickets.length - 1 ? '1px solid var(--border-subtle)' : 'none',
                 borderLeft: `4px solid ${priorityConfig.color}`,
                 backgroundColor: isUnread ? 'var(--bg-elevated)' : 'transparent',
                 transition: 'all 0.2s',
@@ -161,11 +165,11 @@ export default function TicketInboxView({ tickets }: TicketInboxViewProps) {
                     </div>
                   )}
 
-                  {ticket.product_reference_number && (
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'monospace' }}>
-                      <span>Ref: {ticket.product_reference_number}</span>
-                    </div>
-                  )}
+{ticket.product_reference_number && (
+                     <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontFamily: 'monospace' }}>
+                       <span>Ref: {ticket.product_reference_number}</span>
+                     </div>
+                   )}
                 </div>
               </div>
 
@@ -192,6 +196,19 @@ export default function TicketInboxView({ tickets }: TicketInboxViewProps) {
         <div style={{ padding: '64px 20px', textAlign: 'center', color: 'var(--text-tertiary)' }}>
           <MessageSquare size={48} style={{ margin: '0 auto 16px', opacity: 0.3 }} />
           <p style={{ fontSize: 14, margin: 0 }}>No tickets found</p>
+        </div>
+      )}
+      
+      {tickets.length > pageSize && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px', backgroundColor: 'var(--bg-surface)', borderTop: '1px solid var(--border-subtle)' }}>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={tickets.length}
+            onChange={onPageChange}
+            size="small"
+            showSizeChanger={false}
+          />
         </div>
       )}
     </div>

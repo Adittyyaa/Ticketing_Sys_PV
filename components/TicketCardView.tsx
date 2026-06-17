@@ -3,27 +3,23 @@
 import { Ticket } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
-import { Empty, Checkbox, Tooltip } from 'antd'
+import { Empty, Tooltip, Pagination } from 'antd'
 import { priorityDisplay } from '@/lib/design-tokens'
 
 interface TicketCardViewProps {
   tickets: Ticket[]
-  onSelectionChange?: (selectedIds: string[]) => void
-  showSelection?: boolean
-  selectedIds?: string[]
+  pageSize?: number
+  currentPage?: number
+  onPageChange?: (page: number) => void
 }
 
 export default function TicketCardView({ 
   tickets, 
-  onSelectionChange, 
-  showSelection = false,
-  selectedIds = [] 
+  pageSize = 20,
+  currentPage = 1,
+  onPageChange
 }: TicketCardViewProps) {
-
-  const handleSelect = (ticketId: string, checked: boolean) => {
-    const newSelection = checked ? [...selectedIds, ticketId] : selectedIds.filter(id => id !== ticketId)
-    onSelectionChange?.(newSelection)
-  }
+  const paginatedTickets = tickets.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
   if (tickets.length === 0) {
     return <Empty description={<span style={{ color: 'var(--text-tertiary)' }}>No tickets found</span>} style={{ padding: '48px 0' }} />
@@ -31,9 +27,8 @@ export default function TicketCardView({
 
   return (
     <div>
-      {tickets.map((ticket) => {
+      {paginatedTickets.map((ticket) => {
         const p = priorityDisplay[ticket.priority]
-        const isSelected = selectedIds.includes(ticket.id)
 
         return (
           <Link
@@ -46,27 +41,15 @@ export default function TicketCardView({
                 display: 'flex',
                 alignItems: 'center',
                 padding: '10px 16px',
-                backgroundColor: isSelected ? 'var(--bg-elevated)' : 'transparent',
-                borderLeft: isSelected ? '2px solid var(--accent-primary)' : '2px solid transparent',
+                backgroundColor: 'transparent',
                 borderBottom: '1px solid var(--border-subtle)',
                 cursor: 'pointer',
                 transition: 'background-color 100ms',
                 gap: 12,
               }}
-              onMouseEnter={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'var(--bg-hover)' }}
-              onMouseLeave={(e) => { if (!isSelected) e.currentTarget.style.backgroundColor = 'transparent' }}
-              onClick={(e) => {
-                if (showSelection && (e.target as HTMLElement).closest('.ticket-checkbox')) {
-                  e.preventDefault()
-                }
-              }}
+              onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'var(--bg-hover)'}
+              onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'transparent'}
             >
-              {showSelection && (
-                <div className="ticket-checkbox" style={{ flexShrink: 0 }} onClick={(e) => e.stopPropagation()}>
-                  <Checkbox checked={isSelected} onChange={(e) => handleSelect(ticket.id, e.target.checked)} />
-                </div>
-              )}
-
               <Tooltip title={`${p.label} priority`}>
                 <span style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: p.color, flexShrink: 0 }} />
               </Tooltip>
@@ -92,6 +75,18 @@ export default function TicketCardView({
           </Link>
         )
       })}
+      {tickets.length > pageSize && (
+        <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '16px', backgroundColor: 'var(--bg-surface)' }}>
+          <Pagination
+            current={currentPage}
+            pageSize={pageSize}
+            total={tickets.length}
+            onChange={onPageChange}
+            size="small"
+            showSizeChanger={false}
+          />
+        </div>
+      )}
     </div>
   )
 }

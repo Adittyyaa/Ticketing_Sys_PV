@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Alert, Button, Input, Spin, Badge, Dropdown, Space } from 'antd'
 import type { MenuProps } from 'antd'
-import { FileText, Plus, Search, SlidersHorizontal, ArrowUpDown, Check, LayoutGrid, Mail, Table as TableIcon } from 'lucide-react'
+import { FileText, Plus, Search, SlidersHorizontal, ArrowUpDown, Check, LayoutGrid, Mail, Table as TableIcon, List } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
@@ -91,6 +91,8 @@ export default function TicketsPage() {
   const [types, setTypes] = useState<string[]>([])
   const [sortField, setSortField] = useState<SortField>('created_at')
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
+  const [pageSize, setPageSize] = useState(20)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -237,6 +239,21 @@ export default function TicketsPage() {
     }
   })
 
+  const pageSizeOptions = [10, 25, 50, 100]
+  const pageSizeMenuItems: MenuProps['items'] = pageSizeOptions.map(size => ({
+    key: size.toString(),
+    label: (
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', minWidth: 100 }}>
+        <span>{size} entries</span>
+        {pageSize === size && <Check size={14} style={{ color: 'var(--ant-primary-color)' }} />}
+      </div>
+    ),
+    onClick: () => {
+      setPageSize(size)
+      setCurrentPage(1)
+    },
+  }))
+
   const sortMenuItems: MenuProps['items'] = [
     ...sortOptions.map(option => ({
       key: option.field,
@@ -323,6 +340,18 @@ export default function TicketsPage() {
             </Button>
           </Dropdown>
           
+          <Dropdown menu={{ items: pageSizeMenuItems }} trigger={['click']} placement="bottomLeft">
+            <Button 
+              size="middle"
+              style={{ height: 32 }}
+            >
+              <Space size={8}>
+                <List size={14} />
+                <span style={{ fontSize: 13 }}>{pageSize} entries</span>
+              </Space>
+            </Button>
+          </Dropdown>
+          
           <div style={{ flex: 1 }} />
           <Badge 
             count={[searchQuery, statusFilter !== 'all', priorityFilter !== 'all', categoryFilter !== 'all', typeFilter !== 'all'].filter(Boolean).length} 
@@ -358,9 +387,9 @@ export default function TicketsPage() {
           </div>
         ) : (
           <>
-            {viewMode === 'card' && <TicketCardView tickets={tickets} />}
-            {viewMode === 'inbox' && <TicketInboxView tickets={tickets} />}
-            {viewMode === 'table' && <TicketTable tickets={tickets} />}
+            {viewMode === 'card' && <TicketCardView tickets={tickets} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />}
+            {viewMode === 'inbox' && <TicketInboxView tickets={tickets} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />}
+            {viewMode === 'table' && <TicketTable tickets={tickets} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />}
           </>
         )}
 
