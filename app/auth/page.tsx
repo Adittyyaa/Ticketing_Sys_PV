@@ -1,51 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import Image from 'next/image'
-import { Form, Input, Button, message, Alert } from 'antd'
-import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useAuthStore } from '@/lib/store'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { Form, Input, Button, Alert } from 'antd'
+import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
+import Image from 'next/image'
 import ThemeToggle from '@/components/ThemeToggle'
 import { useTheme } from '@/contexts/ThemeContext'
 
 export default function LoginPage() {
   const { theme } = useTheme()
   const router = useRouter()
-  const { setUser, setLoading, setIsAdmin } = useAuthStore()
   const [form] = Form.useForm()
-  const [loading, setLocalLoading] = useState(false)
+  const [loading, setLoadingState] = useState(false)
   const [error, setError] = useState('')
-  const [showAdminLogin, setShowAdminLogin] = useState(false)
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session?.user) {
-        redirectBasedOnRole(session.user.id)
-      }
-    }
-    checkSession()
-  }, [])
-
-  const redirectBasedOnRole = async (userId: string) => {
-    try {
-      const { data: userData } = await supabase
-        .from('tbl_users')
-        .select('role')
-        .eq('id', userId)
-        .single()
-      if (userData?.role === 'admin') router.push('/tickets')
-      else router.push('/tickets')
-    } catch {
-      router.push('/tickets')
-    }
-  }
 
   const handleLogin = async (values: { email: string; password: string }) => {
-    setLocalLoading(true)
+    setLoadingState(true)
     setError('')
     try {
       const { data, error: authError } = await supabase.auth.signInWithPassword({
@@ -59,30 +31,28 @@ export default function LoginPage() {
           .select('role, full_name')
           .eq('id', data.user.id)
           .single()
-        setUser({ id: data.user.id, email: data.user.email || '', role: userData?.role || 'user' })
-        setIsAdmin(userData?.role === 'admin')
-        setLoading(false)
-        message.success(`Welcome ${userData?.full_name || 'back'}!`)
-        if (userData?.role === 'admin') router.push('/tickets')
-        else router.push('/tickets')
+        
+        if (userData?.role === 'admin' || userData?.role === 'user') {
+          router.push('/tickets')
+        } else {
+          await supabase.auth.signOut()
+          throw new Error('Invalid account type')
+        }
       }
-    } catch (error) {
-      const errorMsg = error instanceof Error ? error.message : 'Login failed'
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : 'Login failed'
       setError(errorMsg)
-      message.error(errorMsg)
     } finally {
-      setLocalLoading(false)
+      setLoadingState(false)
     }
   }
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', position: 'relative' }}>
-      {/* Theme Toggle - Fixed Position */}
       <div style={{ position: 'absolute', top: 20, right: 20, zIndex: 10 }}>
         <ThemeToggle size="large" />
       </div>
 
-      {/* Left Panel - Brand */}
       <div
         style={{
           flex: 1,
@@ -91,33 +61,36 @@ export default function LoginPage() {
           justifyContent: 'center',
           alignItems: 'center',
           padding: '48px',
-          background: theme === 'dark' 
-            ? 'linear-gradient(135deg, #0b0f1a 0%, #1a2236 50%, #0b0f1a 100%)' 
+          background: theme === 'dark'
+            ? 'linear-gradient(135deg, #0b0f1a 0%, #1a2236 50%, #0b0f1a 100%)'
             : 'linear-gradient(135deg, #f8fafc 0%, #e2e8f0 50%, #f8fafc 100%)',
           borderRight: '1px solid var(--border-subtle)',
         }}
       >
         <div style={{ textAlign: 'center', maxWidth: 400 }}>
-          <Image 
-            src="/logo.jpeg" 
-            alt="Logo" 
-            width={64} 
-            height={64} 
-            style={{ borderRadius: 12, margin: '0 auto 24px', display: 'block' }} 
+          <Image
+            src="/logo.jpeg"
+            alt="Logo"
+            width={64}
+            height={64}
+            style={{ borderRadius: 12, margin: '0 auto 24px', display: 'block' }}
           />
-          <h1 style={{ color: 'var(--text-primary)', fontSize: 28, fontWeight: 600, marginBottom: 12 }}>Helpdesk</h1>
+          <h1 style={{ color: 'var(--text-primary)', fontSize: 28, fontWeight: 600, marginBottom: 12 }}>
+            PV Advisory Ticketing
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
+            Sign in to access your support tickets
+          </p>
         </div>
       </div>
 
-      {/* Right Panel - Form */}
       <div style={{ width: 480, minWidth: 480, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '48px', backgroundColor: 'var(--bg-base)' }}>
-        
         <div style={{ marginBottom: 24 }}>
           <h2 style={{ color: 'var(--text-primary)', fontSize: 20, fontWeight: 600, margin: 0 }}>
-            {showAdminLogin ? 'Admin Sign In' : 'Sign In'}
+            Sign In
           </h2>
           <p style={{ color: 'var(--text-tertiary)', fontSize: 13, marginTop: 4 }}>
-            {showAdminLogin ? 'Access the admin dashboard' : 'Access your support tickets'}
+            Enter your credentials
           </p>
         </div>
 
@@ -129,7 +102,7 @@ export default function LoginPage() {
             name="email"
             rules={[{ required: true, message: 'Email required' }, { type: 'email', message: 'Invalid email' }]}
           >
-            <Input prefix={<UserOutlined style={{ color: 'var(--text-tertiary)' }} />} placeholder={showAdminLogin ? 'admin@company.com' : 'you@example.com'} style={{ height: 40 }} />
+            <Input prefix={<UserOutlined style={{ color: 'var(--text-tertiary)' }} />} placeholder="you@example.com" style={{ height: 40 }} />
           </Form.Item>
           <Form.Item
             label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Password</span>}
@@ -140,28 +113,12 @@ export default function LoginPage() {
           </Form.Item>
           <Form.Item style={{ marginBottom: 16, marginTop: 8 }}>
             <Button type="primary" htmlType="submit" block icon={<LoginOutlined />} loading={loading}
-              style={{ height: 40, fontSize: 14, fontWeight: 600, borderRadius: 6, backgroundColor: showAdminLogin ? '#7c3aed' : '#3b82f6', borderColor: showAdminLogin ? '#7c3aed' : '#3b82f6' }}>
+              style={{ height: 40, fontSize: 14, fontWeight: 600, borderRadius: 6 }}>
               Sign In
             </Button>
           </Form.Item>
         </Form>
-
-        <div style={{ textAlign: 'center', marginTop: 8 }}>
-          <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>{showAdminLogin ? 'Regular user?' : 'System administrator?'}</span>
-          <button onClick={() => { setShowAdminLogin(!showAdminLogin); form.resetFields(); setError('') }}
-            style={{ background: 'none', border: 'none', color: showAdminLogin ? 'var(--accent-primary)' : '#a78bfa', fontSize: 12, fontWeight: 600, cursor: 'pointer', marginLeft: 6 }}>
-            {showAdminLogin ? 'User Sign In' : 'Admin Sign In'}
-          </button>
-        </div>
-
-        {!showAdminLogin && (
-          <div style={{ textAlign: 'center', marginTop: 24, paddingTop: 24, borderTop: '1px solid var(--border-subtle)' }}>
-            <span style={{ color: 'var(--text-tertiary)', fontSize: 12 }}>Don&apos;t have an account? </span>
-            <Link href="/auth/signup" style={{ color: 'var(--text-link)', fontSize: 12, fontWeight: 600 }}>Create one</Link>
-          </div>
-        )}
       </div>
     </div>
   )
 }
-

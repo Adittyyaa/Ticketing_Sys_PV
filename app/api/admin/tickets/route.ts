@@ -13,7 +13,11 @@ export async function GET(request: NextRequest) {
 
     let query = supabaseAdmin
       .from('tbl_tickets')
-      .select('*')
+      .select(`
+        *,
+        creator:tbl_users!user_id(email, full_name),
+        assigned_user:tbl_users!assigned_to(email, full_name)
+      `)
       .order('created_at', { ascending: false })
 
     if (search) {

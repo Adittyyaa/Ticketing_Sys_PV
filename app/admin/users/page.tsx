@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { Table, Form, Input, Button, message, Modal, Select, Tag } from 'antd'
-import { Plus, Trash2, Users } from 'lucide-react'
+import { Plus, Trash2, Users, Search } from 'lucide-react'
 
 interface User {
   id: string
@@ -23,6 +23,7 @@ export default function UserManagementPage() {
   const [loading, setLoading] = useState(true)
   const [showForm, setShowForm] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [searchQuery, setSearchQuery] = useState('')
   const [form] = Form.useForm()
 
   useEffect(() => {
@@ -37,6 +38,15 @@ export default function UserManagementPage() {
     } catch { message.error('Failed to load users') }
     finally { setLoading(false) }
   }
+
+  const filteredUsers = useMemo(() => {
+    if (!searchQuery) return allUsers
+    const q = searchQuery.toLowerCase()
+    return allUsers.filter(u => 
+      u.email.toLowerCase().includes(q) || 
+      (u.full_name || '').toLowerCase().includes(q)
+    )
+  }, [allUsers, searchQuery])
 
   const handleCreateUser = async (values: any) => {
     setSubmitting(true)
@@ -168,9 +178,17 @@ export default function UserManagementPage() {
             </p>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <Input
+              placeholder="Search name or email..."
+              prefix={<Search size={14} style={{ color: 'var(--text-tertiary)' }} />}
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              allowClear
+              style={{ width: 240, height: 32 }}
+            />
             <Tag color="blue" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
               <Users size={12} />
-              {allUsers.length} User{allUsers.length !== 1 ? 's' : ''}
+              {filteredUsers.length} User{filteredUsers.length !== 1 ? 's' : ''}
             </Tag>
             <Button 
               type="primary" 
@@ -282,7 +300,7 @@ export default function UserManagementPage() {
         }}>
           <Table 
             columns={columns} 
-            dataSource={allUsers.map(u => ({ ...u, key: u.id }))} 
+            dataSource={filteredUsers.map(u => ({ ...u, key: u.id }))} 
             pagination={{ pageSize: 10 }}
             locale={{ emptyText: 'No user accounts found' }}
           />
