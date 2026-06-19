@@ -40,6 +40,13 @@ export default function TicketTable({
       render: (c: string) => <Tag color={categoryConfig[c] || 'default'} style={{ fontSize: 11 }}>{c}</Tag>,
     },
     {
+      title: 'Assigned To', dataIndex: 'assigned_user', key: 'assigned_user', width: 140,
+      render: (_: unknown, r: Ticket) => {
+        const name = r.assigned_user?.full_name || r.assigned_user?.email || r.assigned_to || ''
+        return <span style={{ color: name ? 'var(--text-primary)' : 'var(--text-tertiary)', fontSize: 11, fontWeight: 500 }}>{name || 'Unassigned'}</span>
+      },
+    },
+    {
       title: 'Tags', dataIndex: 'tags', key: 'tags', width: 150,
       render: (tags: string[]) => (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>

@@ -72,7 +72,7 @@ function filterTickets(
     if (type !== 'all' && ticket.type !== type) return false
     if (!rawSearch || rawSearch.length < 2) return true
 
-    const searchableText = `${ticket.title} ${ticket.description} ${ticket.number}`.toLowerCase()
+    const searchableText = `${ticket.title} ${ticket.description} ${ticket.number} ${ticket.category} ${ticket.type || ''} ${ticket.assigned_user?.full_name || ''} ${ticket.assigned_user?.email || ''}`.toLowerCase()
     return searchableText.includes(rawSearch)
   })
 }

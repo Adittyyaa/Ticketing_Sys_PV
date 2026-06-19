@@ -19,6 +19,16 @@ import jsPDF from 'jspdf'
 const statusOptions: Status[] = ['UNTOUCHED', 'PENDING', 'OPENED', 'SOLVED']
 const priorityOptions: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 
+const getUserDisplayName = (user?: { email: string; full_name?: string }, fallback = 'Unknown') => user?.full_name || user?.email || fallback
+
+const getAssignedDisplayName = (ticket: Ticket) => {
+  if (ticket.assigned_user?.full_name || ticket.assigned_user?.email) {
+    return getUserDisplayName(ticket.assigned_user)
+  }
+  if (ticket.assigned_to) return 'Assigned user unavailable'
+  return 'Unassigned'
+}
+
 export default function TicketDetailPage() {
   const params = useParams()
   const router = useRouter()
@@ -147,10 +157,16 @@ export default function TicketDetailPage() {
       y += 15
       pdf.setFontSize(10)
       pdf.setTextColor(120, 130, 140)
-      pdf.text(`Status: ${ticket.status}  |  Priority: ${ticket.priority}  |  Category: ${ticket.category}`, 15, y)
+      pdf.text(`Status: ${ticket.status}  |  Priority: ${ticket.priority}`, 15, y)
+      y += 6
+      pdf.text(`Category: ${ticket.category}  |  Assigned To: ${getAssignedDisplayName(ticket)}`, 15, y)
+      y += 6
+      pdf.text(`Created By: ${getUserDisplayName(ticket.creator)}  |  Created: ${format(new Date(ticket.created_at), 'PPP p')}`, 15, y)
       y += 8
-      pdf.text(`Created: ${format(new Date(ticket.created_at), 'PPP p')}`, 15, y)
-      y += 10
+      if (ticket.type || ticket.product_reference_number) {
+        pdf.text(`Type: ${ticket.type || 'None'}  |  Ref: ${ticket.product_reference_number || 'None'}`, 15, y)
+        y += 8
+      }
       pdf.setTextColor(0, 0, 0)
       pdf.setFont('helvetica', 'bold')
       pdf.text('Description:', 15, y)
@@ -171,6 +187,10 @@ export default function TicketDetailPage() {
   const statusDropdownOptions = customStatuses.length > 0
     ? customStatuses.map(s => ({ label: s.name, value: s.name }))
     : statusOptions.map(s => ({ label: s, value: s }))
+  const assignedTo = getAssignedDisplayName(ticket)
+  const createdBy = getUserDisplayName(ticket.creator)
+  const tagsText = ticket.tags?.length > 0 ? ticket.tags.join(', ') : 'None'
+  const commentCount = ticket.comment_count ?? 0
 
   return (
     <AppShell>
@@ -252,12 +272,11 @@ export default function TicketDetailPage() {
           </div>
 
           {/* Properties Panel - Right */}
-          <div style={{ width: 280, flexShrink: 0 }}>
+          <div style={{ width: 320, flexShrink: 0 }}>
             <div style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 8, padding: 16 }}>
               <h3 style={{ color: 'var(--text-secondary)', fontSize: 11, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', margin: '0 0 12px 0' }}>Properties</h3>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                {/* Status */}
                 <div>
                   <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Status</div>
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px', borderRadius: 9999, fontSize: 12, fontWeight: 500, color: s.color, backgroundColor: s.bg }}>
@@ -265,7 +284,6 @@ export default function TicketDetailPage() {
                   </span>
                 </div>
 
-                {/* Priority */}
                 <div>
                   <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Priority</div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -274,24 +292,53 @@ export default function TicketDetailPage() {
                   </div>
                 </div>
 
-                {/* Category */}
                 <div>
                   <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Category</div>
                   <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{ticket.category}</span>
                 </div>
 
-                {/* Divider */}
+                <div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Assigned To</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{assignedTo}</span>
+                </div>
+
+                <div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Created By</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{createdBy}</span>
+                </div>
+
+                <div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Type</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{ticket.type || 'None'}</span>
+                </div>
+
+                <div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Product Reference</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{ticket.product_reference_number || 'None'}</span>
+                </div>
+
+                <div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Tags</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{tagsText}</span>
+                </div>
+
+                <div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Comments</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{commentCount}</span>
+                </div>
+
                 <div style={{ borderTop: '1px solid var(--border-subtle)' }} />
 
-                {/* Dates */}
                 <div>
                   <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Created</div>
-                  <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}</span>
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--text-primary)' }}>{format(new Date(ticket.created_at), 'PPP p')}</span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{formatDistanceToNow(new Date(ticket.created_at), { addSuffix: true })}</span>
                 </div>
 
                 <div>
                   <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Updated</div>
-                  <span style={{ fontSize: 12, color: 'var(--text-primary)' }}>{formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}</span>
+                  <span style={{ display: 'block', fontSize: 12, color: 'var(--text-primary)' }}>{format(new Date(ticket.updated_at), 'PPP p')}</span>
+                  <span style={{ display: 'block', fontSize: 11, color: 'var(--text-tertiary)', marginTop: 2 }}>{formatDistanceToNow(new Date(ticket.updated_at), { addSuffix: true })}</span>
                 </div>
               </div>
             </div>
