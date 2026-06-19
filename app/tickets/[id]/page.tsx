@@ -72,10 +72,24 @@ export default function TicketDetailPage() {
     if (!user) return
     const fetchTicket = async () => {
       try {
-        const authHeader = await getAdminAuthHeader()
+        let authHeader: string
+        try {
+          authHeader = await getAdminAuthHeader()
+        } catch {
+          await supabase.auth.signOut()
+          router.push('/auth')
+          return
+        }
         const response = await fetch(`/api/admin/tickets/${ticketId}`, { headers: { Authorization: authHeader } })
         const result = await response.json()
-        if (!response.ok) throw new Error(result.error || 'Failed to load ticket')
+        if (!response.ok) {
+          if (response.status === 401) {
+            await supabase.auth.signOut()
+            router.push('/auth')
+            return
+          }
+          throw new Error(result.error || 'Failed to load ticket')
+        }
         const data = result.ticket as Ticket
         setTicket(data)
         form.setFieldsValue({ priority: data.priority, status: data.status })

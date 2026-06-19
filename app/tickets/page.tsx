@@ -134,11 +134,25 @@ export default function TicketsPage() {
         const effectiveSearch = filters.search?.trim() || searchQuery.trim() || ''
         let fetchedTickets: Ticket[] = []
 
-        const authHeader = await getAdminAuthHeader()
+        let authHeader: string
+        try {
+          authHeader = await getAdminAuthHeader()
+        } catch (error) {
+          if (!cancelled) {
+            await supabase.auth.signOut()
+            router.push('/auth')
+          }
+          return
+        }
         const response = await fetch('/api/admin/tickets', { headers: { Authorization: authHeader } })
         const result = await response.json()
 
         if (!response.ok) {
+          if (response.status === 401 && !cancelled) {
+            await supabase.auth.signOut()
+            router.push('/auth')
+            return
+          }
           throw new Error(result.error || 'Failed to fetch tickets')
         }
 

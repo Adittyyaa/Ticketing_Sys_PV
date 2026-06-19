@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import { verifyAdminRequest } from '@/lib/admin-auth'
+import { verifyAuthenticatedRequest } from '@/lib/admin-auth'
 
 type TicketUser = {
   id: string
@@ -61,7 +61,7 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const auth = await verifyAdminRequest(request)
+    const auth = await verifyAuthenticatedRequest(request)
     if (auth.error || !auth.supabaseAdmin || !auth.userId) {
       return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status })
     }
@@ -74,13 +74,7 @@ export async function GET(
       .select(ticketColumns)
       .eq('id', id)
 
-    const { data: userData } = await supabaseAdmin
-      .from('tbl_users')
-      .select('role')
-      .eq('id', auth.userId)
-      .single()
-
-    if (userData?.role !== 'admin') {
+    if (auth.role !== 'admin') {
       query = query.eq('user_id', auth.userId)
     }
 
