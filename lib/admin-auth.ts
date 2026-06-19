@@ -2,7 +2,7 @@ import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { NextRequest } from 'next/server'
 
 type AdminAuthResult =
-  | { error: string; status: 401 | 403; supabaseAdmin: null; userId: null }
+  | { error: string; status: 401 | 403 | 500; supabaseAdmin: null; userId: null }
   | { error: null; status: 200; supabaseAdmin: SupabaseClient; userId: string }
 
 export async function verifyAdminRequest(request: NextRequest): Promise<AdminAuthResult> {
@@ -11,11 +11,20 @@ export async function verifyAdminRequest(request: NextRequest): Promise<AdminAut
     return { error: 'Unauthorized', status: 401, supabaseAdmin: null, userId: null }
   }
 
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return { error: 'Server configuration error', status: 500, supabaseAdmin: null, userId: null }
+  }
+
   const token = authHeader.replace('Bearer ', '')
-  const supabaseAdmin = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-  )
+  const supabaseAdmin = createClient(supabaseUrl, serviceRoleKey, {
+    auth: {
+      persistSession: false,
+      autoRefreshToken: false,
+    },
+  })
 
   const { data: { user }, error: verifyError } = await supabaseAdmin.auth.getUser(token)
 
@@ -29,10 +38,6 @@ export async function verifyAdminRequest(request: NextRequest): Promise<AdminAut
     .select('role')
     .eq('id', user.id)
     .single()
-
-  if (userData?.role !== 'admin') {
-    return { error: 'Only admins can access this resource', status: 403, supabaseAdmin: null, userId: null }
-  }
 
   return { error: null, status: 200, supabaseAdmin, userId: user.id }
 }

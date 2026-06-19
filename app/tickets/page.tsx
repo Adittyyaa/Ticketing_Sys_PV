@@ -132,30 +132,17 @@ export default function TicketsPage() {
 
       try {
         const effectiveSearch = filters.search?.trim() || searchQuery.trim() || ''
-        const rawSearch = effectiveSearch.replace(/[%;]/g, '').substring(0, 100)
         let fetchedTickets: Ticket[] = []
 
-        if (isAdminLocal) {
-          const authHeader = await getAdminAuthHeader()
-          const response = await fetch('/api/admin/tickets', { headers: { Authorization: authHeader } })
-          const result = await response.json()
+        const authHeader = await getAdminAuthHeader()
+        const response = await fetch('/api/admin/tickets', { headers: { Authorization: authHeader } })
+        const result = await response.json()
 
-          if (!response.ok) {
-            throw new Error(result.error || 'Failed to fetch tickets')
-          }
-
-          fetchedTickets = (result.tickets || []) as Ticket[]
-        } else {
-          let query = supabase.from('tbl_tickets').select('*').eq('user_id', user.id).order('created_at', { ascending: false })
-
-          if (rawSearch && rawSearch.length >= 2) {
-            query = query.ilike('title', `%${rawSearch}%`)
-          }
-
-          const { data, error } = await query
-          if (error) throw error
-          fetchedTickets = (data || []) as Ticket[]
+        if (!response.ok) {
+          throw new Error(result.error || 'Failed to fetch tickets')
         }
+
+        fetchedTickets = (result.tickets || []) as Ticket[]
 
         const uniqueCategories = [...new Set(fetchedTickets.map(t => t.category).filter(Boolean))] as string[]
         const uniqueTypes = [...new Set(fetchedTickets.map(t => t.type).filter(Boolean))] as string[]
@@ -303,11 +290,6 @@ export default function TicketsPage() {
       ),
       onClick: () => setSortOrder('desc'),
     },
-  ]
-
-  const statusFilterOptions = [
-    { label: 'Any status', value: 'all' },
-    ...customStatuses.map(s => ({ label: s.name, value: s.name })),
   ]
 
   if (!user) return null

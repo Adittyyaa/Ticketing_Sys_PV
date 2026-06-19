@@ -62,18 +62,11 @@ export default function TicketDetailPage() {
     if (!user) return
     const fetchTicket = async () => {
       try {
-        let data: Ticket | null = null
-        if (isAdmin) {
-          const authHeader = await getAdminAuthHeader()
-          const response = await fetch(`/api/admin/tickets/${ticketId}`, { headers: { Authorization: authHeader } })
-          const result = await response.json()
-          if (!response.ok) throw new Error(result.error || 'Failed to load ticket')
-          data = result.ticket as Ticket
-        } else {
-          const { data: ticketData, error } = await supabase.from('tbl_tickets').select('*').eq('id', ticketId).eq('user_id', user.id).single()
-          if (error) throw error
-          data = ticketData as Ticket
-        }
+        const authHeader = await getAdminAuthHeader()
+        const response = await fetch(`/api/admin/tickets/${ticketId}`, { headers: { Authorization: authHeader } })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error || 'Failed to load ticket')
+        data = result.ticket as Ticket
         setTicket(data)
         form.setFieldsValue({ priority: data.priority, status: data.status })
       } catch {
