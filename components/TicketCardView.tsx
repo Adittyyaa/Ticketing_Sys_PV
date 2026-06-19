@@ -4,20 +4,23 @@ import { Ticket } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { Empty, Pagination, Tag } from 'antd'
-import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
+import { priorityDisplay, getStatusDisplay } from '@/lib/design-tokens'
+import { CustomStatus } from '@/types/types'
 
 interface TicketCardViewProps {
   tickets: Ticket[]
   pageSize?: number
   currentPage?: number
   onPageChange?: (page: number) => void
+  customStatuses?: CustomStatus[]
 }
 
-export default function TicketCardView({ 
-  tickets, 
+export default function TicketCardView({
+  tickets,
   pageSize = 20,
   currentPage = 1,
-  onPageChange
+  onPageChange,
+  customStatuses = [],
 }: TicketCardViewProps) {
   const paginatedTickets = tickets.slice((currentPage - 1) * pageSize, currentPage * pageSize)
 
@@ -26,21 +29,21 @@ export default function TicketCardView({
   }
 
   return (
-    <div style={{ 
-      backgroundColor: 'var(--bg-surface)', 
-      border: '1px solid var(--border-subtle)', 
+    <div style={{
+      backgroundColor: 'var(--bg-surface)',
+      border: '1px solid var(--border-subtle)',
       borderRadius: 12,
       overflow: 'hidden'
     }}>
-      <div style={{ 
-        display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))', 
-        gap: 16, 
-        padding: 16 
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+        gap: 16,
+        padding: 16
       }}>
         {paginatedTickets.map((ticket) => {
           const p = priorityDisplay[ticket.priority]
-          const s = statusDisplay[ticket.status]
+          const s = getStatusDisplay(ticket.status, customStatuses)
 
           return (
             <Link

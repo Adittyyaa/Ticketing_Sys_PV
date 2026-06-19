@@ -4,21 +4,28 @@ import { Ticket, Priority, Status } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { Table, Tag } from 'antd'
-import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
+import { priorityDisplay, getStatusDisplay } from '@/lib/design-tokens'
+import { CustomStatus } from '@/types/types'
 
 interface TicketTableProps {
   tickets: Ticket[]
   pageSize?: number
   currentPage?: number
   onPageChange?: (page: number) => void
+  customStatuses?: CustomStatus[]
 }
 
 const categoryConfig: Record<string, string> = {
   'Bug Report': 'red', 'Technical Issue': 'purple', 'Account Inquiry': 'cyan', 'New Feature Request': 'blue', 'Other': 'default',
 }
 
-export default function TicketTable({ tickets, pageSize = 20, currentPage = 1, onPageChange }: TicketTableProps) {
-
+export default function TicketTable({
+  tickets,
+  pageSize = 20,
+  currentPage = 1,
+  onPageChange,
+  customStatuses = [],
+}: TicketTableProps) {
   const columns = [
     {
       title: 'ID', dataIndex: 'number', key: 'number', width: 60,
@@ -52,7 +59,7 @@ export default function TicketTable({ tickets, pageSize = 20, currentPage = 1, o
     {
       title: 'Status', dataIndex: 'status', key: 'status', width: 100,
       render: (s: Status) => {
-        const d = statusDisplay[s]
+        const d = getStatusDisplay(s, customStatuses)
         return <span style={{ fontSize: 11, fontWeight: 500, color: 'var(--text-primary)' }}>{d.label}</span>
       },
     },

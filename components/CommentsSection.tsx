@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import { Button, Input, Form, Empty, message, Divider, AutoComplete, Popconfirm } from 'antd'
 import { DeleteOutlined, SendOutlined } from '@ant-design/icons'
 import { formatDistanceToNow } from 'date-fns'
-import { SavedReply } from '@/types/types'
+import type { SavedReply } from '@/types/types'
 
 interface CommentData {
   id: string
@@ -25,20 +25,43 @@ interface CommentsSectionProps {
   ticketTitle?: string
 }
 
+type RangeTuple = [number, number] | null
+
 export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: CommentsSectionProps) {
   const { user, isAdmin } = useAuthStore()
   const [comments, setComments] = useState<CommentData[]>([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
-  
+
   const [savedReplies, setSavedReplies] = useState<SavedReply[]>([])
   const [users, setUsers] = useState<Array<{id: string, email: string, full_name?: string, role?: string}>>([])
   const [searchValue, setSearchValue] = useState('')
   const [dropdownOptions, setDropdownOptions] = useState<Array<{value: string, label: React.ReactNode}>>([])
+  const [activeRange, setActiveRange] = useState<RangeTuple>(null)
+  const textAreaRef = useRef<HTMLTextAreaElement>(null)
+
+  const getActiveToken = (value: string, cursorPosition: number) => {
+    const beforeCursor = value.slice(0, cursorPosition)
+    const tokenMatch = beforeCursor.match(/(?:^|\s)([#\/][^\s]*)$/)
+
+    if (!tokenMatch) return null
+
+    const token = tokenMatch[1]
+    const start = cursorPosition - token.length
+    const end = cursorPosition
+
+    return {
+      token,
+      type: token.startsWith('#') ? 'mention' : token.startsWith('/r') ? 'reply' : null,
+      query: token.startsWith('/r') ? token.slice(2) : token.slice(1),
+      start,
+      end,
+    }
+  }
 
   useEffect(() => { fetchComments() }, [ticketId])
-  
+
   useEffect(() => {
     if (isAdmin) {
       fetchSavedReplies()
@@ -48,11 +71,20 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
 
   useEffect(() => {
     const inputValue = form.getFieldValue('content') || ''
-    
-    if (inputValue.includes('#')) {
-      const hashIndex = inputValue.lastIndexOf('#')
-      const query = inputValue.substring(hashIndex + 1)
-      const filteredUsers = users.filter(u => u.id !== user?.id && u.email.toLowerCase().includes(query.toLowerCase()))
+    const el = textAreaRef.current
+    const cursorPos = el ? el.selectionStart ?? inputValue.length : inputValue.length
+    const active = getActiveToken(inputValue, cursorPos)
+
+    if (!active || active.type === null) {
+      setActiveRange(null)
+      setDropdownOptions([])
+      return
+    }
+
+    setActiveRange([active.start, active.end])
+
+    if (active.type === 'mention') {
+      const filteredUsers = users.filter(u => u.id !== user?.id && u.email.toLowerCase().includes(active.query.toLowerCase()))
       setDropdownOptions(filteredUsers.map(u => ({
         value: `#${u.email}`,
         label: (
@@ -61,10 +93,8 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
           </div>
         )
       })))
-    } else if (inputValue.includes('/r')) {
-      const rIndex = inputValue.lastIndexOf('/r')
-      const query = inputValue.substring(rIndex + 2)
-      const filteredReplies = savedReplies.filter(r => r.title.toLowerCase().includes(query.toLowerCase()))
+    } else if (active.type === 'reply') {
+      const filteredReplies = savedReplies.filter(r => r.title.toLowerCase().includes(active.query.toLowerCase()))
       setDropdownOptions(filteredReplies.map(r => ({
         value: `/r ${r.title}`,
         label: (
@@ -74,8 +104,6 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
           </div>
         )
       })))
-    } else {
-      setDropdownOptions([])
     }
   }, [searchValue, savedReplies, users, user?.id, form])
 
@@ -112,7 +140,7 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
           full_name: user.email || '',
           role: 'user',
           created_at: new Date().toISOString()
-        }], { onConflict: 'id' }).select()
+        }, { onConflict: 'id' }]).select()
         if (upsertData) setUsers([upsertData[0] as any])
       }
     }
@@ -149,17 +177,21 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
 
   const handleSelect = (value: string) => {
     const currentContent = form.getFieldValue('content') || ''
-    
+    const range = activeRange ?? [currentContent.length, currentContent.length]
+    const [start, end] = range
+
     if (value.startsWith('/r ')) {
       const replyTitle = value.substring(3)
       const actualReply = savedReplies.find(r => r.title === replyTitle)
       if (actualReply) {
-        const beforeCmd = currentContent.substring(0, currentContent.lastIndexOf('/r'))
-        form.setFieldsValue({ content: beforeCmd ? `${beforeCmd.trim()}\n\n${actualReply.content}` : actualReply.content })
+        const before = currentContent.slice(0, start)
+        const after = currentContent.slice(end)
+        form.setFieldsValue({ content: before + actualReply.content + after })
       }
     } else if (value.startsWith('#')) {
-      const beforeMention = currentContent.substring(0, currentContent.lastIndexOf('#'))
-      form.setFieldsValue({ content: beforeMention + value })
+      const before = currentContent.slice(0, start)
+      const after = currentContent.slice(end)
+      form.setFieldsValue({ content: before + value + after })
     }
   }
 
@@ -236,12 +268,13 @@ export default function TicketComments({ ticketId, ticketNumber, ticketTitle }: 
             onSelect={handleSelect}
             open={dropdownOptions.length > 0}
           >
-            <Input.TextArea 
-              placeholder="Add a comment... Use #email to mention users, /r to use saved replies" 
-              rows={3} 
-              disabled={submitting} 
-              style={{ fontSize: 13 }} 
-            />
+              <Input.TextArea
+                ref={(node) => { (textAreaRef as any).current = node }}
+                placeholder="Add a comment... Use #email to mention users, /r to use saved replies"
+                rows={3}
+                disabled={submitting}
+                style={{ fontSize: 13 }}
+              />
           </AutoComplete>
         </Form.Item>
         <Form.Item style={{ marginBottom: 0 }}>

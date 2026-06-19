@@ -7,6 +7,13 @@ interface AuthUser {
   role?: UserRole
 }
 
+interface CustomStatus {
+  id: string
+  name: string
+  color: string
+  created_at: string
+}
+
 interface TicketStore {
   tickets: Ticket[]
   setTickets: (tickets: Ticket[]) => void
@@ -21,6 +28,8 @@ interface TicketStore {
     dateRange?: [string, string]
   }
   setFilters: (filters: Partial<TicketStore['filters']>) => void
+  customStatuses: CustomStatus[]
+  setCustomStatuses: (statuses: CustomStatus[]) => void
 }
 
 export const useTicketStore = create<TicketStore>((set) => ({
@@ -42,6 +51,8 @@ export const useTicketStore = create<TicketStore>((set) => ({
     set((state) => ({
       filters: { ...state.filters, ...filters },
     })),
+  customStatuses: [],
+  setCustomStatuses: (customStatuses) => set({ customStatuses }),
 }))
 
 interface AuthStore {

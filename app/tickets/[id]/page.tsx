@@ -11,9 +11,9 @@ import AppShell from '@/components/AppShell'
 import TicketComments from '@/components/CommentsSection'
 import AttachmentsSection from '@/components/AttachmentsSection'
 import { getAdminAuthHeader } from '@/lib/admin-api'
-import { Ticket, Status, Priority } from '@/types/types'
+import { Ticket, Status, Priority, CustomStatus } from '@/types/types'
+import { priorityDisplay, getStatusDisplay } from '@/lib/design-tokens'
 import { formatDistanceToNow, format } from 'date-fns'
-import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
 import jsPDF from 'jspdf'
 
 const statusOptions: Status[] = ['UNTOUCHED', 'PENDING', 'OPENED', 'SOLVED']
@@ -29,6 +29,7 @@ export default function TicketDetailPage() {
   const [ticket, setTicket] = useState<Ticket | null>(null)
   const [loading, setLocalLoading] = useState(true)
   const [isEditing, setIsEditing] = useState(false)
+  const [customStatuses, setCustomStatuses] = useState<CustomStatus[]>([])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -84,6 +85,16 @@ export default function TicketDetailPage() {
     }
     fetchTicket()
   }, [user, isAdmin, ticketId, router, form])
+
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        const { data } = await supabase.from('tbl_custom_statuses').select('id, name, color, created_at').order('name')
+        if (data) setCustomStatuses(data as Array<{ id: string; name: string; color: string; created_at: string }>)
+      } catch { /* silent */ }
+    }
+    fetchStatuses()
+  }, [])
 
   const applyOwnershipFilter = <T extends { eq: (col: string, val: string) => T }>(query: T): T => {
     if (isAdmin || !user) return query
@@ -163,7 +174,10 @@ export default function TicketDetailPage() {
   if (!ticket) return <AppShell><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 'calc(100vh - 96px)' }}><span style={{ color: 'var(--text-tertiary)' }}>Ticket not found</span></div></AppShell>
 
   const p = priorityDisplay[ticket.priority]
-  const s = statusDisplay[ticket.status]
+  const s = getStatusDisplay(ticket.status, customStatuses)
+  const statusDropdownOptions = customStatuses.length > 0
+    ? customStatuses.map(s => ({ label: s.name, value: s.name }))
+    : statusOptions.map(s => ({ label: s, value: s }))
 
   return (
     <AppShell>
@@ -207,7 +221,7 @@ export default function TicketDetailPage() {
                       <Select style={{ height: 32 }}>{priorityOptions.map((p) => <Select.Option key={p} value={p}>{p}</Select.Option>)}</Select>
                     </Form.Item>
                     <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Status</span>} name="status" rules={[{ required: true }]}>
-                      <Select style={{ height: 32 }}>{statusOptions.map((s) => <Select.Option key={s} value={s}>{s}</Select.Option>)}</Select>
+                      <Select style={{ height: 32 }}>{statusDropdownOptions.map((s) => <Select.Option key={s.value} value={s.value}>{s.label}</Select.Option>)}</Select>
                     </Form.Item>
                   </div>
                   <Form.Item style={{ marginBottom: 0 }}>

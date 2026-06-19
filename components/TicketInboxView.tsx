@@ -4,14 +4,16 @@ import { Ticket } from '@/types/types'
 import { formatDistanceToNow } from 'date-fns'
 import Link from 'next/link'
 import { Tag, Avatar, Badge, Pagination } from 'antd'
-import { priorityDisplay, statusDisplay } from '@/lib/design-tokens'
+import { priorityDisplay, getStatusDisplay } from '@/lib/design-tokens'
 import { User, MessageSquare, Paperclip, Calendar } from 'lucide-react'
+import { CustomStatus } from '@/types/types'
 
 interface TicketInboxViewProps {
   tickets: Ticket[]
   pageSize?: number
   currentPage?: number
   onPageChange?: (page: number) => void
+  customStatuses?: CustomStatus[]
 }
 
 const categoryConfig: Record<string, string> = {
@@ -26,18 +28,24 @@ const categoryConfig: Record<string, string> = {
   'Other': 'default',
 }
 
-export default function TicketInboxView({ tickets, pageSize = 20, currentPage = 1, onPageChange }: TicketInboxViewProps) {
+export default function TicketInboxView({
+  tickets,
+  pageSize = 20,
+  currentPage = 1,
+  onPageChange,
+  customStatuses = [],
+}: TicketInboxViewProps) {
   const paginatedTickets = tickets.slice((currentPage - 1) * pageSize, currentPage * pageSize)
   return (
-    <div style={{ 
-      backgroundColor: 'var(--bg-surface)', 
-      border: '1px solid var(--border-subtle)', 
+    <div style={{
+      backgroundColor: 'var(--bg-surface)',
+      border: '1px solid var(--border-subtle)',
       borderRadius: 12,
       overflow: 'hidden'
     }}>
       {paginatedTickets.map((ticket, index) => {
         const priorityConfig = priorityDisplay[ticket.priority]
-        const statusConfig = statusDisplay[ticket.status]
+        const statusConfig = getStatusDisplay(ticket.status, customStatuses)
         const isUnread = ticket.status === 'UNTOUCHED'
         
         return (

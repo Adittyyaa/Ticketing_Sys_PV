@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
-import { Priority, Status, CategoryData, Tag, TicketType } from '@/types/types'
+import { Priority, CategoryData, Tag, TicketType, CustomStatus } from '@/types/types'
 import { CATEGORIES } from '@/lib/constants'
 import { Form, Input, Select, Button, message, Row, Col, Card } from 'antd'
 import { ArrowLeft } from 'lucide-react'
@@ -24,23 +24,26 @@ export default function NewTicketPage() {
   const [dbTags, setDbTags] = useState<Tag[]>([])
   const [dbTypes, setDbTypes] = useState<TicketType[]>([])
   const [dbUsers, setDbUsers] = useState<{ id: string; email: string; full_name?: string }[]>([])
+  const [dbStatuses, setDbStatuses] = useState<CustomStatus[]>([])
   const [fetchingData, setFetchingData] = useState(true)
   const [isAdminUser, setIsAdminUser] = useState(false)
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [catRes, tagRes, typeRes, usersRes] = await Promise.all([
+        const [catRes, tagRes, typeRes, usersRes, statusRes] = await Promise.all([
           supabase.from('tbl_categories').select('*').order('name'),
           supabase.from('tbl_tags').select('*').order('name'),
           supabase.from('tbl_ticket_types').select('*').order('name'),
-          supabase.from('tbl_users').select('id, email, full_name').order('email')
+          supabase.from('tbl_users').select('id, email, full_name').order('email'),
+          supabase.from('tbl_custom_statuses').select('*').order('name')
         ])
         if (catRes.data) setDbCategories(catRes.data)
         else setDbCategories(CATEGORIES.map((c, i) => ({ id: i.toString(), name: c as string, created_at: '' })))
         if (tagRes.data) setDbTags(tagRes.data)
         if (typeRes.data) setDbTypes(typeRes.data)
         if (usersRes.data) setDbUsers(usersRes.data as { id: string; email: string; full_name?: string }[])
+        if (statusRes.data) setDbStatuses(statusRes.data)
       } catch (err) {
         console.error('Error fetching categories/tags/types/users:', err)
         setDbCategories(CATEGORIES.map((c, i) => ({ id: i.toString(), name: c as string, created_at: '' })))
@@ -67,13 +70,14 @@ export default function NewTicketPage() {
     checkAuth()
   }, [setUser, setLoading, setIsAdmin, router])
 
-  const onFinish = async (values: { 
-    title: string; 
-    description: string; 
-    category: string; 
+  const onFinish = async (values: {
+    title: string;
+    description: string;
+    category: string;
     type?: string;
     product_reference_number?: string;
-    priority: Priority; 
+    priority: Priority;
+    status: string;
     tags?: string[];
     assigned_to?: string;
   }) => {
@@ -115,16 +119,16 @@ export default function NewTicketPage() {
         await supabase.from('tbl_tags').insert(newTags.map(name => ({ name })))
       }
 
-      const ticketData: any = { 
-        title: values.title.trim(), 
-        description: values.description.trim(), 
+      const ticketData: any = {
+        title: values.title.trim(),
+        description: values.description.trim(),
         category: values.category,
         type: values.type || null,
         product_reference_number: values.product_reference_number?.trim() || null,
-        priority: values.priority, 
-        status: 'UNTOUCHED' as Status, 
-        tags, 
-        user_id: user.id 
+        priority: values.priority,
+        status: values.status,
+        tags,
+        user_id: user.id
       }
       
       if (isAdminUser && values.assigned_to) {
@@ -165,7 +169,7 @@ export default function NewTicketPage() {
         </div>
 
         <Card style={{ backgroundColor: 'var(--bg-surface)', border: '1px solid var(--border-subtle)', borderRadius: 12 }}>
-          <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ priority: 'MEDIUM' }}>
+          <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ priority: 'MEDIUM', status: 'UNTOUCHED' }}>
             <Row gutter={[24, 0]}>
               <Col span={24}>
                 <Form.Item 
@@ -218,17 +222,42 @@ export default function NewTicketPage() {
               </Col>
 
               <Col xs={24} md={12}>
-                <Form.Item 
-                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Priority</span>} 
-                  name="priority" 
-                  rules={[{ required: true, message: 'Please select a priority' }]}
+                <Form.Item
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Status</span>}
+                  name="status"
+                  rules={[{ required: true, message: 'Please select a status' }]}
+                  initialValue="UNTOUCHED"
                 >
-                  <Select 
+                  <Select
                     size="large"
-                    options={priorities.map((p) => ({ 
-                      label: p, 
-                      value: p 
-                    }))} 
+                    loading={fetchingData}
+                    placeholder="Select status"
+                    options={dbStatuses.length > 0
+                      ? dbStatuses.map(s => ({ label: s.name, value: s.name }))
+                      : [
+                          { label: 'Untouched', value: 'UNTOUCHED' },
+                          { label: 'Pending', value: 'PENDING' },
+                          { label: 'Opened', value: 'OPENED' },
+                          { label: 'Solved', value: 'SOLVED' },
+                        ]
+                    }
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Form.Item
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Priority</span>}
+                  name="priority"
+                  rules={[{ required: true, message: 'Please select a priority' }]}
+                  initialValue="MEDIUM"
+                >
+                  <Select
+                    size="large"
+                    options={priorities.map((p) => ({
+                      label: p,
+                      value: p
+                    }))}
                   />
                 </Form.Item>
               </Col>

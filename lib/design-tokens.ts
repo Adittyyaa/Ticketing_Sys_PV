@@ -1,7 +1,9 @@
 // Freshworks DEW-inspired Design Tokens
 // Single source of truth for all visual constants
 
-// ── Colors ────────────────────────────────────────────────────────────────
+import type { Priority, CustomStatus } from '@/types/types'
+
+// ── Colors ──────────────────────────────────────────────────────────────────
 
 export const colors = {
   // Backgrounds
@@ -173,18 +175,28 @@ export const layout = {
 
 // ── Priority/Status display helpers ────────────────────────────────────────
 
-import { Priority, Status } from '@/types/types'
+const statusDisplayDefaults: Record<string, { label: string; color: string; bg: string }> = {
+  UNTOUCHED: { label: 'Untouched', color: colors.status.untouched, bg: colors.status.untouchedBg },
+  PENDING: { label: 'Pending', color: colors.status.pending, bg: colors.status.pendingBg },
+  OPENED: { label: 'Opened', color: colors.status.opened, bg: colors.status.openedBg },
+  SOLVED: { label: 'Solved', color: colors.status.solved, bg: colors.status.solvedBg },
+}
+
+export function getStatusDisplay(status: string, customStatuses: CustomStatus[] = []) {
+  if (customStatuses.length > 0) {
+    const custom = customStatuses.find((s) => s.name === status)
+    if (custom) {
+      return { label: custom.name, color: custom.color, bg: custom.color + '22' }
+    }
+  }
+  return statusDisplayDefaults[status] ?? { label: status, color: '#64748b', bg: '#1e293b' }
+}
+
+export const statusDisplay = statusDisplayDefaults
 
 export const priorityDisplay: Record<Priority, { label: string; color: string; bg: string }> = {
   LOW: { label: 'Low', color: colors.priority.low, bg: colors.priority.lowBg },
   MEDIUM: { label: 'Medium', color: colors.priority.medium, bg: colors.priority.mediumBg },
   HIGH: { label: 'High', color: colors.priority.high, bg: colors.priority.highBg },
   URGENT: { label: 'Urgent', color: colors.priority.urgent, bg: colors.priority.urgentBg },
-}
-
-export const statusDisplay: Record<Status, { label: string; color: string; bg: string }> = {
-  UNTOUCHED: { label: 'Untouched', color: colors.status.untouched, bg: colors.status.untouchedBg },
-  PENDING: { label: 'Pending', color: colors.status.pending, bg: colors.status.pendingBg },
-  OPENED: { label: 'Opened', color: colors.status.opened, bg: colors.status.openedBg },
-  SOLVED: { label: 'Solved', color: colors.status.solved, bg: colors.status.solvedBg },
 }

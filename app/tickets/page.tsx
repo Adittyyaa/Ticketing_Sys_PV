@@ -12,7 +12,7 @@ import TicketTable from '@/components/TicketTable'
 import TicketCardView from '@/components/TicketCardView'
 import TicketInboxView from '@/components/TicketInboxView'
 import TicketFilterDrawer from '@/components/TicketFilterDrawer'
-import { Ticket } from '@/types/types'
+import { Ticket, CustomStatus } from '@/types/types'
 import { getAdminAuthHeader } from '@/lib/admin-api'
 import Link from 'next/link'
 
@@ -20,10 +20,10 @@ type ViewMode = 'card' | 'inbox' | 'table'
 type SortField = 'created_at' | 'updated_at' | 'priority' | 'status' | 'number'
 type SortOrder = 'asc' | 'desc'
 
-function sortTickets(tickets: Ticket[], field: SortField, order: SortOrder): Ticket[] {
+function sortTickets(tickets: Ticket[], field: SortField, order: SortOrder, customStatuses: CustomStatus[] = []): Ticket[] {
   const sorted = [...tickets].sort((a, b) => {
     let comparison = 0
-    
+
     switch (field) {
       case 'created_at':
         comparison = new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
@@ -35,33 +35,38 @@ function sortTickets(tickets: Ticket[], field: SortField, order: SortOrder): Tic
         const priorityOrder = { URGENT: 4, HIGH: 3, MEDIUM: 2, LOW: 1 }
         comparison = (priorityOrder[a.priority] || 0) - (priorityOrder[b.priority] || 0)
         break
-      case 'status':
+      case 'status': {
         const statusOrder: Record<string, number> = { UNTOUCHED: 1, PENDING: 2, OPENED: 3, SOLVED: 4 }
+        customStatuses.forEach((s, i) => {
+          if (!(s.name in statusOrder)) statusOrder[s.name] = 5 + i
+        })
         comparison = (statusOrder[a.status] || 0) - (statusOrder[b.status] || 0)
         break
+      }
       case 'number':
         comparison = (a.number || 0) - (b.number || 0)
         break
     }
-    
+
     return order === 'asc' ? comparison : -comparison
   })
-  
+
   return sorted
 }
 
 function filterTickets(
-  tickets: Ticket[], 
-  search: string, 
-  status: string, 
-  priority: string, 
-  category: string, 
-  type: string
+  tickets: Ticket[],
+  search: string,
+  status: string,
+  priority: string,
+  category: string,
+  type: string,
+  customStatuses: CustomStatus[] = []
 ) {
   const rawSearch = search.trim().replace(/[%;]/g, '').substring(0, 100).toLowerCase()
 
   return tickets.filter((ticket) => {
-    if (status !== 'all' && ticket.status !== status) return false
+    if (status !== 'all' && !customStatuses.some(s => s.name === status) && ticket.status !== status) return false
     if (priority !== 'all' && ticket.priority !== priority) return false
     if (category !== 'all' && ticket.category !== category) return false
     if (type !== 'all' && ticket.type !== type) return false
@@ -93,6 +98,7 @@ export default function TicketsPage() {
   const [sortOrder, setSortOrder] = useState<SortOrder>('desc')
   const [pageSize, setPageSize] = useState(20)
   const [currentPage, setCurrentPage] = useState(1)
+  const [customStatuses, setCustomStatuses] = useState<CustomStatus[]>([])
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -162,9 +168,10 @@ export default function TicketsPage() {
           statusFilter,
           priorityFilter,
           categoryFilter,
-          typeFilter
+          typeFilter,
+          customStatuses
         )
-        const sorted = sortTickets(filtered, sortField, sortOrder)
+        const sorted = sortTickets(filtered, sortField, sortOrder, customStatuses)
 
         if (cancelled) return
 
@@ -186,7 +193,17 @@ export default function TicketsPage() {
     return () => {
       cancelled = true
     }
-  }, [user, isAdminLocal, filters.search, searchQuery, statusFilter, priorityFilter, categoryFilter, typeFilter, sortField, sortOrder, setTickets])
+  }, [user, isAdminLocal, filters.search, searchQuery, statusFilter, priorityFilter, categoryFilter, typeFilter, sortField, sortOrder, setTickets, customStatuses])
+
+  useEffect(() => {
+    const fetchStatuses = async () => {
+      try {
+        const { data } = await supabase.from('tbl_custom_statuses').select('*').order('name')
+        if (data) setCustomStatuses(data)
+      } catch { /* silent */ }
+    }
+    fetchStatuses()
+  }, [])
 
   const resetFilters = () => {
     setFilters({ search: '' })
@@ -288,6 +305,11 @@ export default function TicketsPage() {
     },
   ]
 
+  const statusFilterOptions = [
+    { label: 'Any status', value: 'all' },
+    ...customStatuses.map(s => ({ label: s.name, value: s.name })),
+  ]
+
   if (!user) return null
 
   return (
@@ -315,9 +337,9 @@ export default function TicketsPage() {
             onChange={(e) => setSearchQuery(e.target.value)}
             style={{ width: 260, height: 32 }}
           />
-          
+
           <Dropdown menu={{ items: sortMenuItems }} trigger={['click']} placement="bottomLeft">
-            <Button 
+            <Button
               size="middle"
               style={{ height: 32, minWidth: 160 }}
             >
@@ -329,7 +351,7 @@ export default function TicketsPage() {
           </Dropdown>
 
           <Dropdown menu={{ items: layoutMenuItems }} trigger={['click']} placement="bottomLeft">
-            <Button 
+            <Button
               size="middle"
               style={{ height: 32, minWidth: 120 }}
             >
@@ -339,9 +361,9 @@ export default function TicketsPage() {
               </Space>
             </Button>
           </Dropdown>
-          
+
           <Dropdown menu={{ items: pageSizeMenuItems }} trigger={['click']} placement="bottomLeft">
-            <Button 
+            <Button
               size="middle"
               style={{ height: 32 }}
             >
@@ -351,14 +373,14 @@ export default function TicketsPage() {
               </Space>
             </Button>
           </Dropdown>
-          
+
           <div style={{ flex: 1 }} />
-          <Badge 
-            count={[searchQuery, statusFilter !== 'all', priorityFilter !== 'all', categoryFilter !== 'all', typeFilter !== 'all'].filter(Boolean).length} 
+          <Badge
+            count={[searchQuery, statusFilter !== 'all', priorityFilter !== 'all', categoryFilter !== 'all', typeFilter !== 'all'].filter(Boolean).length}
             offset={[-5, 5]}
           >
-            <Button 
-              icon={<SlidersHorizontal size={14} />} 
+            <Button
+              icon={<SlidersHorizontal size={14} />}
               size="middle"
               onClick={() => setFilterDrawerOpen(true)}
               type={[searchQuery, statusFilter !== 'all', priorityFilter !== 'all', categoryFilter !== 'all', typeFilter !== 'all'].filter(Boolean).length > 0 ? 'primary' : 'default'}
@@ -387,9 +409,9 @@ export default function TicketsPage() {
           </div>
         ) : (
           <>
-            {viewMode === 'card' && <TicketCardView tickets={tickets} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />}
-            {viewMode === 'inbox' && <TicketInboxView tickets={tickets} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />}
-            {viewMode === 'table' && <TicketTable tickets={tickets} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} />}
+            {viewMode === 'card' && <TicketCardView tickets={tickets} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} customStatuses={customStatuses} />}
+            {viewMode === 'inbox' && <TicketInboxView tickets={tickets} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} customStatuses={customStatuses} />}
+            {viewMode === 'table' && <TicketTable tickets={tickets} pageSize={pageSize} currentPage={currentPage} onPageChange={setCurrentPage} customStatuses={customStatuses} />}
           </>
         )}
 
