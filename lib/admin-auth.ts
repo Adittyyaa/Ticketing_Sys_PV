@@ -20,6 +20,7 @@ export async function verifyAdminRequest(request: NextRequest): Promise<AdminAut
   const { data: { user }, error: verifyError } = await supabaseAdmin.auth.getUser(token)
 
   if (verifyError || !user) {
+    console.error('verifyAdminRequest - verifyError:', verifyError, 'user:', user, 'token length:', token?.length)
     return { error: 'Invalid token', status: 401, supabaseAdmin: null, userId: null }
   }
 
