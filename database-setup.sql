@@ -151,13 +151,59 @@ BEGIN
     END LOOP;
 END $$;
 
+-- Normalize existing role values before RLS policies use get_user_role()
+UPDATE public.tbl_users
+SET role = CASE
+  WHEN lower(trim(role)) = 'admin' THEN 'admin'
+  ELSE 'user'
+END
+WHERE role IS DISTINCT FROM CASE
+  WHEN lower(trim(role)) = 'admin' THEN 'admin'
+  ELSE 'user'
+END;
+
 -- ============================================
 -- STEP 2: Create helper function to get user role
 -- ============================================
 CREATE OR REPLACE FUNCTION public.get_user_role()
 RETURNS TEXT AS $$
-  SELECT role FROM public.tbl_users WHERE id = auth.uid()
+  SELECT lower(trim(role)) FROM public.tbl_users WHERE id = auth.uid()
 $$ LANGUAGE sql SECURITY DEFINER STABLE;
+
+CREATE OR REPLACE FUNCTION public.ensure_user_profile()
+RETURNS trigger AS $$
+BEGIN
+  INSERT INTO public.tbl_users (id, email, full_name, role, created_at)
+  VALUES (
+    NEW.id,
+    COALESCE(NULLIF(NEW.email, ''), 'missing-' || NEW.id::text),
+    NULLIF(left(COALESCE(NEW.raw_user_meta_data->>'full_name', ''), 255)),
+    'user',
+    NEW.created_at
+  )
+  ON CONFLICT (id) DO NOTHING;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
+
+DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
+CREATE TRIGGER on_auth_user_created
+AFTER INSERT ON auth.users
+FOR EACH ROW
+EXECUTE FUNCTION public.ensure_user_profile();
+
+-- Ensure existing auth users without a profile can log in as regular users
+INSERT INTO public.tbl_users (id, email, full_name, role, created_at)
+SELECT
+  au.id,
+  COALESCE(NULLIF(au.email, ''), 'missing-' || au.id::text),
+  NULLIF(left(COALESCE(au.raw_user_meta_data->>'full_name', ''), 255)),
+  'user',
+  au.created_at
+FROM auth.users au
+LEFT JOIN public.tbl_users tu ON tu.id = au.id
+WHERE tu.id IS NULL;
 
 -- ============================================
 -- STEP 3: Enable RLS on all tables

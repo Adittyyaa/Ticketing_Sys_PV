@@ -26,13 +26,31 @@ export default function LoginPage() {
       })
       if (authError) throw authError
       if (data.user) {
-        const { data: userData } = await supabase
+        const { data: userData, error: userError } = await supabase
           .from('tbl_users')
           .select('role, full_name')
           .eq('id', data.user.id)
-          .single()
-        
-        if (userData?.role === 'admin' || userData?.role === 'user') {
+          .maybeSingle()
+
+        if (userError) throw userError
+
+        let role = userData?.role?.toLowerCase().trim()
+
+        if (!userData && data.user) {
+          const { error: profileError } = await supabase
+            .from('tbl_users')
+            .upsert({
+              id: data.user.id,
+              email: data.user.email || '',
+              full_name: data.user.user_metadata?.full_name || '',
+              role: 'user',
+            }, { onConflict: 'id' })
+
+          if (profileError) throw profileError
+          role = 'user'
+        }
+
+        if (role === 'admin' || role === 'user') {
           router.push('/tickets')
         } else {
           await supabase.auth.signOut()
