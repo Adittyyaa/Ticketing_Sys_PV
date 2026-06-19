@@ -45,6 +45,7 @@ const ticketColumns = `
   description,
   category,
   type,
+  product,
   product_reference_number,
   priority,
   status,

@@ -12,6 +12,7 @@ import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 const priorities: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
+const products = ['Pay-Ally', 'Comp-ally', 'Other']
 
 export default function NewTicketPage() {
   const router = useRouter()
@@ -75,6 +76,7 @@ export default function NewTicketPage() {
     description: string;
     category: string;
     type?: string;
+    product?: string;
     product_reference_number?: string;
     priority: Priority;
     status: string;
@@ -124,6 +126,7 @@ export default function NewTicketPage() {
         description: values.description.trim(),
         category: values.category,
         type: values.type || null,
+        product: values.product || null,
         product_reference_number: values.product_reference_number?.trim() || null,
         priority: values.priority,
         status: values.status,
@@ -217,6 +220,20 @@ export default function NewTicketPage() {
                     placeholder="Select ticket type (optional)"
                     allowClear
                     options={dbTypes.map((type) => ({ label: type.name, value: type.name }))} 
+                  />
+                </Form.Item>
+              </Col>
+
+              <Col xs={24} md={12}>
+                <Form.Item 
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Product</span>} 
+                  name="product"
+                >
+                  <Select 
+                    size="large"
+                    placeholder="Select product (optional)"
+                    allowClear
+                    options={products.map((product) => ({ label: product, value: product }))} 
                   />
                 </Form.Item>
               </Col>

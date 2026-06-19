@@ -44,6 +44,7 @@ export interface Ticket {
   description: string
   category: Category
   type?: string
+  product?: string
   product_reference_number?: string
   priority: Priority
   status: Status

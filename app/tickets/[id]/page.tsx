@@ -163,8 +163,8 @@ export default function TicketDetailPage() {
       y += 6
       pdf.text(`Created By: ${getUserDisplayName(ticket.creator)}  |  Created: ${format(new Date(ticket.created_at), 'PPP p')}`, 15, y)
       y += 8
-      if (ticket.type || ticket.product_reference_number) {
-        pdf.text(`Type: ${ticket.type || 'None'}  |  Ref: ${ticket.product_reference_number || 'None'}`, 15, y)
+      if (ticket.type || ticket.product || ticket.product_reference_number) {
+        pdf.text(`Type: ${ticket.type || 'None'}  |  Product: ${ticket.product || 'None'}  |  Ref: ${ticket.product_reference_number || 'None'}`, 15, y)
         y += 8
       }
       pdf.setTextColor(0, 0, 0)
@@ -310,6 +310,11 @@ export default function TicketDetailPage() {
                 <div>
                   <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Type</div>
                   <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{ticket.type || 'None'}</span>
+                </div>
+
+                <div>
+                  <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Product</div>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{ticket.product || 'None'}</span>
                 </div>
 
                 <div>

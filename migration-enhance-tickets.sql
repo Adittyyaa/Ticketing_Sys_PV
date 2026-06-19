@@ -9,6 +9,8 @@ ADD COLUMN IF NOT EXISTS assigned_to UUID REFERENCES auth.users(id) ON DELETE SE
 
 ALTER TABLE public.tbl_tickets 
 ADD COLUMN IF NOT EXISTS type VARCHAR(100);
+ALTER TABLE public.tbl_tickets 
+ADD COLUMN IF NOT EXISTS product VARCHAR(100);
 
 ALTER TABLE public.tbl_tickets 
 ADD COLUMN IF NOT EXISTS product_reference_number VARCHAR(100);
@@ -81,6 +83,7 @@ SELECT 'Migration complete!' as status;
 SELECT 'New columns added:' as info,
   EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_tickets' AND column_name = 'assigned_to') as assigned_to_exists,
   EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_tickets' AND column_name = 'type') as type_exists,
+  EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_tickets' AND column_name = 'product') as product_exists,
   EXISTS(SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_tickets' AND column_name = 'product_reference_number') as product_reference_exists;
 
 SELECT 'Ticket types available:' as info, COUNT(*) as count FROM public.tbl_ticket_types;

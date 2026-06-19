@@ -23,6 +23,7 @@ CREATE TABLE IF NOT EXISTS public.tbl_tickets (
    description TEXT NOT NULL,
    category VARCHAR(255) NOT NULL,
    type VARCHAR(255),
+   product VARCHAR(100),
    product_reference_number VARCHAR(255),
    priority VARCHAR(50) DEFAULT 'MEDIUM' NOT NULL,
    status VARCHAR(50) DEFAULT 'UNTOUCHED' NOT NULL,
