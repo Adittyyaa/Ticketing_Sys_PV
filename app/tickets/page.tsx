@@ -153,7 +153,8 @@ export default function TicketsPage() {
             router.push('/auth')
             return
           }
-          throw new Error(result.error || 'Failed to fetch tickets')
+          const errorMessage = typeof result.error === 'string' ? result.error : JSON.stringify(result.error)
+          throw new Error(errorMessage || 'Failed to fetch tickets')
         }
 
         fetchedTickets = (result.tickets || []) as Ticket[]

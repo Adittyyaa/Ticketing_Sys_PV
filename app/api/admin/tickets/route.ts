@@ -37,6 +37,16 @@ async function hydrateTicketUsers(tickets: HydratedTicket[], supabaseAdmin: Supa
   }))
 }
 
+const getErrorMessage = (error: unknown) => {
+  if (error instanceof Error) return error.message
+  if (error && typeof error === 'object') {
+    const record = error as Record<string, unknown>
+    if (typeof record.message === 'string') return record.message
+    if (typeof record.details === 'string') return record.details
+  }
+  return 'Failed to fetch tickets'
+}
+
 const ticketColumns = `
   id,
   number,
@@ -89,7 +99,7 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('Tickets fetch error:', error)
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : 'Failed to fetch tickets' },
+      { error: getErrorMessage(error) },
       { status: 500 }
     )
   }

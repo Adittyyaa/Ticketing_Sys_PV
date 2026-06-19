@@ -88,7 +88,8 @@ export default function TicketDetailPage() {
             router.push('/auth')
             return
           }
-          throw new Error(result.error || 'Failed to load ticket')
+          const errorMessage = typeof result.error === 'string' ? result.error : JSON.stringify(result.error)
+          throw new Error(errorMessage || 'Failed to load ticket')
         }
         const data = result.ticket as Ticket
         setTicket(data)
