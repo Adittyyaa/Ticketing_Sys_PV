@@ -76,7 +76,7 @@ export default function NewTicketPage() {
     description: string;
     category: string;
     type?: string;
-    product?: string;
+    product: string;
     product_reference_number?: string;
     priority: Priority;
     status: string;
@@ -85,6 +85,11 @@ export default function NewTicketPage() {
   }) => {
     if (!user) {
       message.error('No user session found. Please log in again.')
+      return
+    }
+
+    if (!values.product) {
+      message.error('Please select a product')
       return
     }
 
@@ -126,7 +131,7 @@ export default function NewTicketPage() {
         description: values.description.trim(),
         category: values.category,
         type: values.type || null,
-        product: values.product || null,
+        product: values.product,
         product_reference_number: values.product_reference_number?.trim() || null,
         priority: values.priority,
         status: values.status,
@@ -228,11 +233,11 @@ export default function NewTicketPage() {
                 <Form.Item 
                   label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Product</span>} 
                   name="product"
+                  rules={[{ required: true, message: 'Please select a product' }]}
                 >
                   <Select 
                     size="large"
-                    placeholder="Select product (optional)"
-                    allowClear
+                    placeholder="Select product"
                     options={products.map((product) => ({ label: product, value: product }))} 
                   />
                 </Form.Item>

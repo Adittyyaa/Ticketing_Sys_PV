@@ -17,6 +17,11 @@ const getFileIcon = (type: string) => {
   return <FileOutlined style={{ color: 'var(--text-secondary)' }} />
 }
 
+const normalizeAttachment = (attachment: Attachment & { uploaded_by?: string }) => ({
+  ...attachment,
+  user_id: attachment.uploaded_by || attachment.user_id,
+})
+
 export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps) {
   const { user, isAdmin } = useAuthStore()
   const [attachments, setAttachments] = useState<Attachment[]>([])
@@ -29,26 +34,56 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
     try {
       const { data, error } = await supabase.from('tbl_attachments').select('*').eq('ticket_id', ticketId).order('created_at', { ascending: false })
       if (error) throw error
-      setAttachments(data || [])
+      setAttachments((data || []).map(normalizeAttachment))
     } catch { message.error('Failed to load attachments') }
     finally { setLoading(false) }
   }
 
-  const handleFileUpload = async ({ file }: any) => {
+  const handleFileUpload = async ({ file }: { file: File }) => {
     if (!user) return
     setUploading(true)
     try {
-      const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'application/pdf', 'text/plain']
-      const MAX_FILE_SIZE = 5 * 1024 * 1024
-      if (!ALLOWED_TYPES.includes(file.type)) throw new Error('File type not allowed')
-      if (file.size > MAX_FILE_SIZE) throw new Error('File exceeds 5MB limit')
+      const allowedTypes = ['image/jpeg', 'image/png', 'application/pdf', 'text/plain']
+      const allowedExtensions = ['.jpg', '.jpeg', '.png', '.pdf', '.txt']
+      const maxFileSize = 5 * 1024 * 1024
+      const hasAllowedExtension = allowedExtensions.some((extension) => file.name.toLowerCase().endsWith(extension))
+
+      if (!allowedTypes.includes(file.type) && !hasAllowedExtension) throw new Error('File type not allowed')
+      if (file.size > maxFileSize) throw new Error('File exceeds 5MB limit')
+
+      const { error: bucketError } = await supabase.storage.from('ticket-attachments').list(`${user.id}/${ticketId}`, { limit: 1 })
+      if (bucketError) throw new Error('Attachment storage bucket is not configured. Run migration-attachments-storage.sql')
+
       const sanitizedName = file.name.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 100)
       const filePath = `${user.id}/${ticketId}/${Date.now()}-${sanitizedName}`
       const { error: uploadError } = await supabase.storage.from('ticket-attachments').upload(filePath, file)
       if (uploadError) throw uploadError
-      const { data, error: dbError } = await supabase.from('tbl_attachments').insert([{ ticket_id: ticketId, user_id: user.id, file_name: file.name, file_path: filePath, file_size: file.size, file_type: file.type }]).select().single()
+
+      const { data: columnData, error: columnError } = await supabase
+        .from('information_schema.columns')
+        .select('column_name')
+        .eq('table_schema', 'public')
+        .eq('table_name', 'tbl_attachments')
+
+      if (columnError) throw columnError
+
+      const columnNames = new Set(columnData?.map((column) => column.column_name) || [])
+      const attachmentData: Record<string, unknown> = {
+        ticket_id: ticketId,
+        file_name: file.name,
+        file_path: filePath,
+        file_size: file.size,
+        file_type: file.type,
+      }
+
+      if (columnNames.has('uploaded_by')) attachmentData.uploaded_by = user.id
+      if (columnNames.has('user_id')) attachmentData.user_id = user.id
+
+      const { data, error: dbError } = await supabase.from('tbl_attachments').insert([attachmentData]).select().single()
       if (dbError) throw dbError
-      setAttachments((prev) => [data, ...prev])
+      if (!data) throw new Error('Attachment saved but could not be loaded')
+
+      setAttachments((prev) => [normalizeAttachment(data as Attachment & { uploaded_by?: string }), ...prev])
       message.success('File uploaded')
     } catch (error) { message.error(error instanceof Error ? error.message : 'Failed to upload') }
     finally { setUploading(false) }
@@ -91,7 +126,7 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
         <h3 style={{ color: 'var(--text-primary)', fontSize: 13, fontWeight: 600, margin: 0 }}>
           Attachments ({attachments.length})
         </h3>
-        <Upload customRequest={(options) => handleFileUpload(options)} showUploadList={false} accept=".jpg,.jpeg,.png,.pdf,.txt" disabled={uploading}>
+        <Upload customRequest={(options) => handleFileUpload(options as { file: File })} showUploadList={false} accept=".jpg,.jpeg,.png,.pdf,.txt" disabled={uploading}>
           <Button loading={uploading} icon={<InboxOutlined />} size="small" style={{ height: 28, fontSize: 12 }}>
             Upload
           </Button>

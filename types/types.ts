@@ -44,7 +44,7 @@ export interface Ticket {
   description: string
   category: Category
   type?: string
-  product?: string
+  product: string
   product_reference_number?: string
   priority: Priority
   status: Status
@@ -98,6 +98,7 @@ export interface Attachment {
   file_size: number
   file_type: string
   created_at: string
+  uploaded_by?: string
 }
 
 export interface TicketAnalytics {
