@@ -71,7 +71,6 @@ CREATE TABLE public.tbl_comments (
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   content TEXT NOT NULL,
   commenter_name VARCHAR(255),
-  commenter_email VARCHAR(255),
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
@@ -147,35 +146,6 @@ USING (
 );
 
 -- ============================================
--- TABLE: tbl_notifications
--- ============================================
-DROP TABLE IF EXISTS public.tbl_notifications CASCADE;
-CREATE TABLE public.tbl_notifications (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  ticket_id UUID REFERENCES public.tbl_tickets(id) ON DELETE CASCADE,
-  comment_id UUID REFERENCES public.tbl_comments(id) ON DELETE CASCADE,
-  type VARCHAR(50) NOT NULL DEFAULT 'mention',
-  message TEXT NOT NULL,
-  is_read BOOLEAN NOT NULL DEFAULT false,
-  ticket_number INTEGER,
-  ticket_title VARCHAR(255),
-  commenter_name VARCHAR(255),
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-);
-
-ALTER TABLE public.tbl_notifications ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "tbl_notifications_select_own" ON public.tbl_notifications FOR SELECT USING (auth.uid() = user_id);
-CREATE POLICY "tbl_notifications_insert_authed" ON public.tbl_notifications FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
-CREATE POLICY "tbl_notifications_update_own" ON public.tbl_notifications FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
-CREATE POLICY "tbl_notifications_delete_own" ON public.tbl_notifications FOR DELETE USING (auth.uid() = user_id);
-
-CREATE INDEX idx_notifications_user_id ON public.tbl_notifications(user_id);
-CREATE INDEX idx_notifications_is_read ON public.tbl_notifications(is_read);
-
--- ============================================
 -- TABLE: tbl_solutions
 -- ============================================
 DROP TABLE IF EXISTS public.tbl_solutions CASCADE;
@@ -232,25 +202,6 @@ CREATE POLICY "tbl_categories_update_admin" ON public.tbl_categories FOR UPDATE 
 CREATE POLICY "tbl_categories_delete_admin" ON public.tbl_categories FOR DELETE USING (public.get_user_role() = 'admin');
 
 -- ============================================
--- TABLE: tbl_saved_replies
--- ============================================
-DROP TABLE IF EXISTS public.tbl_saved_replies CASCADE;
-CREATE TABLE public.tbl_saved_replies (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  title VARCHAR(255) NOT NULL UNIQUE,
-  content TEXT NOT NULL,
-  created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL,
-  updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
-);
-
-ALTER TABLE public.tbl_saved_replies ENABLE ROW LEVEL SECURITY;
-
-CREATE POLICY "tbl_saved_replies_select_all" ON public.tbl_saved_replies FOR SELECT USING (auth.uid() IS NOT NULL);
-CREATE POLICY "tbl_saved_replies_insert_admin" ON public.tbl_saved_replies FOR INSERT WITH CHECK (public.get_user_role() = 'admin');
-CREATE POLICY "tbl_saved_replies_update_admin" ON public.tbl_saved_replies FOR UPDATE USING (public.get_user_role() = 'admin') WITH CHECK (public.get_user_role() = 'admin');
-CREATE POLICY "tbl_saved_replies_delete_admin" ON public.tbl_saved_replies FOR DELETE USING (public.get_user_role() = 'admin');
-
--- ============================================
 -- TABLE: tbl_contacts
 -- ============================================
 DROP TABLE IF EXISTS public.tbl_contacts CASCADE;
@@ -305,7 +256,10 @@ SELECT
   COUNT(*) FILTER (WHERE priority = 'HIGH') as high_priority,
   COUNT(*) FILTER (WHERE priority = 'URGENT') as urgent_priority,
   COUNT(DISTINCT user_id) as unique_users,
-  COALESCE(AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 3600) FILTER (WHERE status = 'SOLVED')::numeric(10,2) as avg_resolution_hours
+  COALESCE(
+    AVG(EXTRACT(EPOCH FROM (updated_at - created_at)) / 3600) FILTER (WHERE status = 'SOLVED'),
+    0
+  )::numeric(10,2) AS avg_resolution_hours
 FROM public.tbl_tickets;
 
 GRANT SELECT ON public.tbl_ticket_analytics TO authenticated;
@@ -330,38 +284,38 @@ CREATE TRIGGER update_tbl_solutions_updated_at BEFORE UPDATE ON public.tbl_solut
 -- ============================================
 SELECT 'Schema reset complete!' as status;
 
-SELECT 
+SELECT
   'tbl_users' as table_name,
   (SELECT COUNT(*) FROM tbl_users) as row_count
 UNION ALL
-SELECT 
+SELECT
   'tbl_tickets',
   (SELECT COUNT(*) FROM tbl_tickets)
 UNION ALL
-SELECT 
+SELECT
   'tbl_comments',
   (SELECT COUNT(*) FROM tbl_comments)
 UNION ALL
-SELECT 
+SELECT
   'tbl_attachments',
   (SELECT COUNT(*) FROM tbl_attachments)
 UNION ALL
-SELECT 
-  'tbl_notifications',
-  (SELECT COUNT(*) FROM tbl_notifications)
-UNION ALL
-SELECT 
+SELECT
   'tbl_solutions',
   (SELECT COUNT(*) FROM tbl_solutions)
 UNION ALL
-SELECT 
+SELECT
   'tbl_custom_statuses',
   (SELECT COUNT(*) FROM tbl_custom_statuses)
 UNION ALL
-SELECT 
+SELECT
   'tbl_categories',
   (SELECT COUNT(*) FROM tbl_categories)
 UNION ALL
-SELECT 
-  'tbl_saved_replies',
-  (SELECT COUNT(*) FROM tbl_saved_replies);
+SELECT
+  'tbl_tags',
+  (SELECT COUNT(*) FROM tbl_tags)
+UNION ALL
+SELECT
+  'tbl_ticket_types',
+  (SELECT COUNT(*) FROM tbl_ticket_types);
