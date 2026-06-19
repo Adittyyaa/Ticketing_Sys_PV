@@ -33,11 +33,15 @@ export async function verifyAdminRequest(request: NextRequest): Promise<AdminAut
     return { error: 'Invalid token', status: 401, supabaseAdmin: null, userId: null }
   }
 
-  const { data: userData } = await supabaseAdmin
+  const { data: userData, error: userError } = await supabaseAdmin
     .from('tbl_users')
     .select('role')
     .eq('id', user.id)
     .single()
+
+  if (userError || !userData || userData.role !== 'admin') {
+    return { error: 'Admin access required', status: 403, supabaseAdmin: null, userId: null }
+  }
 
   return { error: null, status: 200, supabaseAdmin, userId: user.id }
 }

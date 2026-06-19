@@ -66,7 +66,7 @@ export default function TicketDetailPage() {
         const response = await fetch(`/api/admin/tickets/${ticketId}`, { headers: { Authorization: authHeader } })
         const result = await response.json()
         if (!response.ok) throw new Error(result.error || 'Failed to load ticket')
-        data = result.ticket as Ticket
+        const data = result.ticket as Ticket
         setTicket(data)
         form.setFieldsValue({ priority: data.priority, status: data.status })
       } catch {
