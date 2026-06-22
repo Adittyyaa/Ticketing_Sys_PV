@@ -17,7 +17,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
     setSubmitting(true)
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('No active session')
+      if (!session?.access_token) throw new Error('No active session')
       
       const response = await fetch('/api/feedback', {
         method: 'POST',

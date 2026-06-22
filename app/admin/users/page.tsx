@@ -314,10 +314,13 @@ export default function UserManagementPage() {
                   name="password" 
                   rules={[
                     { required: true, message: 'Password is required' }, 
-                    { min: 6, message: 'Minimum 6 characters' }
+                    { min: 12, message: 'Minimum 12 characters' },
+                    { pattern: /[A-Z]/, message: 'Must contain uppercase letter' },
+                    { pattern: /[0-9]/, message: 'Must contain a number' },
+                    { pattern: /[^A-Za-z0-9]/, message: 'Must contain special character' }
                   ]}
                 >
-                  <Input.Password placeholder="Min 6 characters" style={{ height: 40 }} />
+                  <Input.Password placeholder="Min 12 chars, with A-Z, 0-9, and special char" style={{ height: 40 }} />
                 </Form.Item>
                 <Form.Item 
                   label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Role</span>} 
