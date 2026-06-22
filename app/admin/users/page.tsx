@@ -59,7 +59,8 @@ export default function UserManagementPage() {
       let accessToken = session?.access_token
       if (!accessToken) throw new Error('No active session')
       
-      if (session.expires_at && session.expires_at * 1000 - Date.now() < 60_000) {
+      const expiresAt = session?.expires_at
+      if (expiresAt && expiresAt * 1000 - Date.now() < 60_000) {
         const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession()
         if (refreshError) throw refreshError
         accessToken = refreshedSession.session?.access_token
