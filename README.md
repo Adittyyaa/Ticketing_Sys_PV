@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Ticketing System
 
 ## Overview
@@ -40,3 +41,6 @@ API Endpoints
 * GET /api/tickets/:id - Get ticket by ID
 * PUT /api/tickets/:id - Update ticket
 * DELETE /api/tickets/:id - Delete ticket
+=======
+# Desk-Frontend
+>>>>>>> upstream/main
