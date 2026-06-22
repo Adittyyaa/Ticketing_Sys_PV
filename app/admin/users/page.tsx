@@ -53,12 +53,22 @@ export default function UserManagementPage() {
   const handleCreateUser = async (values: any) => {
     setSubmitting(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('No active session')
+      const { data: { session }, error } = await supabase.auth.getSession()
+      if (error) throw error
+      
+      let accessToken = session?.access_token
+      if (!accessToken) throw new Error('No active session')
+      
+      if (session.expires_at && session.expires_at * 1000 - Date.now() < 60_000) {
+        const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession()
+        if (refreshError) throw refreshError
+        accessToken = refreshedSession.session?.access_token
+        if (!accessToken) throw new Error('No active session')
+      }
       
       const response = await fetch('/api/admin/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${session.access_token}` },
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
         body: JSON.stringify({ email: values.email, password: values.password, fullName: values.fullName, role: values.role }),
       })
       const result = await response.json()
