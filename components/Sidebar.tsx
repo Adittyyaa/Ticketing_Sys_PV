@@ -84,7 +84,7 @@ export default function Sidebar() {
               overflow: 'hidden',
             }}
           >
-            PV Advisory
+            HelpDesk
           </span>
         )}
       </div>

@@ -104,7 +104,7 @@ export default function LoginPage() {
             style={{ borderRadius: 12, margin: '0 auto 24px', display: 'block' }}
           />
           <h1 style={{ color: 'var(--text-primary)', fontSize: 28, fontWeight: 600, marginBottom: 12 }}>
-            PV Advisory Ticketing
+            HelpDesk
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: 14 }}>
             Sign in to access your support tickets

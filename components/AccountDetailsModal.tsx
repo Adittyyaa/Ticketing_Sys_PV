@@ -71,7 +71,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
         full_name: formData.full_name,
         phone: formData.phone,
         job_title: formData.job_title,
-        company: 'PV Advisory',
+        company: 'HelpDesk',
       }, { onConflict: 'id' })
       if (error) throw error
       setSaved(true)
@@ -233,7 +233,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
           <div style={{ position: 'relative' }}>
             <Input
               prefix={<Building2 size={16} style={{ color: '#94a3b8', marginRight: 8 }} />}
-              value="PV Advisory"
+              value="HelpDesk"
               disabled
               style={{
                 height: 48,
