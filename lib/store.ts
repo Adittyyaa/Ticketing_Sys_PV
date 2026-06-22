@@ -4,6 +4,7 @@ import { Ticket, UserRole } from '../types/types'
 interface AuthUser {
   id: string
   email: string
+  full_name?: string
   role?: UserRole
 }
 

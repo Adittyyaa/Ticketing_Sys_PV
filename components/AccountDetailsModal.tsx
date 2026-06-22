@@ -49,8 +49,8 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
         await supabase.from('tbl_users').upsert({
           id: user.id,
           email: user.email || '',
-          full_name: '',
-          role: 'user',
+          full_name: user.full_name || '',
+          role: user.role || 'user',
           created_at: new Date().toISOString()
         }, { onConflict: 'id' })
       }

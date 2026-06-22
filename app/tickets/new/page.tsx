@@ -58,10 +58,10 @@ export default function NewTicketPage() {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user) { router.push('/auth'); return }
         
-        const { data: userData } = await supabase.from('tbl_users').select('role').eq('id', session.user.id).single()
+        const { data: userData } = await supabase.from('tbl_users').select('role, full_name').eq('id', session.user.id).single()
         const isAdmin = userData?.role === 'admin'
         
-        setUser({ id: session.user.id, email: session.user.email || '', role: userData?.role || 'user' })
+        setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
         setLoading(false)
         setIsAdmin(isAdmin)
         setIsAdminUser(isAdmin)
@@ -110,7 +110,8 @@ export default function NewTicketPage() {
           .upsert({
             id: user.id,
             email: user.email,
-            role: 'user'
+            full_name: user.full_name || '',
+            role: user.role || 'user'
           }, { onConflict: 'id' })
         
         if (userInsertError) {

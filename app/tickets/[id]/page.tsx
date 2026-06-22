@@ -48,20 +48,26 @@ export default function TicketDetailPage() {
         if (!session?.user) { router.push('/auth'); return }
         
         // Ensure user has a profile in tbl_users
-        const { data: userData } = await supabase.from('tbl_users').select('role').eq('id', session.user.id).single()
+        const { data: userData } = await supabase.from('tbl_users').select('role, full_name').eq('id', session.user.id).single()
         if (!userData) {
+          const metadataRole = session.user.user_metadata?.role
+          const profileRole = metadataRole === 'admin' ? 'admin' : 'user'
+          
           await supabase.from('tbl_users').upsert([{
             id: session.user.id,
             email: session.user.email || '',
             full_name: session.user.user_metadata?.full_name || '',
-            role: 'user',
+            role: profileRole,
             created_at: new Date().toISOString()
           }], { onConflict: 'id' })
+        } else if (session.user.user_metadata?.role === 'admin' && userData?.role !== 'admin') {
+          await supabase.from('tbl_users').update({ role: 'admin' }).eq('id', session.user.id)
         }
         
-        const admin = userData?.role === 'admin'
+        const { data: refreshedData } = await supabase.from('tbl_users').select('role').eq('id', session.user.id).single()
+        const admin = refreshedData?.role === 'admin'
         setIsAdmin(admin)
-        setUser({ id: session.user.id, email: session.user.email || '', role: userData?.role || 'user' })
+        setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || session.user.user_metadata?.full_name || '', role: refreshedData?.role || 'user' })
         setLoading(false)
       } catch { router.push('/auth') }
     }

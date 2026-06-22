@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation'
 import { Form, Input, Button, Alert } from 'antd'
 import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
 import Image from 'next/image'
-import ThemeToggle from '@/components/ThemeToggle'
 import { useTheme } from '@/contexts/ThemeContext'
+import { useAuthStore } from '@/lib/store'
+import ThemeToggle from '@/components/ThemeToggle'
 
 export default function LoginPage() {
   const { theme } = useTheme()
@@ -37,20 +38,29 @@ export default function LoginPage() {
         let role = userData?.role?.toLowerCase().trim()
 
         if (!userData && data.user) {
+          const metadataRole = data.user.user_metadata?.role
+          const profileRole = metadataRole === 'admin' ? 'admin' : 'user'
+
           const { error: profileError } = await supabase
             .from('tbl_users')
             .upsert({
               id: data.user.id,
               email: data.user.email || '',
               full_name: data.user.user_metadata?.full_name || '',
-              role: 'user',
+              role: profileRole,
             }, { onConflict: 'id' })
 
           if (profileError) throw profileError
-          role = 'user'
+          role = profileRole
+        } else if (data.user.user_metadata?.role === 'admin' && role !== 'admin') {
+          await supabase.from('tbl_users').update({ role: 'admin' }).eq('id', data.user.id)
+          role = 'admin'
         }
 
         if (role === 'admin' || role === 'user') {
+          const { setUser, setIsAdmin } = useAuthStore.getState()
+          setUser({ id: data.user.id, email: data.user.email || '', full_name: userData?.full_name || data.user.user_metadata?.full_name || '', role: role })
+          setIsAdmin(role === 'admin')
           router.push('/tickets')
         } else {
           await supabase.auth.signOut()

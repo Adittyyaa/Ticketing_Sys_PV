@@ -91,12 +91,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: true, userId: existingAuthUser.id, message: `${role === 'admin' ? 'Admin' : 'User'} profile updated successfully` })
     }
 
-    const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-      email,
-      password,
-      email_confirm: true,
-      user_metadata: { full_name: fullName },
-    })
+      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+        email,
+        password,
+        email_confirm: true,
+        user_metadata: { full_name: fullName, role },
+      })
 
     if (authErr) throw new Error(authErr.message)
 

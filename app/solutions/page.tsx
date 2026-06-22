@@ -77,7 +77,7 @@ export default function SolutionsPage() {
           .single()
 
         setIsAdmin(userData?.role === 'admin')
-        setUser({ id: session.user.id, email: session.user.email || '', role: userData?.role || 'user' })
+        setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
         setLoading(false)
       } catch {
         router.push('/auth')

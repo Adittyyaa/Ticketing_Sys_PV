@@ -30,20 +30,15 @@ export default function SettingsPage() {
   const [editingItem, setEditingItem] = useState<any>(null)
   const [form] = Form.useForm()
 
-  const verifyAdminRole = async (userId: string) => {
-    const { data: userData, error } = await supabase.from('tbl_users').select('role').eq('id', userId).single()
-    if (error || userData?.role !== 'admin') return false
-    return true
-  }
-
   useEffect(() => {
     const checkAuth = async () => {
       try {
         const { data: { session } } = await supabase.auth.getSession()
         if (!session?.user) { router.push('/auth'); return }
-        const isUserAdmin = await verifyAdminRole(session.user.id)
+        const { data: userData } = await supabase.from('tbl_users').select('role, full_name').eq('id', session.user.id).single()
+        const isUserAdmin = userData?.role === 'admin'
         if (!isUserAdmin) { router.push('/tickets'); return }
-        setUser({ id: session.user.id, email: session.user.email || '', role: 'admin' })
+        setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || '', role: 'admin' })
         setIsAdmin(true)
         setLoading(false)
       } catch {

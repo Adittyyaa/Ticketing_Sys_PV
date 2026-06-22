@@ -22,11 +22,11 @@ export default function Home() {
         const { data: { session } } = await supabase.auth.getSession()
         if (!isMounted) return
         if (session?.user) {
-          const { data: userData } = await supabase.from('tbl_users').select('role').eq('id', session.user.id).single()
+          const { data: userData } = await supabase.from('tbl_users').select('role, full_name').eq('id', session.user.id).single()
           if (!isMounted) return
           const isAdmin = userData?.role === 'admin'
           setIsAdmin(isAdmin)
-          setUser({ id: session.user.id, email: session.user.email || '', role: userData?.role || 'user' })
+          setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
           router.push('/tickets')
         } else {
           if (isMounted) router.push('/auth')
