@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 
 export default function Home() {
@@ -19,14 +18,16 @@ export default function Home() {
     let isMounted = true
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        const response = await fetch('/api/auth/me', { method: 'GET' })
         if (!isMounted) return
-        if (session?.user) {
-          const { data: userData } = await supabase.from('tbl_users').select('role, full_name').eq('id', session.user.id).single()
+        if (response.ok) {
+          const { userId } = await response.json()
+          const userResponse = await fetch('/api/admin/users/me', { method: 'GET' })
           if (!isMounted) return
+          const { user: userData } = await userResponse.json()
           const isAdmin = userData?.role === 'admin'
           setIsAdmin(isAdmin)
-          setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
+          setUser({ id: userId, email: userData?.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
           router.push('/tickets')
         } else {
           if (isMounted) router.push('/auth')

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import { Form, Input, Button, Alert } from 'antd'
 import { UserOutlined, LockOutlined, LoginOutlined } from '@ant-design/icons'
@@ -21,52 +20,23 @@ export default function LoginPage() {
     setLoadingState(true)
     setError('')
     try {
-      const { data, error: authError } = await supabase.auth.signInWithPassword({
-        email: values.email,
-        password: values.password,
+      const response = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(values),
       })
-      if (authError) throw authError
-      if (data.user) {
-        const { data: userData, error: userError } = await supabase
-          .from('tbl_users')
-          .select('role, full_name')
-          .eq('id', data.user.id)
-          .maybeSingle()
 
-        if (userError) throw userError
+      const data = await response.json()
 
-        let role = userData?.role?.toLowerCase().trim()
-
-        if (!userData && data.user) {
-          const metadataRole = data.user.user_metadata?.role
-          const profileRole = metadataRole === 'admin' ? 'admin' : 'user'
-
-          const { error: profileError } = await supabase
-            .from('tbl_users')
-            .upsert({
-              id: data.user.id,
-              email: data.user.email || '',
-              full_name: data.user.user_metadata?.full_name || '',
-              role: profileRole,
-            }, { onConflict: 'id' })
-
-          if (profileError) throw profileError
-          role = profileRole
-        } else if (data.user.user_metadata?.role === 'admin' && role !== 'admin') {
-          await supabase.from('tbl_users').update({ role: 'admin' }).eq('id', data.user.id)
-          role = 'admin'
-        }
-
-        if (role === 'admin' || role === 'user') {
-          const { setUser, setIsAdmin } = useAuthStore.getState()
-          setUser({ id: data.user.id, email: data.user.email || '', full_name: userData?.full_name || data.user.user_metadata?.full_name || '', role: role })
-          setIsAdmin(role === 'admin')
-          router.push('/tickets')
-        } else {
-          await supabase.auth.signOut()
-          throw new Error('Invalid account type')
-        }
+      if (!response.ok) {
+        throw new Error(data.error || 'Login failed')
       }
+
+      const { setUser, setIsAdmin } = useAuthStore.getState()
+      setUser(data.user)
+      setIsAdmin(data.user.role === 'admin')
+
+      router.push('/tickets')
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Login failed'
       setError(errorMsg)

@@ -1,30 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
-
-function createAdminClient() {
-  return createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-  )
-}
-
-async function getAuthenticatedUser(request: NextRequest) {
-  const authHeader = request.headers.get('authorization')
-  if (!authHeader) return null
-
-  const token = authHeader.replace(/^Bearer\s+/i, '')
-  const supabaseAdmin = createAdminClient()
-  const { data: { user }, error: verifyError } = await supabaseAdmin.auth.getUser(token)
-
-  if (verifyError || !user) return null
-
-  return { user, supabaseAdmin }
-}
+import { query } from '@/lib/database'
+import { verifyAuthenticatedRequest } from '@/lib/admin-auth'
 
 export async function POST(request: NextRequest) {
-  const authenticated = await getAuthenticatedUser(request)
-  if (!authenticated) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await verifyAuthenticatedRequest(request)
+  if (auth.error) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status })
   }
 
   try {
@@ -34,23 +15,14 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Category, rating, and message are required' }, { status: 400 })
     }
 
-    const { data, error } = await authenticated.supabaseAdmin
-      .from('tbl_feedback')
-      .insert([{
-        user_id: authenticated.user.id,
-        category,
-        rating,
-        message: message.trim()
-      }])
-      .select()
-      .single()
+    const result = await query(
+      `INSERT INTO tbl_feedback (user_id, category, rating, message, created_at)
+       VALUES ($1, $2, $3, $4, NOW())
+       RETURNING *`,
+      [auth.userId, category, rating, message.trim()]
+    )
 
-    if (error) {
-      console.error('Insert error:', error)
-      return NextResponse.json({ error: error.message }, { status: 400 })
-    }
-
-    return NextResponse.json({ success: true, feedback: data })
+    return NextResponse.json({ success: true, feedback: result.rows[0] })
   } catch (error) {
     console.error('Feedback API error:', error)
     return NextResponse.json(
@@ -61,30 +33,18 @@ export async function POST(request: NextRequest) {
 }
 
 export async function GET(request: NextRequest) {
-  const authenticated = await getAuthenticatedUser(request)
-  if (!authenticated) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const auth = await verifyAuthenticatedRequest(request)
+  if (auth.error) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status })
+  }
+
+  if (auth.role !== 'admin') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   try {
-    const { data: adminCheck } = await authenticated.supabaseAdmin
-      .from('tbl_users')
-      .select('role')
-      .eq('id', authenticated.user.id)
-      .single()
-
-    if (adminCheck?.role !== 'admin') {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-    }
-
-    const { data, error } = await authenticated.supabaseAdmin
-      .from('tbl_feedback')
-      .select('*')
-      .order('created_at', { ascending: false })
-
-    if (error) throw error
-
-    return NextResponse.json({ feedback: data || [] })
+    const result = await query('SELECT * FROM tbl_feedback ORDER BY created_at DESC')
+    return NextResponse.json({ feedback: result.rows || [] })
   } catch (error) {
     console.error('Feedback API error:', error)
     return NextResponse.json(

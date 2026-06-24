@@ -5,7 +5,6 @@ import { useRouter } from 'next/navigation'
 import { Alert, Button, Input, Spin, Badge, Dropdown, Space } from 'antd'
 import type { MenuProps } from 'antd'
 import { FileText, Plus, Search, SlidersHorizontal, ArrowUpDown, Check, LayoutGrid, Mail, Table as TableIcon, List } from 'lucide-react'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import TicketTable from '@/components/TicketTable'
@@ -68,11 +67,11 @@ function filterTickets(
   return tickets.filter((ticket) => {
     if (status !== 'all' && !customStatuses.some(s => s.name === status) && ticket.status !== status) return false
     if (priority !== 'all' && ticket.priority !== priority) return false
-    if (category !== 'all' && ticket.category !== category) return false
-    if (type !== 'all' && ticket.type !== type) return false
+    if (category !== 'all' && ticket.category_name !== category) return false
+    if (type !== 'all' && ticket.type_name !== type) return false
     if (!rawSearch || rawSearch.length < 2) return true
 
-    const searchableText = `${ticket.title} ${ticket.description} ${ticket.number} ${ticket.category} ${ticket.type || ''} ${ticket.product || ''} ${ticket.product_reference_number || ''} ${ticket.assigned_user?.full_name || ''} ${ticket.assigned_user?.email || ''}`.toLowerCase()
+    const searchableText = `${ticket.title} ${ticket.description} ${ticket.number} ${ticket.category_name || ''} ${ticket.type_name || ''} ${ticket.product || ''} ${ticket.product_reference_number || ''} ${ticket.assigned_name || ''} ${ticket.assigned_email || ''}`.toLowerCase()
     return searchableText.includes(rawSearch)
   })
 }
@@ -103,15 +102,25 @@ export default function TicketsPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user) { router.push('/auth'); return }
+        const response = await fetch('/api/auth/me', { method: 'GET' })
+        if (!response.ok) { router.push('/auth'); return }
 
-        const { data: userData } = await supabase.from('tbl_users').select('id, email, full_name, role').eq('id', session.user.id).single()
+        const { userId } = await response.json()
+
+        const userResponse = await fetch('/api/admin/users/me', {
+          headers: { 
+            Authorization: `Bearer ${document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1] || ''}` 
+          }
+        })
+
+        if (!userResponse.ok) { router.push('/auth'); return }
+
+        const { user: userData } = await userResponse.json()
         const admin = userData?.role === 'admin'
 
         setIsAdmin(admin)
         setIsAdminLocal(admin)
-        setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
+        setUser({ id: userId, email: userData?.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
         setLoading(false)
       } catch {
         router.push('/auth')
@@ -139,7 +148,7 @@ export default function TicketsPage() {
           authHeader = await getAdminAuthHeader()
         } catch (error) {
           if (!cancelled) {
-            await supabase.auth.signOut()
+            await fetch('/api/auth/login', { method: 'DELETE' })
             router.push('/auth')
           }
           return
@@ -149,7 +158,7 @@ export default function TicketsPage() {
 
         if (!response.ok) {
           if (response.status === 401 && !cancelled) {
-            await supabase.auth.signOut()
+            await fetch('/api/auth/login', { method: 'DELETE' })
             router.push('/auth')
             return
           }
@@ -159,8 +168,8 @@ export default function TicketsPage() {
 
         fetchedTickets = (result.tickets || []) as Ticket[]
 
-        const uniqueCategories = [...new Set(fetchedTickets.map(t => t.category).filter(Boolean))] as string[]
-        const uniqueTypes = [...new Set(fetchedTickets.map(t => t.type).filter(Boolean))] as string[]
+        const uniqueCategories = [...new Set(fetchedTickets.map(t => t.category_name).filter(Boolean))] as string[]
+        const uniqueTypes = [...new Set(fetchedTickets.map(t => t.type_name).filter(Boolean))] as string[]
         setCategories(uniqueCategories)
         setTypes(uniqueTypes)
 
@@ -200,8 +209,10 @@ export default function TicketsPage() {
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const { data } = await supabase.from('tbl_custom_statuses').select('*').order('name')
-        if (data) setCustomStatuses(data)
+        const authHeader = await getAdminAuthHeader()
+        const response = await fetch('/api/admin/custom-statuses', { headers: { Authorization: authHeader } })
+        const result = await response.json()
+        if (result.statuses) setCustomStatuses(result.statuses)
       } catch { /* silent */ }
     }
     fetchStatuses()

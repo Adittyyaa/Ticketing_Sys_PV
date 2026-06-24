@@ -5,7 +5,6 @@ import { useRouter, useParams } from 'next/navigation'
 import { Button, Form, Select, message, Modal, Spin } from 'antd'
 import { ArrowLeft, Download, CreditCard as Edit2, Trash2, CircleCheck as CheckCircle } from 'lucide-react'
 import Link from 'next/link'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import TicketComments from '@/components/CommentsSection'
@@ -44,30 +43,16 @@ export default function TicketDetailPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user) { router.push('/auth'); return }
-        
-        // Ensure user has a profile in tbl_users
-        const { data: userData } = await supabase.from('tbl_users').select('role, full_name').eq('id', session.user.id).single()
-        if (!userData) {
-          const metadataRole = session.user.user_metadata?.role
-          const profileRole = metadataRole === 'admin' ? 'admin' : 'user'
-          
-          await supabase.from('tbl_users').upsert([{
-            id: session.user.id,
-            email: session.user.email || '',
-            full_name: session.user.user_metadata?.full_name || '',
-            role: profileRole,
-            created_at: new Date().toISOString()
-          }], { onConflict: 'id' })
-        } else if (session.user.user_metadata?.role === 'admin' && userData?.role !== 'admin') {
-          await supabase.from('tbl_users').update({ role: 'admin' }).eq('id', session.user.id)
-        }
-        
-        const { data: refreshedData } = await supabase.from('tbl_users').select('role').eq('id', session.user.id).single()
-        const admin = refreshedData?.role === 'admin'
+        const response = await fetch('/api/auth/me', { method: 'GET' })
+        if (!response.ok) { router.push('/auth'); return }
+
+        const { userId } = await response.json()
+        const userResponse = await fetch('/api/admin/users/me', { method: 'GET' })
+        const { user: userData } = await userResponse.json()
+        const admin = userData?.role === 'admin'
+
         setIsAdmin(admin)
-        setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || session.user.user_metadata?.full_name || '', role: refreshedData?.role || 'user' })
+        setUser({ id: userId, email: userData?.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
         setLoading(false)
       } catch { router.push('/auth') }
     }
@@ -82,7 +67,7 @@ export default function TicketDetailPage() {
         try {
           authHeader = await getAdminAuthHeader()
         } catch {
-          await supabase.auth.signOut()
+          await fetch('/api/auth/login', { method: 'DELETE' })
           router.push('/auth')
           return
         }
@@ -90,7 +75,7 @@ export default function TicketDetailPage() {
         const result = await response.json()
         if (!response.ok) {
           if (response.status === 401) {
-            await supabase.auth.signOut()
+            await fetch('/api/auth/login', { method: 'DELETE' })
             router.push('/auth')
             return
           }
@@ -113,23 +98,32 @@ export default function TicketDetailPage() {
   useEffect(() => {
     const fetchStatuses = async () => {
       try {
-        const { data } = await supabase.from('tbl_custom_statuses').select('id, name, color, created_at').order('name')
-        if (data) setCustomStatuses(data as Array<{ id: string; name: string; color: string; created_at: string }>)
+        const authHeader = await getAdminAuthHeader()
+        const response = await fetch('/api/admin/custom-statuses', { headers: { Authorization: authHeader } })
+        const result = await response.json()
+        if (result.statuses) setCustomStatuses(result.statuses.map((s: any) => ({
+          id: s.id,
+          name: s.name,
+          color: s.color,
+          is_active: s.is_active ?? true,
+          sort_order: s.sort_order ?? 0,
+          created_at: s.created_at
+        })))
       } catch { /* silent */ }
     }
     fetchStatuses()
   }, [])
 
-  const applyOwnershipFilter = <T extends { eq: (col: string, val: string) => T }>(query: T): T => {
-    if (isAdmin || !user) return query
-    return query.eq('user_id', user.id)
-  }
-
   const handleSave = async (values: { priority: Priority; status: Status }) => {
     if (!ticket) return
     try {
-      const { error } = await applyOwnershipFilter(supabase.from('tbl_tickets').update({ priority: values.priority, status: values.status, updated_at: new Date().toISOString() }).eq('id', ticket.id))
-      if (error) throw error
+      const authHeader = await getAdminAuthHeader()
+      const response = await fetch(`/api/admin/tickets/${ticketId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify({ priority: values.priority, status: values.status })
+      })
+      if (!response.ok) throw new Error('Failed to update ticket')
       setTicket({ ...ticket, priority: values.priority, status: values.status })
       setIsEditing(false)
       message.success('Ticket updated')
@@ -143,8 +137,12 @@ export default function TicketDetailPage() {
       okText: 'Delete', okType: 'danger', cancelText: 'Cancel',
       onOk: async () => {
         try {
-          const { error } = await applyOwnershipFilter(supabase.from('tbl_tickets').delete().eq('id', ticket?.id))
-          if (error) throw error
+          const authHeader = await getAdminAuthHeader()
+          const response = await fetch(`/api/admin/tickets/${ticketId}`, {
+            method: 'DELETE',
+            headers: { Authorization: authHeader }
+          })
+          if (!response.ok) throw new Error('Failed to delete ticket')
           message.success('Ticket deleted')
           router.push('/tickets')
         } catch { message.error('Failed to delete ticket') }
@@ -155,8 +153,13 @@ export default function TicketDetailPage() {
   const updateStatus = async (newStatus: Status, msg: string) => {
     if (!ticket) return
     try {
-      const { error } = await applyOwnershipFilter(supabase.from('tbl_tickets').update({ status: newStatus, updated_at: new Date().toISOString() }).eq('id', ticket.id))
-      if (error) throw error
+      const authHeader = await getAdminAuthHeader()
+      const response = await fetch(`/api/admin/tickets/${ticketId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify({ status: newStatus })
+      })
+      if (!response.ok) throw new Error('Failed to update status')
       setTicket({ ...ticket, status: newStatus })
       form.setFieldsValue({ status: newStatus })
       message.success(msg)
@@ -180,7 +183,7 @@ export default function TicketDetailPage() {
       pdf.setTextColor(120, 130, 140)
       pdf.text(`Status: ${ticket.status}  |  Priority: ${ticket.priority}`, 15, y)
       y += 6
-      pdf.text(`Category: ${ticket.category}  |  Assigned To: ${getAssignedDisplayName(ticket)}`, 15, y)
+      pdf.text(`Category: ${ticket.category_name || 'N/A'}  |  Assigned To: ${getAssignedDisplayName(ticket)}`, 15, y)
       y += 6
       pdf.text(`Created By: ${getUserDisplayName(ticket.creator)}  |  Created: ${format(new Date(ticket.created_at), 'PPP p')}`, 15, y)
       y += 8
@@ -315,7 +318,7 @@ export default function TicketDetailPage() {
 
                 <div>
                   <div style={{ color: 'var(--text-tertiary)', fontSize: 10, fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 4 }}>Category</div>
-                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{ticket.category}</span>
+                  <span style={{ fontSize: 12, color: 'var(--text-primary)', fontWeight: 500 }}>{ticket.category_name || 'N/A'}</span>
                 </div>
 
                 <div>

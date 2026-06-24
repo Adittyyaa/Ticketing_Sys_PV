@@ -101,8 +101,8 @@ export default function TicketInboxView({
                   }}>
                     #{ticket.number}
                   </span>
-                  <Tag color={categoryConfig[ticket.category] || 'default'} style={{ fontSize: 10, margin: 0 }}>
-                    {ticket.category}
+                  <Tag color={categoryConfig[ticket.category_name || ticket.category || 'Other'] || 'default'} style={{ fontSize: 10, margin: 0 }}>
+                    {ticket.category_name || ticket.category || 'Other'}
                   </Tag>
                   {ticket.type && (
                     <Tag color="blue" style={{ fontSize: 10, margin: 0 }}>

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { query } from '@/lib/database'
 import { verifyAuthenticatedRequest } from '@/lib/admin-auth'
 
 type TicketUser = {
@@ -17,18 +17,21 @@ type HydratedTicket = {
   [key: string]: unknown
 }
 
-async function hydrateTicketUsers(tickets: HydratedTicket[], supabaseAdmin: SupabaseClient): Promise<HydratedTicket[]> {
+async function hydrateTicketUsers(tickets: HydratedTicket[]): Promise<HydratedTicket[]> {
   if (tickets.length === 0) return []
 
-  const userIds = Array.from(new Set(tickets.flatMap((ticket) => [ticket.user_id, ticket.assigned_to || null].filter(Boolean) as string[])))
+  const userIds = Array.from(
+    new Set(
+      tickets
+        .flatMap((ticket) => [ticket.user_id, ticket.assigned_to || null].filter(Boolean) as string[])
+    )
+  )
   if (userIds.length === 0) return tickets
 
-  const { data: users } = await supabaseAdmin
-    .from('tbl_users')
-    .select('id, email, full_name')
-    .in('id', userIds)
-
-  const userMap = new Map((users || []).map((user) => [user.id, { ...user, full_name: user.full_name || undefined }]))
+  const result = await query<TicketUser>('SELECT id, email, full_name FROM tbl_users WHERE id = ANY($1)', [userIds])
+  const userMap = new Map(
+    (result.rows || []).map((user) => [user.id, { ...user, full_name: user.full_name || undefined }])
+  )
 
   return tickets.map((ticket) => ({
     ...ticket,
@@ -69,38 +72,40 @@ const ticketColumns = `
 export async function GET(request: NextRequest) {
   try {
     const auth = await verifyAuthenticatedRequest(request)
-    if (auth.error || !auth.supabaseAdmin || !auth.userId) {
-      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status })
+    if (auth.error) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    const supabaseAdmin = auth.supabaseAdmin
     const search = request.nextUrl.searchParams.get('search')?.trim() || ''
+    const userId = auth.userId
+    const role = auth.role
 
-    let query = supabaseAdmin
-      .from('tbl_tickets')
-      .select(ticketColumns)
-      .order('created_at', { ascending: false })
+    let sqlQuery = `SELECT ${ticketColumns} FROM tbl_tickets`
+    const conditions: string[] = []
+    const values: any[] = []
 
-    if (auth.role !== 'admin') {
-      query = query.eq('user_id', auth.userId)
+    if (role !== 'admin') {
+      conditions.push(`user_id = $${values.length + 1}`)
+      values.push(userId)
     }
 
     if (search) {
-      query = query.ilike('title', `%${search.replace(/[%;]/g, '').substring(0, 100)}%`)
+      conditions.push(`title ILIKE $${values.length + 1}`)
+      values.push(`%${search.replace(/[%;]/g, '').substring(0, 100)}%`)
     }
 
-    const { data, error } = await query
+    if (conditions.length > 0) {
+      sqlQuery += ` WHERE ${conditions.join(' AND ')}`
+    }
 
-    if (error) throw error
+    sqlQuery += ' ORDER BY created_at DESC'
 
-    const tickets = await hydrateTicketUsers(data || [], supabaseAdmin)
+    const result = await query<HydratedTicket>(sqlQuery, values)
+    const tickets = await hydrateTicketUsers(result.rows || [])
 
     return NextResponse.json({ tickets })
   } catch (error) {
     console.error('Tickets fetch error:', error)
-    return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: getErrorMessage(error) }, { status: 500 })
   }
 }

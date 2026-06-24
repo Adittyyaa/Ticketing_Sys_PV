@@ -1,0 +1,14 @@
+{
+  "extends": ["next"],
+  "parser": "@typescript-eslint/parser",
+  "rules": {
+    "react-hooks/exhaustive-deps": "warn",
+    "@next/next/no-page-custom-font": "warn",
+    "react/jsx-key": "error"
+  },
+  "env": {
+    "es6": true,
+    "browser": true,
+    "node": true
+  }
+}

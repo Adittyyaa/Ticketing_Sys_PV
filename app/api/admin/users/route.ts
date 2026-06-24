@@ -1,40 +1,37 @@
-import { createClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
+import { query } from '@/lib/database'
+import { verifyAdminRequest } from '@/lib/admin-auth'
+import { hashPassword, getUserByEmail } from '@/lib/auth'
 
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
+export async function GET(request: NextRequest) {
+  const auth = await verifyAdminRequest(request)
+  if (auth.error) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status })
+  }
+
+  try {
+    const result = await query('SELECT id, email, full_name, role, created_at FROM tbl_users ORDER BY created_at DESC')
+    return NextResponse.json({ users: result.rows || [] })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to load users' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: NextRequest) {
   try {
-    const authHeader = request.headers.get('authorization')
-    if (!authHeader) {
-      return NextResponse.json({ error: 'Unauthorized - missing auth token' }, { status: 401 })
+    const auth = await verifyAdminRequest(request)
+    if (auth.error) {
+      return NextResponse.json({ error: auth.error }, { status: auth.status })
     }
 
-    const token = authHeader.replace('Bearer ', '')
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
-    )
+    const { email, password, full_name, role } = await request.json()
 
-    const { data: { user: requestingUser }, error: verifyError } = await supabaseAdmin.auth.getUser(token)
-    
-    if (verifyError || !requestingUser) {
-      return NextResponse.json({ error: 'Invalid or expired token' }, { status: 401 })
-    }
-
-    const { data: requestingUserData } = await supabaseAdmin
-      .from('tbl_users')
-      .select('role')
-      .eq('id', requestingUser.id)
-      .single()
-
-    if (requestingUserData?.role !== 'admin') {
-      return NextResponse.json({ error: 'Only admins can create users' }, { status: 403 })
-    }
-
-    const { email, password, fullName, role } = await request.json()
-
-    if (!email || !password || !fullName) {
+    if (!email || !password || !full_name) {
       return NextResponse.json({ error: 'Email, password, and full name are required' }, { status: 400 })
     }
 
@@ -58,7 +55,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Password must contain special character' }, { status: 400 })
     }
 
-    if (fullName.length < 2 || fullName.length > 255) {
+    if (full_name.length < 2 || full_name.length > 255) {
       return NextResponse.json({ error: 'Full name must be between 2 and 255 characters' }, { status: 400 })
     }
 
@@ -66,59 +63,75 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Role must be either "user" or "admin"' }, { status: 400 })
     }
 
-    const { data: existingAuthUsers } = await supabaseAdmin.auth.admin.listUsers({ perPage: 1000 })
-    const existingAuthUser = existingAuthUsers?.users?.find(u => u.email?.toLowerCase() === email.toLowerCase())
+    const existingUser = await getUserByEmail(email)
 
-    if (existingAuthUser) {
-      const { data: existingProfile } = await supabaseAdmin
-        .from('tbl_users')
-        .select('id, created_at')
-        .eq('id', existingAuthUser.id)
-        .maybeSingle()
-
-      const { error: upsertErr } = await supabaseAdmin
-        .from('tbl_users')
-        .upsert({
-          id: existingAuthUser.id,
-          email,
-          full_name: fullName,
-          role,
-          created_at: existingProfile?.created_at || new Date().toISOString(),
-        }, { onConflict: 'id' })
-      
-      if (upsertErr) throw new Error(upsertErr.message)
-      
-      return NextResponse.json({ success: true, userId: existingAuthUser.id, message: `${role === 'admin' ? 'Admin' : 'User'} profile updated successfully` })
+    if (existingUser) {
+      await query(
+        'UPDATE tbl_users SET full_name = $1, role = $2, updated_at = NOW() WHERE id = $3 RETURNING id',
+        [full_name, role, existingUser.id]
+      )
+      return NextResponse.json({ success: true, userId: existingUser.id, message: `${role === 'admin' ? 'Admin' : 'User'} profile updated successfully` })
     }
 
-      const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
-        email,
-        password,
-        email_confirm: true,
-        user_metadata: { full_name: fullName, role },
-      })
+    const hashedPassword = await hashPassword(password)
 
-    if (authErr) throw new Error(authErr.message)
+    const result = await query(
+      'INSERT INTO tbl_users (email, password, full_name, role, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
+      [email, hashedPassword, full_name, role]
+    )
 
-    if (authData.user) {
-      const { error: profileErr } = await supabaseAdmin
-        .from('tbl_users')
-        .upsert({
-          id: authData.user.id,
-          email,
-          full_name: fullName,
-          role,
-          created_at: new Date().toISOString(),
-        }, { onConflict: 'id' })
-
-      if (profileErr) throw new Error(profileErr.message)
-    }
-
-    return NextResponse.json({ success: true, userId: authData.user.id, message: `${role === 'admin' ? 'Admin' : 'User'} created successfully` })
+    return NextResponse.json({ success: true, userId: result.rows[0].id, message: `${role === 'admin' ? 'Admin' : 'User'} created successfully` })
   } catch (error) {
     return NextResponse.json(
       { error: error instanceof Error ? error.message : 'Failed to create user' },
       { status: 400 }
+    )
+  }
+}
+
+export async function PUT(request: NextRequest) {
+  const auth = await verifyAdminRequest(request)
+  if (auth.error) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status })
+  }
+
+  try {
+    const { id, role } = await request.json()
+    if (!id || !role) {
+      return NextResponse.json({ error: 'User ID and role are required' }, { status: 400 })
+    }
+
+    await query(
+      'UPDATE tbl_users SET role = $1 WHERE id = $2 RETURNING id',
+      [role, id]
+    )
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to update user' },
+      { status: 500 }
+    )
+  }
+}
+
+export async function DELETE(request: NextRequest) {
+  const auth = await verifyAdminRequest(request)
+  if (auth.error) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status })
+  }
+
+  try {
+    const id = request.nextUrl.searchParams.get('id')
+    if (!id) {
+      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+    }
+
+    const result = await query('DELETE FROM tbl_users WHERE id = $1 RETURNING id', [id])
+    return NextResponse.json({ success: true, deleted: (result.rowCount || 0) > 0 })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to delete user' },
+      { status: 500 }
     )
   }
 }

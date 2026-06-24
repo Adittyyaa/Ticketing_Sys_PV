@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore, useTicketStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { Priority, CategoryData, Tag, TicketType, CustomStatus } from '@/types/types'
@@ -10,6 +9,7 @@ import { CATEGORIES } from '@/lib/constants'
 import { Form, Input, Select, Button, message, Row, Col, Card } from 'antd'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { getAdminAuthHeader } from '@/lib/admin-api'
 
 const priorities: Priority[] = ['LOW', 'MEDIUM', 'HIGH', 'URGENT']
 const products = ['Pay-Ally', 'Comp-ally', 'Other']
@@ -20,7 +20,7 @@ export default function NewTicketPage() {
   const { addTicket } = useTicketStore()
   const [loading, setLocalLoading] = useState(false)
   const [form] = Form.useForm()
-  
+
   const [dbCategories, setDbCategories] = useState<CategoryData[]>([])
   const [dbTags, setDbTags] = useState<Tag[]>([])
   const [dbTypes, setDbTypes] = useState<TicketType[]>([])
@@ -32,22 +32,32 @@ export default function NewTicketPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
+        const authHeader = await getAdminAuthHeader()
         const [catRes, tagRes, typeRes, usersRes, statusRes] = await Promise.all([
-          supabase.from('tbl_categories').select('*').order('name'),
-          supabase.from('tbl_tags').select('*').order('name'),
-          supabase.from('tbl_ticket_types').select('*').order('name'),
-          supabase.from('tbl_users').select('id, email, full_name').order('email'),
-          supabase.from('tbl_custom_statuses').select('*').order('name')
+          fetch('/api/admin/categories', { headers: { Authorization: authHeader } }),
+          fetch('/api/admin/tags', { headers: { Authorization: authHeader } }),
+          fetch('/api/admin/ticket-types', { headers: { Authorization: authHeader } }),
+          fetch('/api/admin/users', { headers: { Authorization: authHeader } }),
+          fetch('/api/admin/custom-statuses', { headers: { Authorization: authHeader } })
         ])
-        if (catRes.data) setDbCategories(catRes.data)
-        else setDbCategories(CATEGORIES.map((c, i) => ({ id: i.toString(), name: c as string, created_at: '' })))
-        if (tagRes.data) setDbTags(tagRes.data)
-        if (typeRes.data) setDbTypes(typeRes.data)
-        if (usersRes.data) setDbUsers(usersRes.data as { id: string; email: string; full_name?: string }[])
-        if (statusRes.data) setDbStatuses(statusRes.data)
+
+        const [catData, tagData, typeData, usersData, statusData] = await Promise.all([
+          catRes.json(),
+          tagRes.json(),
+          typeRes.json(),
+          usersRes.json(),
+          statusRes.json()
+        ])
+
+        if (catData.categories) setDbCategories(catData.categories)
+        else setDbCategories(CATEGORIES.map((c, i) => ({ id: i.toString(), name: c as string, color: '#6B7280', created_at: '' })))
+        if (tagData.tags) setDbTags(tagData.tags)
+        if (typeData.types) setDbTypes(typeData.types)
+        if (usersData.users) setDbUsers(usersData.users)
+        if (statusData.statuses) setDbStatuses(statusData.statuses)
       } catch (err) {
-        console.error('Error fetching categories/tags/types/users:', err)
-        setDbCategories(CATEGORIES.map((c, i) => ({ id: i.toString(), name: c as string, created_at: '' })))
+        console.error('Error fetching data:', err)
+        setDbCategories(CATEGORIES.map((c, i) => ({ id: i.toString(), name: c as string, color: '#6B7280', created_at: '' })))
       } finally {
         setFetchingData(false)
       }
@@ -55,13 +65,15 @@ export default function NewTicketPage() {
 
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user) { router.push('/auth'); return }
-        
-        const { data: userData } = await supabase.from('tbl_users').select('role, full_name').eq('id', session.user.id).single()
+        const response = await fetch('/api/auth/me', { method: 'GET' })
+        if (!response.ok) { router.push('/auth'); return }
+
+        const { userId } = await response.json()
+        const userResponse = await fetch('/api/admin/users/me', { method: 'GET' })
+        const { user: userData } = await userResponse.json()
         const isAdmin = userData?.role === 'admin'
-        
-        setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
+
+        setUser({ id: userId, email: userData?.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
         setLoading(false)
         setIsAdmin(isAdmin)
         setIsAdminUser(isAdmin)
@@ -95,71 +107,49 @@ export default function NewTicketPage() {
 
     const tags = values.tags || []
     if (tags.length > 10) { message.error('Maximum 10 tags allowed'); return }
-    
+
     setLocalLoading(true)
     try {
-      const { data: userData, error: userCheckError } = await supabase
-        .from('tbl_users')
-        .select('id')
-        .eq('id', user.id)
-        .single()
-
-      if (userCheckError || !userData) {
-        const { error: userInsertError } = await supabase
-          .from('tbl_users')
-          .upsert({
-            id: user.id,
-            email: user.email,
-            full_name: user.full_name || '',
-            role: user.role || 'user'
-          }, { onConflict: 'id' })
-        
-        if (userInsertError) {
-          message.error(`User setup error: ${userInsertError.message}`)
-          return
-        }
-      }
-
-      const existingTagNames = dbTags.map(t => t.name)
-      const newTags = tags.filter(t => !existingTagNames.includes(t))
-      
-      if (newTags.length > 0) {
-        await supabase.from('tbl_tags').insert(newTags.map(name => ({ name })))
-      }
+      const authHeader = await getAdminAuthHeader()
 
       const ticketData: any = {
         title: values.title.trim(),
         description: values.description.trim(),
-        category: values.category,
-        type: values.type || null,
+        category_id: values.category, // This should be category ID now
+        type_id: values.type || null,  // This should be type ID now
         product: values.product,
         product_reference_number: values.product_reference_number?.trim() || null,
         priority: values.priority,
-        status: values.status,
         tags,
         user_id: user.id
       }
-      
+
       if (isAdminUser && values.assigned_to) {
         ticketData.assigned_to = values.assigned_to
       }
 
-      const { data, error } = await supabase.from('tbl_tickets').insert([ticketData]).select()
+      const response = await fetch('/api/tickets', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify(ticketData)
+      })
 
-      if (error) {
-        message.error(`Failed to create ticket: ${error.message}`)
+      const result = await response.json()
+
+      if (!response.ok) {
+        message.error(`Failed to create ticket: ${result.error || 'Unknown error'}`)
         return
       }
-      
-      if (data && data[0]) { 
-        addTicket(data[0])
+
+      if (result.ticket) {
+        addTicket(result.ticket)
         message.success('Ticket created!')
-        router.push('/tickets') 
+        router.push('/tickets')
       }
-    } catch (err: any) { 
-      message.error(`Failed to create ticket: ${err?.message || 'Unknown error'}`) 
-    } finally { 
-      setLocalLoading(false) 
+    } catch (err: any) {
+      message.error(`Failed to create ticket: ${err?.message || 'Unknown error'}`)
+    } finally {
+      setLocalLoading(false)
     }
   }
 
@@ -181,8 +171,8 @@ export default function NewTicketPage() {
           <Form form={form} layout="vertical" onFinish={onFinish} initialValues={{ priority: 'MEDIUM', status: 'UNTOUCHED' }}>
             <Row gutter={[24, 0]}>
               <Col span={24}>
-                <Form.Item 
-                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Title</span>} 
+                <Form.Item
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Title</span>}
                   name="title"
                   rules={[{ required: true, message: 'Please enter a title' }, { max: 255, message: 'Max 255 characters' }]}
                 >
@@ -191,8 +181,8 @@ export default function NewTicketPage() {
               </Col>
 
               <Col span={24}>
-                <Form.Item 
-                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Description</span>} 
+                <Form.Item
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Description</span>}
                   name="description"
                   rules={[{ required: true, message: 'Please enter a description' }, { max: 5000, message: 'Max 5000 characters' }]}
                 >
@@ -201,45 +191,45 @@ export default function NewTicketPage() {
               </Col>
 
               <Col xs={24} md={12}>
-                <Form.Item 
-                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Category</span>} 
-                  name="category" 
+                <Form.Item
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Category</span>}
+                  name="category"
                   rules={[{ required: true, message: 'Please select a category' }]}
                 >
-                  <Select 
+                  <Select
                     size="large"
                     loading={fetchingData}
                     placeholder="Select a category"
-                    options={dbCategories.map((cat) => ({ label: cat.name, value: cat.name }))} 
+                    options={dbCategories.map((cat) => ({ label: cat.name, value: cat.id }))}
                   />
                 </Form.Item>
               </Col>
 
               <Col xs={24} md={12}>
-                <Form.Item 
-                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Type</span>} 
+                <Form.Item
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Type</span>}
                   name="type"
                 >
-                  <Select 
+                  <Select
                     size="large"
                     loading={fetchingData}
                     placeholder="Select ticket type (optional)"
                     allowClear
-                    options={dbTypes.map((type) => ({ label: type.name, value: type.name }))} 
+                    options={dbTypes.map((type) => ({ label: type.name, value: type.id }))}
                   />
                 </Form.Item>
               </Col>
 
               <Col xs={24} md={12}>
-                <Form.Item 
-                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Product</span>} 
+                <Form.Item
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Product</span>}
                   name="product"
                   rules={[{ required: true, message: 'Please select a product' }]}
                 >
-                  <Select 
+                  <Select
                     size="large"
                     placeholder="Select product"
-                    options={products.map((product) => ({ label: product, value: product }))} 
+                    options={products.map((product) => ({ label: product, value: product }))}
                   />
                 </Form.Item>
               </Col>
@@ -286,8 +276,8 @@ export default function NewTicketPage() {
               </Col>
 
               <Col xs={24} md={12}>
-                <Form.Item 
-                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Product Reference Number</span>} 
+                <Form.Item
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Product Reference Number</span>}
                   name="product_reference_number"
                 >
                   <Input placeholder="e.g., PRD-2024-001 (optional)" size="large" />
@@ -296,27 +286,27 @@ export default function NewTicketPage() {
 
               {isAdminUser && (
                 <Col xs={24} md={12}>
-                  <Form.Item 
-                    label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Assign To</span>} 
+                  <Form.Item
+                    label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Assign To</span>}
                     name="assigned_to"
                   >
-                    <Select 
+                    <Select
                       size="large"
                       loading={fetchingData}
                       placeholder="Select user to assign (optional)"
                       allowClear
-                      options={dbUsers.map((u) => ({ 
-                        label: u.full_name || u.email, 
-                        value: u.id 
-                      }))} 
+                      options={dbUsers.map((u) => ({
+                        label: u.full_name || u.email,
+                        value: u.id
+                      }))}
                     />
                   </Form.Item>
                 </Col>
               )}
 
               <Col span={24}>
-                <Form.Item 
-                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Tags</span>} 
+                <Form.Item
+                  label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Tags</span>}
                   name="tags"
                 >
                   <Select
@@ -332,10 +322,10 @@ export default function NewTicketPage() {
 
             <Form.Item style={{ marginBottom: 0, marginTop: 8 }}>
               <div style={{ display: 'flex', gap: 12 }}>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  loading={loading} 
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={loading}
                   size="large"
                   style={{ fontWeight: 600, minWidth: 140 }}
                 >

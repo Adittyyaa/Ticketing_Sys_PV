@@ -1,110 +1,94 @@
 import { NextRequest, NextResponse } from 'next/server'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { query } from '@/lib/database'
 import { verifyAuthenticatedRequest } from '@/lib/admin-auth'
 
-type TicketUser = {
-  id: string
-  email: string
-  full_name?: string | null
-}
-
-type HydratedTicket = {
-  id: string
-  user_id: string
-  assigned_to?: string | null
-  assigned_user?: TicketUser
-  creator?: TicketUser
-  [key: string]: unknown
-}
-
-async function hydrateTicketUsers(tickets: HydratedTicket[], supabaseAdmin: SupabaseClient): Promise<HydratedTicket[]> {
-  if (tickets.length === 0) return []
-
-  const userIds = Array.from(new Set(tickets.flatMap((ticket) => [ticket.user_id, ticket.assigned_to || null].filter(Boolean) as string[])))
-  if (userIds.length === 0) return tickets
-
-  const { data: users } = await supabaseAdmin
-    .from('tbl_users')
-    .select('id, email, full_name')
-    .in('id', userIds)
-
-  const userMap = new Map((users || []).map((user) => [user.id, { ...user, full_name: user.full_name || undefined }]))
-
-  return tickets.map((ticket) => ({
-    ...ticket,
-    assigned_user: ticket.assigned_to ? userMap.get(ticket.assigned_to) : undefined,
-    creator: userMap.get(ticket.user_id),
-  }))
-}
-
-const getErrorMessage = (error: unknown) => {
-  if (error instanceof Error) return error.message
-  if (error && typeof error === 'object') {
-    const record = error as Record<string, unknown>
-    if (typeof record.message === 'string') return record.message
-    if (typeof record.details === 'string') return record.details
-  }
-  return 'Failed to fetch ticket'
-}
-
-const ticketColumns = `
-  id,
-  number,
-  user_id,
-  title,
-  description,
-  category,
-  type,
-  product,
-  product_reference_number,
-  priority,
-  status,
-  tags,
-  assigned_to,
-  comment_count,
-  created_at,
-  updated_at
-`
-
-export async function GET(
+export async function PUT(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await verifyAuthenticatedRequest(request)
+  if (auth.error) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status })
+  }
+
+  const { id } = await params
+
   try {
-    const auth = await verifyAuthenticatedRequest(request)
-    if (auth.error || !auth.supabaseAdmin || !auth.userId) {
-      return NextResponse.json({ error: auth.error || 'Unauthorized' }, { status: auth.status })
+    const updates = await request.json()
+
+    let sqlQuery = 'UPDATE tickets SET updated_at = NOW()'
+    const values: any[] = []
+    let paramIndex = 1
+
+    if (updates.priority !== undefined) {
+      sqlQuery += `, priority = $${paramIndex++}`
+      values.push(updates.priority)
+    }
+    if (updates.status !== undefined) {
+      sqlQuery += `, status = $${paramIndex++}`
+      values.push(updates.status)
+    }
+    if (updates.assigned_to !== undefined) {
+      sqlQuery += `, assigned_to = $${paramIndex++}`
+      values.push(updates.assigned_to)
     }
 
-    const supabaseAdmin = auth.supabaseAdmin
-    const { id } = await params
-
-    let query = supabaseAdmin
-      .from('tbl_tickets')
-      .select(ticketColumns)
-      .eq('id', id)
+    sqlQuery += ` WHERE id = $${paramIndex++}`
+    values.push(id)
 
     if (auth.role !== 'admin') {
-      query = query.eq('user_id', auth.userId)
+      sqlQuery += ` AND user_id = $${paramIndex++}`
+      values.push(auth.userId)
     }
 
-    const { data, error } = await query.single()
+    sqlQuery += ' RETURNING *'
 
-    if (error || !data) {
-      return NextResponse.json(
-        { error: 'Ticket not found' },
-        { status: 404 }
-      )
+    const result = await query(sqlQuery, values)
+
+    if (result.rows.length === 0) {
+      return NextResponse.json({ error: 'Ticket not found or access denied' }, { status: 404 })
     }
 
-    const [ticket] = await hydrateTicketUsers([data], supabaseAdmin)
-
-    return NextResponse.json({ ticket })
+    return NextResponse.json({ success: true, ticket: result.rows[0] })
   } catch (error) {
-    console.error('Ticket fetch error:', error)
     return NextResponse.json(
-      { error: getErrorMessage(error) },
-      { status: 500 }
+      { error: error instanceof Error ? error.message : 'Failed to update ticket' },
+      { status: 400 }
+    )
+  }
+}
+
+export async function DELETE(
+  request: NextRequest,
+  { params }: { params: Promise<{ id: string }> }
+) {
+  const auth = await verifyAuthenticatedRequest(request)
+  if (auth.error) {
+    return NextResponse.json({ error: auth.error }, { status: auth.status })
+  }
+
+  const { id } = await params
+
+  try {
+    let sqlQuery = 'DELETE FROM tickets WHERE id = $1'
+    const values: any[] = [id]
+
+    if (auth.role !== 'admin') {
+      sqlQuery += ' AND user_id = $2'
+      values.push(auth.userId)
+    }
+
+    const result = await query(sqlQuery, values)
+
+    if ((result.rowCount || 0) === 0) {
+      return NextResponse.json({ error: 'Ticket not found or access denied' }, { status: 404 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (error) {
+    return NextResponse.json(
+      { error: error instanceof Error ? error.message : 'Failed to delete ticket' },
+      { status: 400 }
     )
   }
 }

@@ -149,7 +149,7 @@ export default function SolutionsPage() {
         title: values.title?.trim(),
         description: values.description?.trim(),
         steps: values.steps?.trim(),
-        category: values.category
+        category_id: values.category
       }
 
       const response = await fetch('/api/solutions', {
@@ -245,7 +245,7 @@ export default function SolutionsPage() {
                       <div>
                         <div style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: 16 }}>{solution.title}</div>
                         <div style={{ marginTop: 4 }}>
-                          <Tag color="blue" style={{ borderRadius: 4, fontSize: 11 }}>{solution.category}</Tag>
+                          <Tag color="blue" style={{ borderRadius: 4, fontSize: 11 }}>{solution.category_name || solution.category || 'General'}</Tag>
                           <span style={{ color: 'var(--text-tertiary)', fontSize: 11, marginLeft: 8 }}>
                             Updated {new Date(solution.updated_at).toLocaleDateString()}
                           </span>

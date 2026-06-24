@@ -11,7 +11,8 @@ interface AttachmentsSectionProps {
   ticketId: string
 }
 
-const getFileIcon = (type: string) => {
+const getFileIcon = (type?: string) => {
+  if (!type) return <FileOutlined style={{ color: 'var(--text-secondary)' }} />
   if (type.startsWith('image/')) return <PictureOutlined style={{ color: 'var(--accent-primary)' }} />
   if (type === 'application/pdf') return <FileTextOutlined style={{ color: 'var(--accent-error)' }} />
   return <FileOutlined style={{ color: 'var(--text-secondary)' }} />
@@ -112,7 +113,8 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
     } catch { message.error('Failed to download file') }
   }
 
-  const formatFileSize = (bytes: number) => {
+  const formatFileSize = (bytes?: number) => {
+    if (!bytes) return 'Unknown size'
     if (bytes < 1024) return bytes + ' B'
     if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB'
     return (bytes / (1024 * 1024)).toFixed(1) + ' MB'
@@ -142,9 +144,9 @@ export default function AttachmentsSection({ ticketId }: AttachmentsSectionProps
             <List.Item
               style={{ padding: '8px 0', borderBottom: '1px solid var(--border-subtle)' }}
               actions={[
-                <Button type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(a)} style={{ color: 'var(--text-link)', fontSize: 11 }}>Download</Button>,
+                <Button key="download" type="text" size="small" icon={<DownloadOutlined />} onClick={() => handleDownload(a)} style={{ color: 'var(--text-link)', fontSize: 11 }}>Download</Button>,
                 (user?.id === a.user_id || isAdmin) && (
-                  <Popconfirm title="Delete file?" onConfirm={() => handleDelete(a)} okText="Yes" cancelText="No">
+                  <Popconfirm key="delete" title="Delete file?" onConfirm={() => handleDelete(a)} okText="Yes" cancelText="No">
                     <Button type="text" danger size="small" icon={<DeleteOutlined />} style={{ fontSize: 11 }}>Delete</Button>
                   </Popconfirm>
                 ),

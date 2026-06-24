@@ -61,7 +61,7 @@ export default function AdminOverviewPage() {
       if (t.status === 'SOLVED') closed++
       status[t.status as keyof typeof status]++
       priority[t.priority as keyof typeof priority]++
-      const cat = t.category || 'Other'
+      const cat = t.category_name || 'Other'
       cats[cat] = (cats[cat] || 0) + 1
     })
     
