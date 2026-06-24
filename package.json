@@ -9,7 +9,8 @@
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx,.js,.jsx",
     "db:setup": "psql -f database-setup-postgresql.sql",
-    "db:migrate": "npx tsx scripts/migrate-from-supabase.ts",
+    "db:setup-production": "npx tsx scripts/setup-production-db.ts",
+    "db:create-admin": "npx tsx scripts/setup-production-db.ts --create-admin",
     "docker:up": "docker-compose up -d",
     "docker:down": "docker-compose down"
   },
