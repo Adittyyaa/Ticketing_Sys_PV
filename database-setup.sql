@@ -1,8 +1,7 @@
 -- ============================================
--- TICKETING SYSTEM - IDEMPOTENT DATABASE SETUP
--- Creates all tables, columns, functions, triggers,
--- storage bucket, and RLS policies only if they
--- do not already exist. Safe to run multiple times.
+-- TICKETING SYSTEM - COMPLETE DATABASE SETUP
+-- Supabase PostgreSQL
+-- Safe to run multiple times (idempotent)
 -- ============================================
 
 -- ============================================
@@ -116,7 +115,9 @@ CREATE TABLE IF NOT EXISTS public.tbl_contacts (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 
--- Add missing columns to existing tables if not present
+-- ============================================
+-- STEP 2: Add missing columns to existing tables if not present
+-- ============================================
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_users' AND column_name = 'phone') THEN
@@ -134,9 +135,26 @@ BEGIN
   IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_attachments' AND column_name = 'user_id') THEN
     ALTER TABLE public.tbl_attachments ADD COLUMN user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE;
   END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_tickets' AND column_name = 'assigned_to') THEN
+    ALTER TABLE public.tbl_tickets ADD COLUMN assigned_to UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_tickets' AND column_name = 'type') THEN
+    ALTER TABLE public.tbl_tickets ADD COLUMN type VARCHAR(255);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_tickets' AND column_name = 'product') THEN
+    ALTER TABLE public.tbl_tickets ADD COLUMN product VARCHAR(100);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_tickets' AND column_name = 'product_reference_number') THEN
+    ALTER TABLE public.tbl_tickets ADD COLUMN product_reference_number VARCHAR(255);
+  END IF;
+  IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name = 'tbl_comments' AND column_name = 'commenter_name') THEN
+    ALTER TABLE public.tbl_comments ADD COLUMN commenter_name VARCHAR(255);
+  END IF;
 END $$;
 
--- Add unique constraints if not present
+-- ============================================
+-- STEP 3: Add unique constraints if not present
+-- ============================================
 DO $$
 BEGIN
   IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'tbl_categories_name_key') THEN
@@ -151,7 +169,7 @@ BEGIN
 END $$;
 
 -- ============================================
--- STEP 2: Helper Functions
+-- STEP 4: Helper Functions
 -- ============================================
 
 CREATE OR REPLACE FUNCTION public.get_user_role()
@@ -175,8 +193,16 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
+CREATE OR REPLACE FUNCTION public.update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE 'plpgsql';
+
 -- ============================================
--- STEP 3: Triggers
+-- STEP 5: Triggers
 -- ============================================
 
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
@@ -203,16 +229,8 @@ CREATE TRIGGER update_tbl_solutions_updated_at
   FOR EACH ROW
   EXECUTE FUNCTION public.update_updated_at_column();
 
-CREATE OR REPLACE FUNCTION public.update_updated_at_column()
-RETURNS TRIGGER AS $$
-BEGIN
-  NEW.updated_at = NOW();
-  RETURN NEW;
-END;
-$$ LANGUAGE 'plpgsql';
-
 -- ============================================
--- STEP 4: Enable RLS on all tables
+-- STEP 6: Enable RLS on all tables
 -- ============================================
 
 ALTER TABLE public.tbl_users ENABLE ROW LEVEL SECURITY;
@@ -228,7 +246,7 @@ ALTER TABLE public.tbl_feedback ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tbl_contacts ENABLE ROW LEVEL SECURITY;
 
 -- ============================================
--- STEP 5: RLS Policies (drop then recreate)
+-- STEP 7: RLS Policies (drop then recreate)
 -- ============================================
 
 -- tbl_users policies
@@ -286,8 +304,16 @@ CREATE POLICY "tbl_tickets_insert_own"
 
 CREATE POLICY "tbl_tickets_update_own_or_admin"
   ON public.tbl_tickets FOR UPDATE
-  USING (auth.uid() = user_id OR public.get_user_role() = 'admin')
-  WITH CHECK (auth.uid() = user_id OR public.get_user_role() = 'admin');
+  USING (
+    auth.uid() = user_id 
+    OR auth.uid() = assigned_to 
+    OR public.get_user_role() = 'admin'
+  )
+  WITH CHECK (
+    auth.uid() = user_id 
+    OR auth.uid() = assigned_to 
+    OR public.get_user_role() = 'admin'
+  );
 
 CREATE POLICY "tbl_tickets_delete_own_or_admin"
   ON public.tbl_tickets FOR DELETE
@@ -465,7 +491,7 @@ CREATE POLICY "tbl_contacts_delete_admin"
   USING (public.get_user_role() = 'admin');
 
 -- ============================================
--- STEP 6: Storage Bucket for Attachments
+-- STEP 8: Storage Bucket for Attachments
 -- ============================================
 
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
@@ -477,6 +503,8 @@ VALUES (
   ARRAY['image/jpeg', 'image/png', 'application/pdf', 'text/plain']
 )
 ON CONFLICT (id) DO UPDATE SET
+  name = EXCLUDED.name,
+  public = EXCLUDED.public,
   file_size_limit = EXCLUDED.file_size_limit,
   allowed_mime_types = EXCLUDED.allowed_mime_types;
 
@@ -510,7 +538,7 @@ CREATE POLICY "ticket_attachments_delete_authenticated"
   );
 
 -- ============================================
--- STEP 7: Analytics View
+-- STEP 9: Analytics View
 -- ============================================
 
 CREATE OR REPLACE VIEW public.tbl_ticket_analytics AS
@@ -534,6 +562,94 @@ FROM public.tbl_tickets;
 GRANT SELECT ON public.tbl_ticket_analytics TO authenticated;
 
 -- ============================================
--- VERIFICATION
+-- STEP 10: Cleanup legacy tables and constraints
 -- ============================================
+
+-- Drop legacy tables if they exist
+DROP TABLE IF EXISTS public.tbl_saved_replies CASCADE;
+DROP TABLE IF EXISTS public.tbl_notifications CASCADE;
+
+-- Drop legacy columns if they exist
+ALTER TABLE public.tbl_comments DROP COLUMN IF EXISTS commenter_email;
+
+-- Drop any accidentally-added check constraints on tbl_tickets
+DO $$
+DECLARE
+  r RECORD;
+BEGIN
+  FOR r IN (SELECT conname FROM pg_constraint 
+            WHERE conrelid = 'public.tbl_tickets'::regclass 
+            AND contype = 'c') LOOP
+    EXECUTE 'ALTER TABLE public.tbl_tickets DROP CONSTRAINT IF EXISTS ' || quote_ident(r.conname);
+  END LOOP;
+END $$;
+
+-- Drop valid_category if it exists (kept for idempotency)
+ALTER TABLE IF EXISTS public.tbl_tickets DROP CONSTRAINT IF EXISTS valid_category;
+
+-- Drop valid_status if it exists (kept for idempotency)
+ALTER TABLE IF EXISTS public.tbl_tickets DROP CONSTRAINT IF EXISTS valid_status;
+
+-- ============================================
+-- STEP 11: Seed reference data
+-- ============================================
+
+INSERT INTO public.tbl_categories (name, created_at) VALUES
+  ('Bug Report', NOW()),
+  ('Technical Issue', NOW()),
+  ('Account Inquiry', NOW()),
+  ('New Feature Request', NOW()),
+  ('Other', NOW())
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO public.tbl_tags (name, created_at) VALUES
+  ('frontend', NOW()),
+  ('backend', NOW()),
+  ('urgent', NOW()),
+  ('documentation', NOW())
+ON CONFLICT (name) DO NOTHING;
+
+INSERT INTO public.tbl_ticket_types (name, description, created_at) VALUES
+  ('Feature Request', 'Request for new functionality', NOW()),
+  ('Bug Report', 'Report of a software defect', NOW()),
+  ('Support Ticket', 'General support inquiry', NOW())
+ON CONFLICT (name) DO NOTHING;
+
+-- ============================================
+-- STEP 12: Verification
+-- ============================================
+
 SELECT 'Database setup complete!' as status;
+
+SELECT 'tbl_users' as table_name,
+  (SELECT COUNT(*) FROM tbl_users) as row_count
+UNION ALL
+SELECT 'tbl_tickets',
+  (SELECT COUNT(*) FROM tbl_tickets)
+UNION ALL
+SELECT 'tbl_comments',
+  (SELECT COUNT(*) FROM tbl_comments)
+UNION ALL
+SELECT 'tbl_attachments',
+  (SELECT COUNT(*) FROM tbl_attachments)
+UNION ALL
+SELECT 'tbl_solutions',
+  (SELECT COUNT(*) FROM tbl_solutions)
+UNION ALL
+SELECT 'tbl_custom_statuses',
+  (SELECT COUNT(*) FROM tbl_custom_statuses)
+UNION ALL
+SELECT 'tbl_categories',
+  (SELECT COUNT(*) FROM tbl_categories)
+UNION ALL
+SELECT 'tbl_tags',
+  (SELECT COUNT(*) FROM tbl_tags)
+UNION ALL
+SELECT 'tbl_ticket_types',
+  (SELECT COUNT(*) FROM tbl_ticket_types)
+UNION ALL
+SELECT 'tbl_feedback',
+  (SELECT COUNT(*) FROM tbl_feedback)
+UNION ALL
+SELECT 'tbl_contacts',
+  (SELECT COUNT(*) FROM tbl_contacts);
