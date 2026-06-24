@@ -405,14 +405,14 @@ ON CONFLICT (name) DO NOTHING;
 
 -- Insert default tags
 INSERT INTO tags (name, color, created_at) VALUES
-  ('frontend', '#8B5CF6'),
-  ('backend', '#06B6D4'),
-  ('urgent', '#EF4444'),
-  ('documentation', '#84CC16'),
-  ('mobile', '#F59E0B'),
-  ('performance', '#EC4899'),
-  ('security', '#DC2626'),
-  ('enhancement', '#10B981')
+  ('frontend', '#8B5CF6', NOW()),
+  ('backend', '#06B6D4', NOW()),
+  ('urgent', '#EF4444', NOW()),
+  ('documentation', '#84CC16', NOW()),
+  ('mobile', '#F59E0B', NOW()),
+  ('performance', '#EC4899', NOW()),
+  ('security', '#DC2626', NOW()),
+  ('enhancement', '#10B981', NOW())
 ON CONFLICT (name) DO NOTHING;
 
 -- Insert default ticket types

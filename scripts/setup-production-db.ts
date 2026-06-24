@@ -118,7 +118,7 @@ async function createAdminUser(email: string, password: string, fullName: string
   })
 
   try {
-    const bcrypt = await import('bcryptjs')
+    const bcrypt = require('bcryptjs')
     const hashedPassword = await bcrypt.hash(password, 12)
 
     await pool.query(`
