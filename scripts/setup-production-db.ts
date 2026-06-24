@@ -81,7 +81,7 @@ async function setupDatabase() {
     console.log('\n🎉 Your database is ready for production!')
     console.log('🔗 You can now deploy your application to Vercel')
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('❌ Database setup failed:', error)
     
     if (error.code === 'ECONNREFUSED') {
