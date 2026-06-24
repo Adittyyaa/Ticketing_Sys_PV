@@ -16,9 +16,6 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
-    "@types/node": "^20.5.0",
-    "@types/react": "^19.2.0",
-    "@types/react-dom": "^19.2.0",
     "antd": "^6.4.3",
     "autoprefixer": "^10.4.16",
     "bcryptjs": "^2.4.3",
@@ -27,25 +24,28 @@
     "jose": "^5.10.0",
     "jspdf": "^4.2.1",
     "lucide-react": "^0.460.0",
-    "next": "^9.3.3",
+    "next": "^16.2.7",
     "pg": "^8.12.0",
     "postcss": "^8.4.31",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
     "tailwindcss": "^3.3.6",
     "tsx": "^4.7.0",
-    "typescript": "^5.2.2",
-    "uuid": "^14.0.1",
+    "uuid": "^9.0.1",
     "zustand": "^4.4.1"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
+    "@types/node": "^20.5.0",
     "@types/pg": "^8.11.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@types/uuid": "^9.0.8",
     "@typescript-eslint/eslint-plugin": "^8.62.0",
     "@typescript-eslint/parser": "^8.62.0",
     "eslint": "^8.57.1",
-    "eslint-config-next": "^16.2.9",
+    "eslint-config-next": "^14.2.35",
+    "typescript": "^5.2.2",
     "xlsx": "^0.18.5"
   }
 }
