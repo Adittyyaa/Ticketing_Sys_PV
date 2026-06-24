@@ -52,10 +52,12 @@ export async function POST(request: NextRequest) {
     let userId: string | null = body.user_id ?? null
 
     if (!userId && user_email?.trim()) {
+      const email = user_email.trim().toLowerCase()
+
       const { data: existingUser, error: userError } = await supabaseAdmin
         .from('tbl_users')
         .select('id')
-        .eq('email', user_email.trim().toLowerCase())
+        .eq('email', email)
         .maybeSingle()
 
       if (userError) {
@@ -64,14 +66,40 @@ export async function POST(request: NextRequest) {
 
       if (existingUser) {
         userId = existingUser.id
-      }
-    }
+      } else {
+        const fullName = body.user_name?.trim() || email.split('@')[0]
 
-    if (!userId) {
-      return NextResponse.json(
-        { error: 'user_id or a valid user_email is required' },
-        { status: 400 }
-      )
+        const { data: authData, error: authErr } = await supabaseAdmin.auth.admin.createUser({
+          email,
+          email_confirm: true,
+          user_metadata: { full_name: fullName, role: 'user' },
+        })
+
+        if (authErr || !authData.user) {
+          return NextResponse.json(
+            { error: authErr?.message || 'Failed to create user' },
+            { status: 500 }
+          )
+        }
+
+        const { error: profileErr } = await supabaseAdmin
+          .from('tbl_users')
+          .insert({
+            id: authData.user.id,
+            email,
+            full_name: fullName,
+            role: 'user',
+          })
+
+        if (profileErr) {
+          return NextResponse.json(
+            { error: profileErr.message || 'Failed to create user profile' },
+            { status: 500 }
+          )
+        }
+
+        userId = authData.user.id
+      }
     }
 
     const ticketPayload: Record<string, unknown> = {
