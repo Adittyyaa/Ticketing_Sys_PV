@@ -18,7 +18,7 @@ interface User {
 
 export default function UserManagementPage() {
   const router = useRouter()
-  const { user, isAdmin } = useAuthStore()
+  const { user, isAdmin, setUser, setLoading, setIsAdmin } = useAuthStore()
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [loading, setLoadingState] = useState(true)
   const [showForm, setShowForm] = useState(false)
@@ -27,6 +27,28 @@ export default function UserManagementPage() {
   const [form] = Form.useForm()
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
   const [editRoleForm] = Form.useForm()
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const response = await fetch('/api/auth/me', { method: 'GET' })
+        if (!response.ok) { router.push('/auth'); return }
+        const authHeader = await getAdminAuthHeader()
+        const userResponse = await fetch('/api/admin/users/me', {
+          headers: { Authorization: authHeader }
+        })
+        if (!userResponse.ok) { router.push('/auth'); return }
+        const { user: userData } = await userResponse.json()
+        const admin = userData?.role === 'admin'
+        setIsAdmin(admin)
+        setUser({ id: userData.id, email: userData.email || '', full_name: userData.full_name || '', role: userData.role || 'user' })
+        setLoading(false)
+      } catch {
+        router.push('/auth')
+      }
+    }
+    checkAuth()
+  }, [setUser, setLoading, setIsAdmin, router])
 
   useEffect(() => {
     if (!isAdmin) { router.push('/tickets'); return }

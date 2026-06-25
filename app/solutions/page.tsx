@@ -2,12 +2,12 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { Input, message, Tag, Card, Modal, Form, Button, Collapse, Empty, Select } from 'antd'
 import { Search, Plus, Edit, Trash2, BookOpen, Lightbulb, HelpCircle, CheckCircle2 } from 'lucide-react'
 import { Solution } from '@/types/types'
+import { getAdminAuthHeader } from '@/lib/admin-api'
 
 const { Panel } = Collapse
 const { Option } = Select
@@ -37,17 +37,13 @@ export default function SolutionsPage() {
 
   const fetchSolutions = useCallback(async () => {
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) return
-
+      const authHeader = await getAdminAuthHeader()
       const params = new URLSearchParams()
       if (searchQuery.trim()) params.set('search', searchQuery.trim())
       if (selectedCategory) params.set('category', selectedCategory)
 
       const response = await fetch(`/api/solutions${params.toString() ? `?${params.toString()}` : ''}`, {
-        headers: {
-          Authorization: `Bearer ${session.access_token}`
-        }
+        headers: { Authorization: authHeader }
       })
 
       const result = await response.json()
@@ -64,20 +60,18 @@ export default function SolutionsPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user) {
-          router.push('/auth')
-          return
-        }
+        const response = await fetch('/api/auth/me', { method: 'GET' })
+        if (!response.ok) { router.push('/auth'); return }
 
-        const { data: userData } = await supabase
-          .from('tbl_users')
-          .select('id, email, full_name, role')
-          .eq('id', session.user.id)
-          .single()
+        const authHeader = await getAdminAuthHeader()
+        const userResponse = await fetch('/api/admin/users/me', {
+          headers: { Authorization: authHeader }
+        })
+        if (!userResponse.ok) { router.push('/auth'); return }
 
+        const { user: userData } = await userResponse.json()
         setIsAdmin(userData?.role === 'admin')
-        setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
+        setUser({ id: userData.id, email: userData.email || '', full_name: userData.full_name || '', role: userData.role || 'user' })
         setLoading(false)
       } catch {
         router.push('/auth')
@@ -116,14 +110,10 @@ export default function SolutionsPage() {
       okType: 'danger',
       onOk: async () => {
         try {
-          const { data: { session } } = await supabase.auth.getSession()
-          if (!session) throw new Error('No active session')
-
+          const authHeader = await getAdminAuthHeader()
           const response = await fetch(`/api/solutions?id=${solution.id}`, {
             method: 'DELETE',
-            headers: {
-              Authorization: `Bearer ${session.access_token}`
-            }
+            headers: { Authorization: authHeader }
           })
 
           const result = await response.json()
@@ -141,9 +131,7 @@ export default function SolutionsPage() {
   const handleSubmit = async (values: any) => {
     setSubmitting(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) throw new Error('No active session')
-
+      const authHeader = await getAdminAuthHeader()
       const payload = {
         id: editingSolution?.id,
         title: values.title?.trim(),
@@ -156,7 +144,7 @@ export default function SolutionsPage() {
         method: editingSolution ? 'PUT' : 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${session.access_token}`
+          Authorization: authHeader
         },
         body: JSON.stringify(payload)
       })

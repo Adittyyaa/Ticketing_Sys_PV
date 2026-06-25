@@ -103,7 +103,6 @@ export default function SettingsPage() {
       setTableLoading(true)
       
       let table = ''
-      const apiEndpoint = ''
       
       if (activeTab === 'categories') table = 'categories'
       else if (activeTab === 'tags') table = 'tags'
