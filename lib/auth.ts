@@ -133,11 +133,13 @@ export async function getCurrentUser(request?: NextRequest): Promise<User | null
     let token: string | undefined
 
     if (request) {
-      // For API routes, get token from Authorization header
       const authHeader = request.headers.get('authorization')
       token = authHeader?.replace('Bearer ', '')
+      if (!token) {
+        const cookie = request.cookies.get('auth-token')
+        token = cookie?.value
+      }
     } else {
-      // For server components, get token from cookies
       const cookieStore = await cookies()
       token = cookieStore.get('auth-token')?.value
     }

@@ -10,33 +10,52 @@ type TicketUser = {
 
 type HydratedTicket = {
   id: string
+  number: number
   user_id: string
   assigned_to?: string | null
+  assigned_id?: string | null
+  assigned_email?: string | null
+  assigned_name?: string | null
+  creator_id?: string
+  creator_email?: string
+  creator_name?: string | null
   assigned_user?: TicketUser
   creator?: TicketUser
+  title: string
+  description: string
+  category_id?: string | null
+  type_id?: string | null
+  category_name?: string | null
+  category_color?: string | null
+  type_name?: string | null
+  type_description?: string | null
+  product?: string | null
+  product_reference_number?: string | null
+  priority: string
+  status: string
+  tags: string[]
+  tag_names?: string[]
+  comment_count?: number
+  attachment_count?: number
+  resolved_at?: string | null
+  created_at: string
+  updated_at: string
   [key: string]: unknown
 }
 
 async function hydrateTicketUsers(tickets: HydratedTicket[]): Promise<HydratedTicket[]> {
-  if (tickets.length === 0) return []
-
-  const userIds = Array.from(
-    new Set(
-      tickets
-        .flatMap((ticket) => [ticket.user_id, ticket.assigned_to || null].filter(Boolean) as string[])
-    )
-  )
-  if (userIds.length === 0) return tickets
-
-  const result = await query<TicketUser>('SELECT id, email, full_name FROM users WHERE id = ANY($1)', [userIds])
-  const userMap = new Map<string, TicketUser>(
-    (result.rows || []).map((user: TicketUser) => [user.id, { ...user, full_name: user.full_name || undefined }])
-  )
-
   return tickets.map((ticket) => ({
     ...ticket,
-    assigned_user: ticket.assigned_to ? userMap.get(ticket.assigned_to) : undefined,
-    creator: userMap.get(ticket.user_id),
+    assigned_user: ticket.assigned_to ? {
+      id: ticket.assigned_id || ticket.assigned_to,
+      email: ticket.assigned_email || '',
+      full_name: ticket.assigned_name || undefined
+    } : undefined,
+    creator: {
+      id: ticket.creator_id || ticket.user_id,
+      email: ticket.creator_email || '',
+      full_name: ticket.creator_name || undefined
+    },
   }))
 }
 
@@ -51,22 +70,33 @@ const getErrorMessage = (error: unknown) => {
 }
 
 const ticketColumns = `
-  id,
-  number,
-  user_id,
-  title,
-  description,
-  category,
-  type,
-  product,
-  product_reference_number,
-  priority,
-  status,
-  tags,
-  assigned_to,
-  comment_count,
-  created_at,
-  updated_at
+  t.id,
+  t.number,
+  t.user_id,
+  t.title,
+  t.description,
+  t.category_id,
+  t.type_id,
+  t.product,
+  t.product_reference_number,
+  t.priority,
+  t.status,
+  t.tags,
+  t.assigned_to,
+  t.resolved_at,
+  t.created_at,
+  t.updated_at,
+  u.email as creator_email,
+  u.full_name as creator_name,
+  au.email as assigned_email,
+  au.full_name as assigned_name,
+  c.name as category_name,
+  c.color as category_color,
+  tt.name as type_name,
+  tt.description as type_description,
+  ARRAY(SELECT tg.name FROM tags tg WHERE tg.id = ANY(t.tags)) as tag_names,
+  (SELECT COUNT(*) FROM comments WHERE ticket_id = t.id) as comment_count,
+  (SELECT COUNT(*) FROM attachments WHERE ticket_id = t.id) as attachment_count
 `
 
 export async function GET(request: NextRequest) {
@@ -80,25 +110,31 @@ export async function GET(request: NextRequest) {
     const userId = auth.userId
     const role = auth.role
 
-    let sqlQuery = `SELECT ${ticketColumns} FROM tickets`
     const conditions: string[] = []
     const values: any[] = []
 
     if (role !== 'admin') {
-      conditions.push(`user_id = $${values.length + 1}`)
+      conditions.push(`t.user_id = $${values.length + 1}`)
       values.push(userId)
     }
 
     if (search) {
-      conditions.push(`title ILIKE $${values.length + 1}`)
+      conditions.push(`t.title ILIKE $${values.length + 1}`)
       values.push(`%${search.replace(/[%;]/g, '').substring(0, 100)}%`)
     }
 
-    if (conditions.length > 0) {
-      sqlQuery += ` WHERE ${conditions.join(' AND ')}`
-    }
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
-    sqlQuery += ' ORDER BY created_at DESC'
+    const sqlQuery = `
+      SELECT ${ticketColumns}
+      FROM tickets t
+      LEFT JOIN users u ON t.user_id = u.id
+      LEFT JOIN users au ON t.assigned_to = au.id
+      LEFT JOIN categories c ON t.category_id = c.id
+      LEFT JOIN ticket_types tt ON t.type_id = tt.id
+      ${whereClause}
+      ORDER BY t.created_at DESC
+    `
 
     const result = await query<HydratedTicket>(sqlQuery, values)
     const tickets = await hydrateTicketUsers(result.rows || [])

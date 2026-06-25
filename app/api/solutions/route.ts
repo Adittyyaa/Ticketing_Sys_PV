@@ -18,19 +18,23 @@ export async function GET(request: NextRequest) {
     const search = request.nextUrl.searchParams.get('search') || ''
     const category = request.nextUrl.searchParams.get('category') || ''
 
-    let sqlQuery = 'SELECT * FROM solutions'
+    let sqlQuery = `
+      SELECT s.*, c.name as category_name
+      FROM solutions s
+      LEFT JOIN categories c ON s.category_id = c.id
+    `
     const conditions: string[] = []
     const values: any[] = []
 
     if (category) {
-      conditions.push(`category = $${values.length + 1}`)
+      conditions.push(`c.name = $${values.length + 1}`)
       values.push(category)
     }
 
     const searchTerm = normalizeSearch(search)
     if (searchTerm) {
       conditions.push(
-        `(title ILIKE $${values.length + 1} OR description ILIKE $${values.length + 2} OR category ILIKE $${values.length + 3})`
+        `(s.title ILIKE $${values.length + 1} OR s.description ILIKE $${values.length + 2} OR c.name ILIKE $${values.length + 3})`
       )
       values.push(`%${searchTerm}%`, `%${searchTerm}%`, `%${searchTerm}%`)
     }
@@ -39,7 +43,7 @@ export async function GET(request: NextRequest) {
       sqlQuery += ` WHERE ${conditions.join(' AND ')}`
     }
 
-    sqlQuery += ' ORDER BY created_at DESC'
+    sqlQuery += ' ORDER BY s.created_at DESC'
 
     const result = await query(sqlQuery, values)
 
@@ -66,11 +70,17 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Title, description, and steps are required' }, { status: 400 })
     }
 
+    let categoryId: string | null = null
+    if (category?.trim()) {
+      const catResult = await query('SELECT id FROM categories WHERE name = $1', [category.trim()])
+      categoryId = catResult.rows[0]?.id || null
+    }
+
     const result = await query(
-      `INSERT INTO solutions (title, description, steps, category, created_at, updated_at)
-       VALUES ($1, $2, $3, $4, NOW(), NOW())
+      `INSERT INTO solutions (title, description, steps, category_id, is_published, created_by, created_at, updated_at)
+       VALUES ($1, $2, $3, $4, $5, $6, NOW(), NOW())
        RETURNING *`,
-      [title.trim(), description.trim(), steps.trim(), category?.trim() || 'General']
+      [title.trim(), description.trim(), steps.trim(), categoryId, false, auth.userId]
     )
 
     return NextResponse.json({ success: true, solution: result.rows[0] })
@@ -100,9 +110,15 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Title, description, and steps are required' }, { status: 400 })
     }
 
+    let categoryId: string | null = null
+    if (category?.trim()) {
+      const catResult = await query('SELECT id FROM categories WHERE name = $1', [category.trim()])
+      categoryId = catResult.rows[0]?.id || null
+    }
+
     const result = await query(
-      `UPDATE solutions SET title = $1, description = $2, steps = $3, category = $4, updated_at = NOW() WHERE id = $5 RETURNING *`,
-      [title.trim(), description.trim(), steps.trim(), category?.trim() || 'General', id]
+      `UPDATE solutions SET title = $1, description = $2, steps = $3, category_id = $4, updated_at = NOW() WHERE id = $5 RETURNING *`,
+      [title.trim(), description.trim(), steps.trim(), categoryId, id]
     )
 
     if (result.rows.length === 0) {

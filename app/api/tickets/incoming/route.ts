@@ -56,6 +56,25 @@ export async function POST(request: NextRequest) {
       userId = user.id
     }
 
+    let categoryId: string | null = null
+    let typeId: string | null = null
+
+    if (category?.trim()) {
+      const catResult = await query(
+        'SELECT id FROM categories WHERE name = $1',
+        [category.trim()]
+      )
+      categoryId = catResult.rows[0]?.id || null
+    }
+
+    if (type?.trim()) {
+      const typeResult = await query(
+        'SELECT id FROM ticket_types WHERE name = $1',
+        [type.trim()]
+      )
+      typeId = typeResult.rows[0]?.id || null
+    }
+
     const result = await query(
       `INSERT INTO tickets (title, description, category_id, type_id, product, product_reference_number, priority, status, tags, user_id)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
@@ -63,8 +82,8 @@ export async function POST(request: NextRequest) {
       [
         title.trim(),
         description.trim(),
-        category.trim(),
-        type?.trim() || null,
+        categoryId,
+        typeId,
         product?.trim() || null,
         product_reference_number?.trim() || null,
         priority?.trim() || 'MEDIUM',
