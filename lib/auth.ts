@@ -191,10 +191,9 @@ export async function createSession(user: User): Promise<string> {
   // Set HTTP-only cookie
   const cookieStore = await cookies()
   cookieStore.set('auth-token', token, {
-    httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
     sameSite: 'strict',
-    maxAge: 7 * 24 * 60 * 60, // 7 days
+    maxAge: 7 * 24 * 60 * 60,
     path: '/'
   })
   

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useAuthStore } from '@/lib/store'
+import { getAdminAuthHeader } from '@/lib/admin-api'
 
 export default function Home() {
   const router = useRouter()
@@ -22,13 +23,27 @@ export default function Home() {
         if (!isMounted) return
         if (response.ok) {
           const { userId } = await response.json()
-          const userResponse = await fetch('/api/admin/users/me', { method: 'GET' })
+          let authHeader = ''
+          try {
+            authHeader = await getAdminAuthHeader()
+          } catch {
+            if (isMounted) router.push('/auth')
+            return
+          }
+          const userResponse = await fetch('/api/admin/users/me', {
+            method: 'GET',
+            headers: { Authorization: authHeader }
+          })
           if (!isMounted) return
           const { user: userData } = await userResponse.json()
+          if (!userResponse.ok) {
+            if (isMounted) router.push('/auth')
+            return
+          }
           const isAdmin = userData?.role === 'admin'
           setIsAdmin(isAdmin)
           setUser({ id: userId, email: userData?.email || '', full_name: userData?.full_name || '', role: userData?.role || 'user' })
-          router.push('/tickets')
+          if (isMounted) router.push('/tickets')
         } else {
           if (isMounted) router.push('/auth')
         }
@@ -40,7 +55,7 @@ export default function Home() {
     }
     checkAuth()
     return () => { isMounted = false }
-  }, [setUser, setLoading, setIsAdmin, router])
+  }, [setUser, setLoading, setIsAdmin, router, getAdminAuthHeader])
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: 'var(--bg-base)' }}>
