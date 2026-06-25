@@ -2,11 +2,11 @@
 
 import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { Table, Form, Input, Button, message, Modal, Select, Tag, Spin } from 'antd'
 import { Plus, Trash2, Users, Search, Edit } from 'lucide-react'
+import { getAdminAuthHeader } from '@/lib/admin-api'
 
 interface User {
   id: string
@@ -34,11 +34,20 @@ export default function UserManagementPage() {
   }, [isAdmin, router])
 
   const fetchUsers = async () => {
+    setLoadingState(true)
     try {
-      const { data } = await supabase.from('tbl_users').select('*').order('created_at', { ascending: false })
-      setAllUsers(data || [])
-    } catch { message.error('Failed to load users') }
-    finally { setLoadingState(false) }
+      const authHeader = await getAdminAuthHeader()
+      const response = await fetch('/api/admin/users', {
+        headers: { Authorization: authHeader }
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error)
+      setAllUsers(result.users || [])
+    } catch {
+      message.error('Failed to load users')
+    } finally {
+      setLoadingState(false)
+    }
   }
 
   const filteredUsers = useMemo(() => {
@@ -53,23 +62,11 @@ export default function UserManagementPage() {
   const handleCreateUser = async (values: any) => {
     setSubmitting(true)
     try {
-      const { data: { session }, error } = await supabase.auth.getSession()
-      if (error) throw error
-      
-      let accessToken = session?.access_token
-      if (!accessToken) throw new Error('No active session')
-      
-      const expiresAt = session?.expires_at
-      if (expiresAt && expiresAt * 1000 - Date.now() < 60_000) {
-        const { data: refreshedSession, error: refreshError } = await supabase.auth.refreshSession()
-        if (refreshError) throw refreshError
-        accessToken = refreshedSession.session?.access_token
-        if (!accessToken) throw new Error('No active session')
-      }
+      const authHeader = await getAdminAuthHeader()
       
       const response = await fetch('/api/admin/users', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${accessToken}` },
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
         body: JSON.stringify({ email: values.email, password: values.password, fullName: values.fullName, role: values.role }),
       })
       const result = await response.json()
@@ -87,12 +84,18 @@ export default function UserManagementPage() {
   const handleUpdateRole = async (userId: string) => {
     try {
       const values = await editRoleForm.validateFields()
-      const { error } = await supabase.from('tbl_users').update({ role: values.role }).eq('id', userId)
-      if (error) throw error
+      const authHeader = await getAdminAuthHeader()
+      const response = await fetch('/api/admin/users', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+        body: JSON.stringify({ id: userId, role: values.role })
+      })
+      const result = await response.json()
+      if (!response.ok) throw new Error(result.error)
       message.success('User role updated')
       setEditingUserId(null)
       fetchUsers()
-    } catch (err) { 
+    } catch { 
       message.error('Failed to update role') 
     }
   }
@@ -113,15 +116,16 @@ export default function UserManagementPage() {
       cancelText: 'Cancel',
       onOk: async () => {
         try {
-          if (userRole === 'admin') {
-            const { error } = await supabase.from('tbl_users').update({ role: 'user' }).eq('id', userId)
-            if (error) throw error
-            message.success('Admin access revoked')
-          } else {
-            const { error } = await supabase.from('tbl_users').delete().eq('id', userId)
-            if (error) throw error
-            message.success('User deleted')
-          }
+          const authHeader = await getAdminAuthHeader()
+          const url = new URL('/api/admin/users', window.location.origin)
+          url.searchParams.set('id', userId)
+          const response = await fetch(url.toString(), {
+            method: 'DELETE',
+            headers: { Authorization: authHeader }
+          })
+          const result = await response.json()
+          if (!response.ok) throw new Error(result.error)
+          message.success(`User ${userRole === 'admin' ? 'access revoked' : 'deleted'}`)
           fetchUsers()
         } catch { 
           message.error(`Error ${userRole === 'admin' ? 'revoking admin' : 'deleting user'}`) 

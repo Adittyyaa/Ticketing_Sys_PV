@@ -4,7 +4,6 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { Tabs, Table, Button, Input, Modal, Form, Space, message, Popconfirm, Card, Select } from 'antd'
 import { PlusOutlined, EditOutlined, DeleteOutlined, TagOutlined, FolderOutlined, SettingOutlined } from '@ant-design/icons'
-import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/lib/store'
 import AppShell from '@/components/AppShell'
 import { CategoryData, Tag, CustomStatus } from '@/types/types'
@@ -33,12 +32,19 @@ export default function SettingsPage() {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
-        if (!session?.user) { router.push('/auth'); return }
-        const { data: userData } = await supabase.from('tbl_users').select('role, full_name').eq('id', session.user.id).single()
+        const response = await fetch('/api/auth/me', { method: 'GET' })
+        if (!response.ok) { router.push('/auth'); return }
+        
+        const authHeader = await getAdminAuthHeader()
+        const userResponse = await fetch('/api/admin/users/me', {
+          headers: { Authorization: authHeader }
+        })
+        if (!userResponse.ok) { router.push('/auth'); return }
+        
+        const { user: userData } = await userResponse.json()
         const isUserAdmin = userData?.role === 'admin'
         if (!isUserAdmin) { router.push('/tickets'); return }
-        setUser({ id: session.user.id, email: session.user.email || '', full_name: userData?.full_name || '', role: 'admin' })
+        setUser({ id: userData.id, email: userData.email || '', full_name: userData.full_name || '', role: userData.role || 'admin' })
         setIsAdmin(true)
         setLoading(false)
       } catch {
@@ -57,18 +63,22 @@ export default function SettingsPage() {
   const fetchData = async () => {
     setTableLoading(true)
     try {
+      const authHeader = await getAdminAuthHeader()
       if (activeTab === 'categories') {
-        const { data, error } = await supabase.from('tbl_categories').select('*').order('name')
-        if (error) throw error
-        setCategories(data || [])
+        const response = await fetch('/api/admin/categories', { headers: { Authorization: authHeader } })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error)
+        setCategories(result.categories || [])
       } else if (activeTab === 'tags') {
-        const { data, error } = await supabase.from('tbl_tags').select('*').order('name')
-        if (error) throw error
-        setTags(data || [])
+        const response = await fetch('/api/admin/tags', { headers: { Authorization: authHeader } })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error)
+        setTags(result.tags || [])
       } else if (activeTab === 'statuses') {
-        const { data, error } = await supabase.from('tbl_custom_statuses').select('*').order('name')
-        if (error) throw error
-        setCustomStatuses(data || [])
+        const response = await fetch('/api/admin/custom-statuses', { headers: { Authorization: authHeader } })
+        const result = await response.json()
+        if (!response.ok) throw new Error(result.error)
+        setCustomStatuses(result.statuses || [])
       }
     } catch {
       message.error(`Failed to load ${activeTab}`)
@@ -93,24 +103,32 @@ export default function SettingsPage() {
       setTableLoading(true)
       
       let table = ''
-      const insertValues: any = values
+      const apiEndpoint = ''
       
-      if (activeTab === 'categories') table = 'tbl_categories'
-      else if (activeTab === 'tags') table = 'tbl_tags'
-      else if (activeTab === 'statuses') table = 'tbl_custom_statuses'
+      if (activeTab === 'categories') table = 'categories'
+      else if (activeTab === 'tags') table = 'tags'
+      else if (activeTab === 'statuses') table = 'custom-statuses'
 
-      // Add created_at for categories and tags
-      if ((activeTab === 'categories' || activeTab === 'tags' || activeTab === 'statuses') && !editingItem) {
-        insertValues.created_at = new Date().toISOString()
-      }
-
+      const authHeader = await getAdminAuthHeader()
+      const endpoint = `/api/admin/${table}`
+      
       if (editingItem) {
-        const { error } = await supabase.from(table).update(values).eq('id', editingItem.id)
-        if (error) throw error
+        const response = await fetch(endpoint, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+          body: JSON.stringify({ id: editingItem.id, ...values })
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error)
         message.success(`${activeTab === 'statuses' ? 'Status' : activeTab.slice(0, -1)} updated`)
       } else {
-        const { error } = await supabase.from(table).insert([insertValues])
-        if (error) throw error
+        const response = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: authHeader },
+          body: JSON.stringify(values)
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error)
         message.success(`${activeTab === 'statuses' ? 'Status' : activeTab.slice(0, -1)} added`)
       }
       
@@ -130,13 +148,21 @@ export default function SettingsPage() {
   const handleDelete = async (id: string) => {
     setTableLoading(true)
     try {
-      let table = ''
-      if (activeTab === 'categories') table = 'tbl_categories'
-      else if (activeTab === 'tags') table = 'tbl_tags'
-      else if (activeTab === 'statuses') table = 'tbl_custom_statuses'
+      let endpoint = ''
+      if (activeTab === 'categories') endpoint = '/api/admin/categories'
+      else if (activeTab === 'tags') endpoint = '/api/admin/tags'
+      else if (activeTab === 'statuses') endpoint = '/api/admin/custom-statuses'
 
-      const { error } = await supabase.from(table).delete().eq('id', id)
-      if (error) throw error
+      const url = new URL(endpoint, window.location.origin)
+      url.searchParams.set('id', id)
+      
+      const authHeader = await getAdminAuthHeader()
+      const response = await fetch(url.toString(), {
+        method: 'DELETE',
+        headers: { Authorization: authHeader }
+      })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.error)
       message.success(`${activeTab === 'statuses' ? 'Status' : activeTab.slice(0, -1)} deleted`)
       fetchData()
     } catch {
