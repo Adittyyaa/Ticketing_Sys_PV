@@ -89,7 +89,7 @@ export default function UserManagementPage() {
       const response = await fetch('/api/admin/users', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: authHeader },
-        body: JSON.stringify({ email: values.email, password: values.password, fullName: values.fullName, role: values.role }),
+        body: JSON.stringify({ email: values.email, password: values.password, full_name: values.fullName, role: values.role }),
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Failed to create user')
