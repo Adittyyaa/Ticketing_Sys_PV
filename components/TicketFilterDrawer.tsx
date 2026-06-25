@@ -353,8 +353,8 @@ export default function TicketFilterDrawer({
               size="large"
               style={{ width: '100%' }}
               placeholder="Any type"
-              options={[{ value: 'all', label: 'Any type' }, ...types.map(type => ({ value: type, label: type }))]}
-            >
+               options={[{ value: 'all', label: 'Any type' }, ...types.map(type => ({ value: type, label: type }))]}
+             />
           </div>
         </Space>
       </div>
