@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { Modal, Form, Input, Select, Rate, Button, message } from 'antd'
-import { useAuthStore } from '@/lib/store'
 
 interface FeedbackModalProps {
   isOpen: boolean
@@ -12,7 +11,6 @@ interface FeedbackModalProps {
 export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
-  const { user } = useAuthStore()
 
   const handleSubmit = async (values: any) => {
     setSubmitting(true)
