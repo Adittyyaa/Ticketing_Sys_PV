@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Modal, Form, Input, Select, Rate, Button, message } from 'antd'
-import { supabase } from '@/lib/supabase'
+import { useAuthStore } from '@/lib/store'
 
 interface FeedbackModalProps {
   isOpen: boolean
@@ -12,24 +12,25 @@ interface FeedbackModalProps {
 export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
   const [submitting, setSubmitting] = useState(false)
   const [form] = Form.useForm()
+  const { user } = useAuthStore()
 
   const handleSubmit = async (values: any) => {
     setSubmitting(true)
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session?.access_token) throw new Error('No active session')
-      
+      const token = document.cookie.split('; ').find(row => row.startsWith('auth-token='))?.split('=')[1]
+      if (!token) throw new Error('No active session')
+
       const response = await fetch('/api/feedback', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json', 
-          'Authorization': `Bearer ${session.access_token}` 
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(values)
       })
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'Failed to submit feedback')
-      
+
       message.success('Thank you for your feedback!')
       form.resetFields()
       onClose()
@@ -46,7 +47,7 @@ export default function FeedbackModal({ isOpen, onClose }: FeedbackModalProps) {
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      destroyOnClose
+      destroyOnHidden
     >
       <Form form={form} layout="vertical" onFinish={handleSubmit} style={{ marginTop: 16 }}>
         <Form.Item name="category" label="Category" rules={[{ required: true, message: 'Please select a category' }]}>
