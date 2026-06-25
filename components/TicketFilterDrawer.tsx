@@ -324,18 +324,14 @@ export default function TicketFilterDrawer({
             }}>
               Category
             </label>
-            <Select
-              value={tempCategory}
-              onChange={setTempCategory}
-              size="large"
-              style={{ width: '100%' }}
-              placeholder="Any category"
-            >
-              <Select.Option value="all">Any category</Select.Option>
-              {categories.map(cat => (
-                <Select.Option key={cat} value={cat}>{cat}</Select.Option>
-              ))}
-            </Select>
+              <Select
+                value={tempCategory}
+                onChange={setTempCategory}
+                size="large"
+                style={{ width: '100%' }}
+                placeholder="Any category"
+                options={[{ value: 'all', label: 'Any category' }, ...categories.map(cat => ({ value: cat, label: cat }))]}
+              />
           </div>
 
           {/* Type Filter */}
@@ -357,12 +353,8 @@ export default function TicketFilterDrawer({
               size="large"
               style={{ width: '100%' }}
               placeholder="Any type"
+              options={[{ value: 'all', label: 'Any type' }, ...types.map(type => ({ value: type, label: type }))]}
             >
-              <Select.Option value="all">Any type</Select.Option>
-              {types.map(type => (
-                <Select.Option key={type} value={type}>{type}</Select.Option>
-              ))}
-            </Select>
           </div>
         </Space>
       </div>

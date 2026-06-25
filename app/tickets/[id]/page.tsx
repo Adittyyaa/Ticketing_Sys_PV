@@ -255,10 +255,10 @@ export default function TicketDetailPage() {
                 <Form form={form} layout="vertical" onFinish={handleSave} initialValues={{ priority: ticket.priority, status: ticket.status }}>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
                     <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Priority</span>} name="priority" rules={[{ required: true }]}>
-                      <Select style={{ height: 32 }}>{priorityOptions.map((p) => <Select.Option key={p} value={p}>{p}</Select.Option>)}</Select>
+                      <Select style={{ height: 32 }} options={priorityOptions.map(p => ({ label: p, value: p }))} />
                     </Form.Item>
                     <Form.Item label={<span style={{ color: 'var(--text-secondary)', fontSize: 12, fontWeight: 500 }}>Status</span>} name="status" rules={[{ required: true }]}>
-                      <Select style={{ height: 32 }}>{statusDropdownOptions.map((s) => <Select.Option key={s.value} value={s.value}>{s.label}</Select.Option>)}</Select>
+                      <Select style={{ height: 32 }} options={statusDropdownOptions} />
                     </Form.Item>
                   </div>
                   <Form.Item style={{ marginBottom: 0 }}>

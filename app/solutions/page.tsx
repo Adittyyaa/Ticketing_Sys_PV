@@ -330,19 +330,15 @@ export default function SolutionsPage() {
           onCancel={() => setModalVisible(false)}
           footer={null}
           width={700}
-          destroyOnClose
+          destroyOnHidden
         >
           <Form form={form} layout="vertical" onFinish={handleSubmit} style={{ marginTop: 24 }}>
             <div style={{ display: 'flex', gap: 16 }}>
               <Form.Item name="title" label="Issue Title" rules={[{ required: true, message: 'Title is required' }]} style={{ flex: 1 }}>
-                <Input placeholder="e.g., Unable to reset password" height={40} />
+                <Input placeholder="e.g., Unable to reset password" style={{ height: 40 }} />
               </Form.Item>
               <Form.Item name="category" label="Category" rules={[{ required: true }]} style={{ width: 200 }}>
-                <Select>
-                  {CATEGORIES.map(cat => (
-                    <Option key={cat} value={cat}>{cat}</Option>
-                  ))}
-                </Select>
+                <Select options={CATEGORIES.map(cat => ({ label: cat, value: cat }))} />
               </Form.Item>
             </div>
             
