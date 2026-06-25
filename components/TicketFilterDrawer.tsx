@@ -138,7 +138,7 @@ export default function TicketFilterDrawer({
       placement="right"
       onClose={onClose}
       open={open}
-      width={420}
+      size={420}
       closeIcon={null}
       styles={{
         body: { padding: 0, display: 'flex', flexDirection: 'column', height: '100%' },
