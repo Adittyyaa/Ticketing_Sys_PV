@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if categories already exist
-    const result = await query('SELECT COUNT(*) FROM tbl_categories')
+    const result = await query('SELECT COUNT(*) FROM categories')
     const categoryCount = parseInt(result.rows[0].count, 10)
 
     if (categoryCount > 0) {
@@ -24,7 +24,7 @@ export async function POST(request: NextRequest) {
       .map((name) => [name])
 
     await query(
-      `INSERT INTO tbl_categories (name, created_at) VALUES ${categoriesToInsert.map((_, i) => `($${i * 2 + 1}, NOW())`).join(', ')}`,
+      `INSERT INTO categories (name, created_at) VALUES ${categoriesToInsert.map((_, i) => `($${i * 2 + 1}, NOW())`).join(', ')}`,
       categoriesToInsert.flat()
     )
 

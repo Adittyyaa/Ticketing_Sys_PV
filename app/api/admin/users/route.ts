@@ -12,7 +12,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await query('SELECT id, email, full_name, role, created_at FROM tbl_users ORDER BY created_at DESC')
+    const result = await query('SELECT id, email, full_name, role, created_at FROM users ORDER BY created_at DESC')
     return NextResponse.json({ users: result.rows || [] })
   } catch (error) {
     return NextResponse.json(
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     if (existingUser) {
       await query(
-        'UPDATE tbl_users SET full_name = $1, role = $2, updated_at = NOW() WHERE id = $3 RETURNING id',
+        'UPDATE users SET full_name = $1, role = $2, updated_at = NOW() WHERE id = $3 RETURNING id',
         [full_name, role, existingUser.id]
       )
       return NextResponse.json({ success: true, userId: existingUser.id, message: `${role === 'admin' ? 'Admin' : 'User'} profile updated successfully` })
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(password)
 
     const result = await query(
-      'INSERT INTO tbl_users (email, password, full_name, role, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
+      'INSERT INTO users (email, password_hash, full_name, role, created_at) VALUES ($1, $2, $3, $4, NOW()) RETURNING id',
       [email, hashedPassword, full_name, role]
     )
 
@@ -102,7 +102,7 @@ export async function PUT(request: NextRequest) {
     }
 
     await query(
-      'UPDATE tbl_users SET role = $1 WHERE id = $2 RETURNING id',
+      'UPDATE users SET role = $1 WHERE id = $2 RETURNING id',
       [role, id]
     )
     return NextResponse.json({ success: true })
@@ -126,7 +126,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'User ID required' }, { status: 400 })
     }
 
-    const result = await query('DELETE FROM tbl_users WHERE id = $1 RETURNING id', [id])
+    const result = await query('DELETE FROM users WHERE id = $1 RETURNING id', [id])
     return NextResponse.json({ success: true, deleted: (result.rowCount || 0) > 0 })
   } catch (error) {
     return NextResponse.json(

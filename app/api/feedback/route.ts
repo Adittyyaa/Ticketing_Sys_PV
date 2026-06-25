@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await query(
-      `INSERT INTO tbl_feedback (user_id, category, rating, message, created_at)
+      `INSERT INTO feedback (user_id, category, rating, message, created_at)
        VALUES ($1, $2, $3, $4, NOW())
        RETURNING *`,
       [auth.userId, category, rating, message.trim()]
@@ -43,7 +43,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await query('SELECT * FROM tbl_feedback ORDER BY created_at DESC')
+    const result = await query('SELECT * FROM feedback ORDER BY created_at DESC')
     return NextResponse.json({ feedback: result.rows || [] })
   } catch (error) {
     console.error('Feedback API error:', error)

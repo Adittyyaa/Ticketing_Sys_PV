@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await query('SELECT * FROM tbl_custom_statuses ORDER BY name')
+    const result = await query('SELECT * FROM custom_statuses ORDER BY name')
     return NextResponse.json({ statuses: result.rows || [] })
   } catch (error) {
     return NextResponse.json(
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await query(
-      'INSERT INTO tbl_custom_statuses (name, color, created_at) VALUES ($1, $2, NOW()) RETURNING *',
+      'INSERT INTO custom_statuses (name, color, created_at) VALUES ($1, $2, NOW()) RETURNING *',
       [name.trim(), color]
     )
     return NextResponse.json({ status: result.rows[0] })
@@ -60,7 +60,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await query(
-      'UPDATE tbl_custom_statuses SET name = $1, color = $2 WHERE id = $3 RETURNING *',
+      'UPDATE custom_statuses SET name = $1, color = $2 WHERE id = $3 RETURNING *',
       [name.trim(), color, id]
     )
     return NextResponse.json({ status: result.rows[0] })
@@ -84,7 +84,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Status ID required' }, { status: 400 })
     }
 
-    const result = await query('DELETE FROM tbl_custom_statuses WHERE id = $1 RETURNING id', [id])
+    const result = await query('DELETE FROM custom_statuses WHERE id = $1 RETURNING id', [id])
     return NextResponse.json({ success: true, deleted: (result.rowCount || 0) > 0 })
   } catch (error) {
     return NextResponse.json(

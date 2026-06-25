@@ -57,9 +57,9 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await query(
-      `INSERT INTO tbl_tickets (title, description, category, type, product, product_reference_number, priority, status, tags, user_id)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
-       RETURNING *`,
+      `INSERT INTO tickets (title, description, category_id, type_id, product, product_reference_number, priority, status, tags, user_id)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        RETURNING *`,
       [
         title.trim(),
         description.trim(),

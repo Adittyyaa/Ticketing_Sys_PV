@@ -12,7 +12,9 @@
     "db:setup-production": "npx tsx scripts/setup-production-db.ts",
     "db:create-admin": "npx tsx scripts/setup-production-db.ts --create-admin",
     "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down"
+    "docker:down": "docker-compose down",
+    "docker:seed": "docker-compose exec app npx tsx scripts/setup-production-db.ts --create-admin --email admin@pvadvisory.com --password Admin123321 --name Admin",
+    "docker:logs": "docker-compose logs -f app"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.38.0",
@@ -20,6 +22,7 @@
     "autoprefixer": "^10.4.16",
     "bcryptjs": "^2.4.3",
     "date-fns": "^2.30.0",
+    "docker": "^1.0.0",
     "html2canvas": "^1.4.1",
     "jose": "^5.10.0",
     "jspdf": "^4.2.1",

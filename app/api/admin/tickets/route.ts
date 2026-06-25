@@ -28,7 +28,7 @@ async function hydrateTicketUsers(tickets: HydratedTicket[]): Promise<HydratedTi
   )
   if (userIds.length === 0) return tickets
 
-  const result = await query<TicketUser>('SELECT id, email, full_name FROM tbl_users WHERE id = ANY($1)', [userIds])
+  const result = await query<TicketUser>('SELECT id, email, full_name FROM users WHERE id = ANY($1)', [userIds])
   const userMap = new Map<string, TicketUser>(
     (result.rows || []).map((user: TicketUser) => [user.id, { ...user, full_name: user.full_name || undefined }])
   )
@@ -80,7 +80,7 @@ export async function GET(request: NextRequest) {
     const userId = auth.userId
     const role = auth.role
 
-    let sqlQuery = `SELECT ${ticketColumns} FROM tbl_tickets`
+    let sqlQuery = `SELECT ${ticketColumns} FROM tickets`
     const conditions: string[] = []
     const values: any[] = []
 

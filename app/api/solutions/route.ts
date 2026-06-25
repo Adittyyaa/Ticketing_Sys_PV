@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     const search = request.nextUrl.searchParams.get('search') || ''
     const category = request.nextUrl.searchParams.get('category') || ''
 
-    let sqlQuery = 'SELECT * FROM tbl_solutions'
+    let sqlQuery = 'SELECT * FROM solutions'
     const conditions: string[] = []
     const values: any[] = []
 
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await query(
-      `INSERT INTO tbl_solutions (title, description, steps, category, created_at, updated_at)
+      `INSERT INTO solutions (title, description, steps, category, created_at, updated_at)
        VALUES ($1, $2, $3, $4, NOW(), NOW())
        RETURNING *`,
       [title.trim(), description.trim(), steps.trim(), category?.trim() || 'General']
@@ -101,7 +101,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await query(
-      `UPDATE tbl_solutions SET title = $1, description = $2, steps = $3, category = $4, updated_at = NOW() WHERE id = $5 RETURNING *`,
+      `UPDATE solutions SET title = $1, description = $2, steps = $3, category = $4, updated_at = NOW() WHERE id = $5 RETURNING *`,
       [title.trim(), description.trim(), steps.trim(), category?.trim() || 'General', id]
     )
 
@@ -132,7 +132,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Solution ID required' }, { status: 400 })
     }
 
-    const result = await query('DELETE FROM tbl_solutions WHERE id = $1 RETURNING id', [id])
+    const result = await query('DELETE FROM solutions WHERE id = $1 RETURNING id', [id])
 
     if ((result.rowCount || 0) === 0) {
       return NextResponse.json({ error: 'Solution not found' }, { status: 404 })

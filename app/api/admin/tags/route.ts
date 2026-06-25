@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await query('SELECT * FROM tbl_tags ORDER BY name')
+    const result = await query('SELECT * FROM tags ORDER BY name')
     return NextResponse.json({ tags: result.rows || [] })
   } catch (error) {
     return NextResponse.json(
@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     const result = await query(
-      'INSERT INTO tbl_tags (name, created_at) VALUES ($1, NOW()) RETURNING *',
+      'INSERT INTO tags (name, created_at) VALUES ($1, NOW()) RETURNING *',
       [name.trim()]
     )
     return NextResponse.json({ tag: result.rows[0] })
@@ -60,7 +60,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const result = await query(
-      'UPDATE tbl_tags SET name = $1 WHERE id = $2 RETURNING *',
+      'UPDATE tags SET name = $1 WHERE id = $2 RETURNING *',
       [name.trim(), id]
     )
     return NextResponse.json({ tag: result.rows[0] })
@@ -84,7 +84,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Tag ID required' }, { status: 400 })
     }
 
-    const result = await query('DELETE FROM tbl_tags WHERE id = $1 RETURNING id', [id])
+    const result = await query('DELETE FROM tags WHERE id = $1 RETURNING id', [id])
     return NextResponse.json({ success: true, deleted: (result.rowCount || 0) > 0 })
   } catch (error) {
     return NextResponse.json(

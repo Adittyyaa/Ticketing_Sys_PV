@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
 
   // Fetch user data
   const result = await (await import('@/lib/database')).query(
-    'SELECT id, email, full_name, role, phone, job_title, company, created_at FROM tbl_users WHERE id = $1',
+    'SELECT id, email, full_name, role, phone, job_title, company, created_at FROM users WHERE id = $1',
     [auth.userId]
   )
 

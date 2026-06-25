@@ -15,7 +15,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Ticket IDs array is required' }, { status: 400 })
     }
 
-    const result = await query('DELETE FROM tbl_tickets WHERE id = ANY($1) RETURNING id', [ticketIds])
+    const result = await query('DELETE FROM tickets WHERE id = ANY($1) RETURNING id', [ticketIds])
 
     return NextResponse.json({
       success: true,

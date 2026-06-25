@@ -9,7 +9,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await query('SELECT * FROM tbl_ticket_types ORDER BY name')
+    const result = await query('SELECT * FROM ticket_types ORDER BY name')
     return NextResponse.json({ types: result.rows || [] })
   } catch (error) {
     return NextResponse.json(
