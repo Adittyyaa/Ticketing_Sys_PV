@@ -104,7 +104,7 @@ export default function AccountDetailsModal({ isOpen, onClose }: AccountDetailsM
       open={isOpen}
       onCancel={onClose}
       footer={null}
-      size={480}
+      width={480}
       style={{ ...glassOverlayStyle, borderRadius: 16 }}
       styles={{ body: { padding: 0 } }}
       closeIcon={false}
