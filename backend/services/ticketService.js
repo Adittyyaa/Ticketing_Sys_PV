@@ -73,8 +73,9 @@ class TicketService {
   }
 
   async getTicketById(ticketId, requesterId, requesterRole) {
+    // Use the fast view for better performance
     const result = await safeQuery(
-      'SELECT * FROM ticket_details WHERE id = $1',
+      'SELECT * FROM ticket_details_fast WHERE id = $1',
       [ticketId]
     )
     const ticket = result.rows[0] || null
@@ -88,6 +89,15 @@ class TicketService {
       throw new Error('Access denied: You can only view your own tickets')
     }
 
+    // Get counts separately only when needed (lazy loading)
+    const [commentsResult, attachmentsResult] = await Promise.all([
+      safeQuery('SELECT COUNT(*)::int as count FROM comments WHERE ticket_id = $1', [ticketId]),
+      safeQuery('SELECT COUNT(*)::int as count FROM attachments WHERE ticket_id = $1', [ticketId])
+    ])
+
+    ticket.comment_count = commentsResult.rows[0].count
+    ticket.attachment_count = attachmentsResult.rows[0].count
+
     return ticket
   }
 
@@ -99,14 +109,16 @@ class TicketService {
     const limitParam = paramIndex
     const offsetParam = paramIndex + 1
 
+    // Use optimized queries
     const countResult = await safeQuery(
       `SELECT COUNT(*) as count FROM tickets ${whereClause}`,
       values
     )
     const total = parseInt(countResult.rows[0].count)
 
+    // Use fast view without expensive subqueries
     const ticketsResult = await safeQuery(
-      `SELECT * FROM ticket_details 
+      `SELECT * FROM ticket_details_fast 
        ${whereClause}
        ORDER BY created_at DESC
        LIMIT $${limitParam} OFFSET $${offsetParam}`,
@@ -171,11 +183,16 @@ class TicketService {
     })
 
     if (fields.length === 0) {
-      const result = await safeQuery('SELECT * FROM ticket_details WHERE id = $1', [ticketId])
+      const result = await safeQuery('SELECT * FROM ticket_details_fast WHERE id = $1', [ticketId])
       return result.rows[0]
     }
 
     values.push(ticketId)
+
+    // Update resolved_at timestamp when status changes to SOLVED
+    if (ticketData.status === 'SOLVED') {
+      fields.push(`resolved_at = NOW()`)
+    }
 
     const result = await safeQuery(
       `UPDATE tickets SET ${fields.join(', ')}, updated_at = NOW()
@@ -260,7 +277,7 @@ class TicketService {
     const total = parseInt(countResult.rows[0].count)
 
     const ticketsResult = await safeQuery(
-      `SELECT * FROM ticket_details 
+      `SELECT * FROM ticket_details_fast 
        ${whereClause}
        ORDER BY created_at DESC
        LIMIT $${paramIndex++} OFFSET $${paramIndex++}`,

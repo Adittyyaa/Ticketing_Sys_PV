@@ -35,10 +35,10 @@ const sequelize = new Sequelize(databaseUrl, {
   dialectOptions: { ssl: sslConfig },
   logging: process.env.NODE_ENV === 'development' ? console.log : false,
   pool: {
-    max: 5,
-    min: 0,
-    acquire: 30000,
-    idle: 10000,
+    max: 20,        // Increased connection pool
+    min: 5,         // Keep minimum connections warm
+    acquire: 60000, // Longer acquire timeout
+    idle: 300000,   // 5 minute idle timeout
   },
   define: {
     timestamps: true,

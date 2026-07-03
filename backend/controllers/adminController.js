@@ -783,19 +783,65 @@ const getDashboardStats = async (req, res) => {
       });
     }
 
-    const [ticketAnalytics, userStats, ticketsByCategory, ticketsByAgent] = await Promise.allSettled([
-      ticketService.getTicketAnalytics(),
-      userService.getUserStatistics(),
-      ticketService.getTicketsByCategory(),
-      ticketService.getTicketsByAgent()
+    // Use optimized queries with proper indexes
+    const [basicStatsResult, categoryStatsResult, userStatsResult] = await Promise.all([
+      // Basic ticket counts with single query
+      safeQuery(`
+        SELECT 
+          COUNT(*) as total_tickets,
+          COUNT(*) FILTER (WHERE status = 'UNTOUCHED') as untouched_tickets,
+          COUNT(*) FILTER (WHERE status = 'PENDING') as pending_tickets,
+          COUNT(*) FILTER (WHERE status = 'OPENED') as opened_tickets,
+          COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as in_progress_tickets,
+          COUNT(*) FILTER (WHERE status = 'SOLVED') as solved_tickets,
+          COUNT(*) FILTER (WHERE status = 'CLOSED') as closed_tickets,
+          COUNT(*) FILTER (WHERE priority = 'HIGH') as high_priority,
+          COUNT(*) FILTER (WHERE priority = 'URGENT') as urgent_priority,
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as tickets_today,
+          COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') as tickets_this_week
+        FROM tickets
+      `),
+      
+      // Category breakdown
+      safeQuery(`
+        SELECT c.name as category_name, COUNT(t.id) as ticket_count
+        FROM categories c
+        LEFT JOIN tickets t ON c.id = t.category_id
+        GROUP BY c.id, c.name
+        ORDER BY ticket_count DESC
+        LIMIT 10
+      `),
+      
+      // User stats
+      safeQuery(`
+        SELECT 
+          COUNT(*) as total_users,
+          COUNT(*) FILTER (WHERE role = 'admin') as admin_count,
+          COUNT(*) FILTER (WHERE role = 'agent') as agent_count,
+          COUNT(*) FILTER (WHERE role = 'user') as user_count,
+          COUNT(*) FILTER (WHERE last_login >= NOW() - INTERVAL '7 days') as active_users_week
+        FROM users
+      `)
     ]);
 
     const stats = {
-      tickets: ticketAnalytics.status === 'fulfilled' ? ticketAnalytics.value : null,
-      users: userStats.status === 'fulfilled' ? userStats.value : null,
-      ticketsByCategory: ticketsByCategory.status === 'fulfilled' ? ticketsByCategory.value : [],
-      ticketsByAgent: ticketsByAgent.status === 'fulfilled' ? ticketsByAgent.value : []
+      tickets: basicStatsResult.rows[0],
+      ticketsByCategory: categoryStatsResult.rows,
+      users: userStatsResult.rows[0]
     };
+
+    // Convert string counts to integers
+    Object.keys(stats.tickets).forEach(key => {
+      if (stats.tickets[key] !== null) {
+        stats.tickets[key] = parseInt(stats.tickets[key]) || 0;
+      }
+    });
+
+    Object.keys(stats.users).forEach(key => {
+      if (stats.users[key] !== null) {
+        stats.users[key] = parseInt(stats.users[key]) || 0;
+      }
+    });
 
     logger.info('Admin dashboard stats retrieved successfully', {
       controller: 'admin',
