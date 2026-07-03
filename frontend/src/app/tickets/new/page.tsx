@@ -300,7 +300,7 @@ export default function NewTicketPage() {
                     size="large"
                     placeholder="Select or type tags (max 10)"
                     loading={fetchingData}
-                    options={dbTags.map(tag => ({ label: tag.name, value: tag.name }))}
+                    options={dbTags.map(tag => ({ label: tag.name, value: tag.id }))}
                   />
                 </Form.Item>
               </Col>
