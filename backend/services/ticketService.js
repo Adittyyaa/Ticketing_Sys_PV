@@ -1,4 +1,5 @@
 import { safeQuery } from '../lib/database.js'
+import cache, { CACHE_KEYS, CACHE_TTL } from '../utils/cache.js'
 
 class TicketService {
 
@@ -48,6 +49,80 @@ class TicketService {
   }
 
   // ============================================
+  // CACHED ANALYTICS METHODS
+  // ============================================
+
+  async getTicketAnalytics() {
+    const cached = cache.get(CACHE_KEYS.TICKET_ANALYTICS);
+    if (cached) return cached;
+
+    const result = await safeQuery(`
+      SELECT 
+        COUNT(*) as total_tickets,
+        COUNT(*) FILTER (WHERE status = 'UNTOUCHED') as untouched_tickets,
+        COUNT(*) FILTER (WHERE status = 'PENDING') as pending_tickets,
+        COUNT(*) FILTER (WHERE status = 'OPENED') as opened_tickets,
+        COUNT(*) FILTER (WHERE status = 'IN_PROGRESS') as in_progress_tickets,
+        COUNT(*) FILTER (WHERE status = 'SOLVED') as solved_tickets,
+        COUNT(*) FILTER (WHERE status = 'CLOSED') as closed_tickets,
+        COUNT(*) FILTER (WHERE priority = 'HIGH') as high_priority,
+        COUNT(*) FILTER (WHERE priority = 'MEDIUM') as medium_priority,
+        COUNT(*) FILTER (WHERE priority = 'LOW') as low_priority,
+        COUNT(*) FILTER (WHERE priority = 'URGENT') as urgent_priority,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '24 hours') as tickets_today,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '7 days') as tickets_this_week,
+        COUNT(*) FILTER (WHERE created_at >= NOW() - INTERVAL '30 days') as tickets_this_month
+      FROM tickets
+    `);
+
+    const analytics = result.rows[0];
+    // Convert string counts to integers
+    Object.keys(analytics).forEach(key => {
+      analytics[key] = parseInt(analytics[key]) || 0;
+    });
+
+    return cache.set(CACHE_KEYS.TICKET_ANALYTICS, analytics, CACHE_TTL.TICKET_ANALYTICS);
+  }
+
+  async getTicketsByCategory() {
+    const result = await safeQuery(`
+      SELECT c.name as category_name, c.color, COUNT(t.id)::int as ticket_count
+      FROM categories c
+      LEFT JOIN tickets t ON c.id = t.category_id
+      GROUP BY c.id, c.name, c.color
+      ORDER BY ticket_count DESC
+    `);
+    return result.rows;
+  }
+
+  async getTicketsByAgent() {
+    const result = await safeQuery(`
+      SELECT u.full_name as agent_name, COUNT(t.id)::int as ticket_count
+      FROM users u
+      LEFT JOIN tickets t ON u.id = t.assigned_to
+      WHERE u.role IN ('admin', 'agent')
+      GROUP BY u.id, u.full_name
+      ORDER BY ticket_count DESC
+    `);
+    return result.rows;
+  }
+
+  async getRecentTickets(limit = 10) {
+    const cacheKey = `${CACHE_KEYS.RECENT_TICKETS}_${limit}`;
+    const cached = cache.get(cacheKey);
+    if (cached) return cached;
+
+    const result = await safeQuery(
+      `SELECT * FROM ticket_details_fast 
+       ORDER BY created_at DESC 
+       LIMIT $1`,
+      [limit]
+    );
+
+    return cache.set(cacheKey, result.rows, CACHE_TTL.RECENT_TICKETS);
+  }
+
+  // ============================================
   // TICKET CRUD OPERATIONS
   // ============================================
 
@@ -69,6 +144,11 @@ class TicketService {
         ticketData.tags || []
       ]
     )
+
+    // Invalidate relevant caches
+    cache.delete(CACHE_KEYS.TICKET_ANALYTICS);
+    cache.delete(CACHE_KEYS.RECENT_TICKETS);
+
     return result.rows[0]
   }
 
@@ -200,6 +280,11 @@ class TicketService {
        RETURNING *`,
       values
     )
+
+    // Invalidate relevant caches when ticket is updated
+    cache.delete(CACHE_KEYS.TICKET_ANALYTICS);
+    cache.delete(CACHE_KEYS.RECENT_TICKETS);
+
     return result.rows[0]
   }
 
