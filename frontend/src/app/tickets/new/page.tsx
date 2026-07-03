@@ -226,7 +226,6 @@ export default function NewTicketPage() {
                   label={<span style={{ color: 'var(--text-secondary)', fontSize: 13, fontWeight: 600 }}>Status</span>}
                   name="status"
                   rules={[{ required: true, message: 'Please select a status' }]}
-                  initialValue=""
                 >
                   <Select
                     size="large"
