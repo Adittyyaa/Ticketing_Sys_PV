@@ -1,0 +1,35 @@
+{
+  "name": "pv-advisory-backend",
+  "version": "1.0.0",
+  "description": "PV Advisory Ticketing System - Backend API",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nodemon server.js",
+    "build": "echo 'No build step needed for JavaScript'",
+    "start": "node server.js",
+    "lint": "eslint . --ext .js --ignore-pattern node_modules",
+    "db:setup": "psql -f config/database-setup-postgresql.sql",
+    "db:setup-production": "node scripts/setup-production-db.js",
+    "db:create-admin": "node scripts/setup-production-db.js --create-admin"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "cors": "^2.8.5",
+    "dotenv": "^17.4.2",
+    "express": "^4.19.2",
+    "express-rate-limit": "^8.5.2",
+    "helmet": "^7.1.0",
+    "jose": "^5.10.0",
+    "morgan": "^1.10.0",
+    "pg": "^8.12.0",
+    "pg-hstore": "^2.3.4",
+    "sequelize": "^6.37.8",
+    "uuid": "^9.0.1",
+    "zustand": "^4.4.1"
+  },
+  "devDependencies": {
+    "eslint": "^8.57.0",
+    "nodemon": "^3.0.1"
+  }
+}

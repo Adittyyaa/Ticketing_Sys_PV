@@ -1,0 +1,15 @@
+/**
+ * Main styles entry point
+ * Imports all style files in the correct order
+ */
+
+/* Import Tailwind CSS base styles */
+@import 'tailwindcss/base';
+@import 'tailwindcss/components';
+@import 'tailwindcss/utilities';
+
+/* Import global styles */
+@import './globals.css';
+
+/* Import component-specific styles */
+@import './components.css';
